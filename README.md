@@ -17,3 +17,4 @@ Quickly switch among applications in the Dock.
 
 ## Note
 * For the first time use, go to ``System Preferences -> Security & Privacy -> Privacy`` tab, unlock and tick for ``dock-switch.app`` 
+* You will need to allow apps from ``unidentified developer (i.e., me)`` several times during installation, because I didn't pay the [apple tax](https://www.urbandictionary.com/define.php?term=Apple%20Tax).
