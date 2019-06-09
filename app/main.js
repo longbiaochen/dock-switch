@@ -32,7 +32,7 @@ electron.app.on("ready", () => {
         if (electron.win.isVisible()) {
             electron.win.hide();
         } else {
-            var response = child_process.execSync(`${__dirname}/dock/bin/dock`).toString();
+            var response = child_process.execSync(`${__dirname}/bin/dock`).toString();
             // console.log(response);
             dock_items = JSON.parse(response);
             show_window();
@@ -40,7 +40,7 @@ electron.app.on("ready", () => {
         }
     });
 
-    electron.tray = new electron.Tray(`${__dirname}/img/icon@2x.png`);
+    electron.tray = new electron.Tray(`${__dirname}/icon@2x.png`);
     const contextMenu = electron.Menu.buildFromTemplate([
         { label: "Settings..." },
         { label: "Quit", role: "quit" }

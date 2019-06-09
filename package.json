@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "dock-switch",
   "author": "Longbiao CHEN",
-  "main": "main.js",
+  "main": "app/main.js",
   "dependencies": {
     "bootstrap": "^4.3.1",
     "jquery": "^3.4.1",
