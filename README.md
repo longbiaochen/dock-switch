@@ -6,7 +6,7 @@ Quickly switch among applications in the Dock.
 
 
 ## Installation
-
+* Download the latest release version: https://github.com/longbiaochen/dock-switch/releases
 
 ## Build from source
 1. `git clone ${this-repo}`
