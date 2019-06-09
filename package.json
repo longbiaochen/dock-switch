@@ -1,0 +1,29 @@
+{
+  "name": "dock-switch",
+  "version": "1.0.0",
+  "description": "dock-switch",
+  "author": "Longbiao CHEN",
+  "main": "main.js",
+  "dependencies": {
+    "bootstrap": "^4.3.1",
+    "jquery": "^3.4.1",
+    "popper.js": "^1.15.0"
+  },
+  "devDependencies": {
+    "electron": "^5.0.2",
+    "electron-builder": "^20.43.0"
+  },
+  "scripts": {
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "license": "ISC",
+  "build": {
+    "asar": false,
+    "appId": "me.longbiao.dock-switch",
+    "mac": {
+      "category": "macos.utility"
+    }
+  },
+  "postinstall": "sudo ./install.sh"
+}
