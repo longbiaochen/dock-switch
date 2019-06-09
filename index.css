@@ -1,0 +1,18 @@
+@import "node_modules/bootstrap/dist/css/bootstrap.min.css";
+
+body {
+    margin: 0;
+    padding: 0;
+}
+
+#container {
+    margin: 0 10px;
+    padding: 0;
+    position: absolute;
+}
+
+.item {
+    position: absolute;
+    padding: 10px 0;
+    min-width: 50px;
+}
