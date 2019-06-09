@@ -17,7 +17,7 @@
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
   },
-  "license": "ISC",
+  "license": "MIT",
   "build": {
     "asar": false,
     "appId": "me.longbiao.dock-switch",

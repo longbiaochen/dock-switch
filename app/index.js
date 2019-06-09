@@ -7,7 +7,7 @@ const child_process = require("child_process");
 var CONFIG = require(`${__dirname}/config.json`);
 var ITEM_TPL = `<div class="item" style="left: %dpx; top: 0;""><button type="button" class="btn btn-info">%s</button></div>`;
 var APP_TPL = `open -a "%s"; sleep .1;`;
-var UI_TPL = `${__dirname}/bin/window %s; ${__dirname}/bin/mouse %s;`;
+var UI_TPL = `${__dirname}/ui-helper window %s`;
 var SCREEN_MAP = { 37: "1", 38: "0", 39: "2", 40: "0" };
 var ITEMS = [];
 

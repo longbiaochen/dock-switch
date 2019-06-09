@@ -1,0 +1,54 @@
+Arguments: 
+  /usr/local/Cellar/node/12.1.0/bin/node /usr/local/Cellar/yarn/1.16.0/libexec/bin/yarn.js install
+
+PATH: 
+  /usr/local/opt/node@6/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/TeX/texbin:/opt/X11/bin:/Applications/exceltk:/usr/local/lib/ruby/gems/2.4.0/gems/jekyll-3.4.3/exe
+
+Yarn version: 
+  1.16.0
+
+Node version: 
+  12.1.0
+
+Platform: 
+  darwin x64
+
+Trace: 
+  Error: EACCES: permission denied, mkdir '/Users/Longbiao/Documents/dock-switch/node_modules/cacheable-request/node_modules'
+
+npm manifest: 
+  {
+    "name": "dock-switch",
+    "version": "1.0.0",
+    "description": "dock-switch",
+    "author": "Longbiao CHEN",
+    "main": "app/main.js",
+    "dependencies": {
+      "bootstrap": "^4.3.1",
+      "jquery": "^3.4.1",
+      "popper.js": "^1.15.0"
+    },
+    "devDependencies": {
+      "electron": "^5.0.2",
+      "electron-builder": "^20.43.0"
+    },
+    "scripts": {
+      "pack": "electron-builder --dir",
+      "dist": "electron-builder"
+    },
+    "license": "GPLv3",
+    "build": {
+      "asar": false,
+      "appId": "me.longbiao.dock-switch",
+      "mac": {
+        "category": "macos.utility"
+      }
+    },
+    "postinstall": "sudo ./install.sh"
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile
