@@ -7,7 +7,7 @@ Quickly switch among applications in the Dock.
 
 
 ## Installation
-* Download the latest release version: https://github.com/longbiaochen/dock-switch/releases
+* Download the latest release: https://github.com/longbiaochen/dock-switch/releases
 
 
 ## Build from source
