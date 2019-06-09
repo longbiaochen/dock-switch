@@ -15,7 +15,7 @@
 		8DBAE03A22AA56BD00417F25 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 12;
-			dstPath = $PROJECT_DIR/bin;
+			dstPath = "$(PROJECT_DIR)/../app/bin";
 			dstSubfolderSpec = 0;
 			files = (
 				8DBAE04622AA58DF00417F25 /* mouse in CopyFiles */,

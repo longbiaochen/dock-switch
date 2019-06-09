@@ -15,7 +15,7 @@
 		8DF90DCA22A8B6000024A979 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = $PROJECT_DIR/bin;
+			dstPath = "$(PROJECT_DIR)/../app/bin";
 			dstSubfolderSpec = 0;
 			files = (
 				8DF90DCB22A8B62D0024A979 /* window in CopyFiles */,
