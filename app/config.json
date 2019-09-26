@@ -26,6 +26,11 @@
         "screen": "0"
     },
     {
+        "name": "Reeder",
+        "key": "V",
+        "screen": "2"
+    },
+    {
         "name": "GitLab",
         "key": "G",
         "screen": "1"
@@ -51,7 +56,7 @@
         "screen": "0"
     },
     {
-        "name": "iTerm2",
+        "name": "iTerm",
         "key": "T",
         "screen": "1"
     },
