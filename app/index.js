@@ -9,7 +9,7 @@ var ITEM_TPL = `<div class="item" style="left: %dpx; top: 0;""><button type="but
 var APP_TPL = `open -a "%s"; sleep .5;`;
 var SCREEN_TPL = `${__dirname}/ui-helper screen %s`;
 var MOUSE_TPL = `${__dirname}/ui-helper mouse %s`;
-var KEY_MAP = { 37: "2", 38: "0", 39: "1", 40: "0" };
+var KEY_MAP = { 37: "2", 38: "0", 39: "1", 40: "3" };
 var ITEMS = [];
 
 $(function() {
