@@ -56,7 +56,12 @@
         "screen": "2"
     },
     {
-        "name": "iTerm",
+        "name": "Visual Studio Code",
+        "key": "X",
+        "screen": "0"
+    },
+    {
+        "name": "iTerm2",
         "key": "T",
         "screen": "1"
     },
