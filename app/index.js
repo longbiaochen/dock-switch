@@ -46,7 +46,7 @@ $(function() {
                 }
             }
             ITEMS.push(item);
-            $("#container").append(util.format(ITEM_TPL, i * 52, item.key));
+            $("#container").append(util.format(ITEM_TPL, i * 52, item.icon ? item.icon : item.key));
         }
     });
 

@@ -71,13 +71,20 @@
         "screen": "2"
     },
     {
-        "name": "Photos",
-        "key": "Q",
+        "name": "Music",
+        "key": "SHIFT",
+        "icon": "⇧",
         "screen": "2"
     },
     {
-        "name": "iTunes",
-        "key": "X",
+        "name": "Reeder",
+        "key": "TAB",
+        "icon": "↹",
+        "screen": "0"
+    },
+    {
+        "name": "Photos",
+        "key": "Q",
         "screen": "2"
     },
     {
