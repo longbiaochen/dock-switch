@@ -1,5 +1,6 @@
 bin/
 dist/
+dock-switch-darwin-x64/
 node_modules/
 output/
 release/
