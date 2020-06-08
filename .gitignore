@@ -1,6 +1,12 @@
-bin
-dist
-node_modules
-release
+bin/
+dist/
+node_modules/
+output/
+release/
 .DS_Store
-.log
+.Trashes
+*.bin
+*.class
+*.db
+*.log
+*.vs

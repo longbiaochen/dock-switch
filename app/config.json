@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "items": [
   {
     "name": "Finder",
@@ -77,4 +78,99 @@
     "key": "N",
     "screen": "1"
   }]
+=======
+    "items": [
+    {
+        "name": "Finder",
+        "key": "F",
+        "screen": "1"
+    },
+    {
+        "name": "Safari",
+        "key": "S",
+        "screen": "2"
+    },
+    {
+        "name": "Mail",
+        "key": "E",
+        "screen": "2"
+    },
+    {
+        "name": "Calendar",
+        "key": "C",
+        "screen": "2"
+    },
+    {
+        "name": "WeChat",
+        "key": "W",
+        "screen": "2"
+    },
+    {
+        "name": "DingTalk",
+        "key": "V",
+        "screen": "2"
+    },
+    {
+        "name": "GitLab",
+        "key": "G",
+        "screen": "1"
+    },
+    {
+        "name": "Bozhi AI",
+        "key": "B",
+        "screen": "1"
+    },
+    {
+        "name": "Notes",
+        "key": "A",
+        "screen": "2"
+    },
+    {
+        "name": "Reminders",
+        "key": "R",
+        "screen": "1"
+    },
+    {
+        "name": "Sublime Text",
+        "key": "D",
+        "screen": "2"
+    },
+    {
+        "name": "Visual Studio Code",
+        "key": "X",
+        "screen": "0"
+    },
+    {
+        "name": "iTerm2",
+        "key": "T",
+        "screen": "1"
+    },
+    {
+        "name": "Zotero",
+        "key": "Z",
+        "screen": "2"
+    },
+    {
+        "name": "Music",
+        "key": "SHIFT",
+        "icon": "⇧",
+        "screen": "2"
+    },
+    {
+        "name": "Reeder",
+        "key": "TAB",
+        "icon": "↹",
+        "screen": "0"
+    },
+    {
+        "name": "Photos",
+        "key": "Q",
+        "screen": "2"
+    },
+    {
+        "name": "System Preferences",
+        "key": "N",
+        "screen": "1"
+    }]
+>>>>>>> 6d0a6e52aa202a62cd2237ec2b050c5a11d08dec
 }
