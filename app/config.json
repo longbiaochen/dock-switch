@@ -1,78 +1,80 @@
 {
-    "items": [
-    {
-        "name": "Finder",
-        "key": "F",
-        "screen": "0"
-    },
-    {
-        "name": "Safari",
-        "key": "S",
-        "screen": "2"
-    },
-    {
-        "name": "Mail",
-        "key": "E",
-        "screen": "0"
-    },
-    {
-        "name": "Calendar",
-        "key": "C",
-        "screen": "0"
-    },
-    {
-        "name": "WeChat",
-        "key": "W",
-        "screen": "0"
-    },
-    {
-        "name": "GitLab",
-        "key": "G",
-        "screen": "1"
-    },
-    {
-        "name": "Bozhi AI",
-        "key": "B",
-        "screen": "1"
-    },
-    {
-        "name": "Notes",
-        "key": "A",
-        "screen": "0"
-    },
-    {
-        "name": "Reminders",
-        "key": "R",
-        "screen": "1"
-    },
-    {
-        "name": "Sublime Text",
-        "key": "D",
-        "screen": "0"
-    },
-    {
-        "name": "iTerm2",
-        "key": "T",
-        "screen": "1"
-    },
-    {
-        "name": "Zotero",
-        "key": "Z",
-        "screen": "0"
-    },
-    {
-        "name": "Photos",
-        "key": "Q",
-        "screen": "0"
-    },
-    {
-        "name": "iTunes",
-        "key": "X",
-        "screen": "1"
-    },
-    {
-        "name": "System Preferences",
-        "key": "N",
-        "screen": "0"
-    }]
+  "items": [
+  {
+    "name": "Finder",
+    "key": "F",
+    "screen": "1"
+  },
+  {
+    "name": "Safari",
+    "key": "S",
+    "screen": "2"
+  },
+  {
+    "name": "Mail",
+    "key": "E",
+    "screen": "2"
+  },
+  {
+    "name": "Calendar",
+    "key": "C",
+    "screen": "2"
+  },
+  {
+    "name": "WeChat",
+    "key": "W",
+    "screen": "2"
+  },
+  {
+    "name": "Google Chrome",
+    "key": "G",
+    "screen": "1"
+  },
+  {
+    "name": "Notes",
+    "key": "A",
+    "screen": "2"
+  },
+  {
+    "name": "Reminders",
+    "key": "R",
+    "screen": "1"
+  },
+  {
+    "name": "Sublime Text",
+    "key": "D",
+    "screen": "2"
+  },
+  {
+    "name": "iTerm2",
+    "key": "T",
+    "screen": "1"
+  },
+  {
+    "name": "Zotero",
+    "key": "Z",
+    "screen": "2"
+  },
+  {
+    "name": "Music",
+    "key": "SHIFT",
+    "icon": "⇧",
+    "screen": "2"
+  },
+  {
+    "name": "Reeder",
+    "key": "TAB",
+    "icon": "↹",
+    "screen": "0"
+  },
+  {
+    "name": "Photos",
+    "key": "Q",
+    "screen": "2"
+  },
+  {
+    "name": "System Preferences",
+    "key": "N",
+    "screen": "1"
+  }]
 }
