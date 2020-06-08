@@ -8,12 +8,11 @@ var CONFIG = require(`${__dirname}/config.json`);
 var ITEM_TPL = `<div class="item" style="left: %dpx; top: 0;""><button type="button" class="btn btn-info">%s</button></div>`;
 var APP_TPL = `open -a "%s"; sleep .1;`;
 var SCREEN_TPL = `ui-helper screen %s`;
+var MOUSE_TPL = `ui-helper mouse %s`;
 var KEY_MAP = { 37: "2", 38: "0", 39: "1" };
 var ITEMS = [];
 
-$(function() { <<
-  <<
-  << < HEAD
+$(function() {
   $(document).on("keydown", function(e) {
     electron.remote.app.hide();
     // new Notification('Title', { body: e.keyCode });
