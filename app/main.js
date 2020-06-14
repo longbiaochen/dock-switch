@@ -32,7 +32,7 @@ electron.app.on("ready", () => {
     if (electron.win.isVisible()) {
       electron.win.hide();
     } else {
-      var response = child_process.execSync(`ui-helper dock 0`).toString();
+      var response = child_process.execSync(`${__dirname}/ui-helper dock 0`).toString();
       // console.log(response);
       dock_items = JSON.parse(response);
       show_window();
