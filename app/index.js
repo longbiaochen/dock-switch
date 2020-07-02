@@ -19,8 +19,8 @@ $(function() {
     // var screen = electron.screen.getAllDisplays();
     if (KEY_MAP[e.keyCode] != undefined) {
       var name = child_process.execSync(util.format(SCREEN_TPL, KEY_MAP[e.keyCode])).toString();
-      // var item = ITEMS.find(item => item.name == name);
-      // item.screen = KEY_MAP[e.keyCode];
+      var item = ITEMS.find(item => item.name == name);
+      item.screen = KEY_MAP[e.keyCode];
       // child_process.execSync(util.format(MOUSE_TPL, item.screen));
     } else {
       var key = e.key.toUpperCase();
