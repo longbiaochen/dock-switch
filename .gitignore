@@ -1,0 +1,12 @@
+bin/
+dist/
+node_modules/
+output/
+release/
+.DS_Store
+.Trashes
+*.bin
+*.class
+*.db
+*.log
+*.vs
