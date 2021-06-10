@@ -46,7 +46,7 @@
     "screen": "2"
   },
   {
-    "name": "iTerm2",
+    "name": "iTerm",
     "key": "T",
     "screen": "1"
   },
@@ -62,9 +62,13 @@
     "screen": "2"
   },
   {
-    "name": "Reeder",
-    "key": "TAB",
-    "icon": "↹",
+    "name": "TV",
+    "key": "V",
+    "screen": "2"
+  },
+  {
+    "name": "Books",
+    "key": "B",
     "screen": "2"
   },
   {
