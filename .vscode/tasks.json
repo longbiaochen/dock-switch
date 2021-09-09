@@ -1,0 +1,16 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "npm",
+			"script": "go",
+			"problemMatcher": [],
+			"label": "npm: go",
+			"detail": "killall -9 dock-switch; electron .",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		}
+	]
+}
