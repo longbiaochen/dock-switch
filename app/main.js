@@ -48,6 +48,7 @@ electron.app.on("ready", () => {
         { label: "Quit", role: "quit" }
     ]);
     electron.tray.setContextMenu(contextMenu);
+    // toggle debug window
     // electron.win.webContents.openDevTools();
 });
 

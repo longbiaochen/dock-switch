@@ -71,6 +71,12 @@
             "screen": "2"
         },
         {
+            "name": "Reeder",
+            "key": "TAB",
+            "icon": "↹",
+            "screen": "1"
+        },
+        {
             "name": "Photos",
             "key": "Q",
             "screen": "2"

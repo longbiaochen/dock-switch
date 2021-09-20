@@ -5,17 +5,17 @@
     "author": "Longbiao CHEN",
     "main": "app/main.js",
     "dependencies": {
+        "electron": "^6.0.7",
         "bootstrap": "^4.3.1",
         "jquery": "^3.5.0",
         "popper.js": "^1.15.0"
     },
     "devDependencies": {
-        "electron": ">=9.4.0",
         "electron-builder": "^21.2.0"
     },
     "scripts": {
         "go": "killall -9 dock-switch; electron .",
-        "dist": "electron-packager . --overwrite; killall -9 dock-switch; cp -rf dock-switch-darwin-x64/dock-switch.app /Applications/dock-switch.app; open -a dock-switch"
+        "dist": "killall -9 dock-switch; electron-packager . --overwrite; killall -9 dock-switch; cp -rf dock-switch-darwin-x64/dock-switch.app /Applications/dock-switch.app; open -a dock-switch"
     },
     "license": "MIT",
     "build": {
