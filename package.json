@@ -22,6 +22,7 @@
         "appId": "com.longbiao.dock-switch",
         "mac": {
             "category": "macos.utility",
+            "icon": "build/icon.icns",
             "target": "dir"
         }
     }
