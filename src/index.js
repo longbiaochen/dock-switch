@@ -12,6 +12,7 @@ var MOUSE_TPL = `${__dirname}/ui-helper mouse %s`;
 var KEY_MAP = { "ArrowUp": "0", "ArrowDown": "1", "ArrowLeft": "2", "ArrowRight": "3" };
 var DOCK_ITEMS = [],
     DISPLAY_ITEMS = [];
+var SCREEN_REPEAT = 7;
 
 $(function() {
     $(document).on("keydown", function(e) {
@@ -19,8 +20,11 @@ $(function() {
         electron.ipcRenderer.invoke('hide-window');
         if (KEY_MAP[e.key] != undefined) {
             // arrow keys
-            var name = child_process.execSync(util.format(SCREEN_TPL, KEY_MAP[e.key])).toString();
-            // new Notification(name, { body: e.key });
+            for (var i = SCREEN_REPEAT; i >= 0; i--) {
+                // repeat for Google Chrome and Microsoft apps
+                var name = child_process.execSync(util.format(SCREEN_TPL, KEY_MAP[e.key])).toString();
+                // new Notification(name, { body: name });
+            }
             var item = DOCK_ITEMS.find(item => item.name == name);
             item.screen = KEY_MAP[e.key];
             child_process.execSync(util.format(MOUSE_TPL, item.screen));
@@ -31,7 +35,11 @@ $(function() {
             // new Notification(item.name, { body: key });
             child_process.execSync(util.format(APP_TPL, item.name));
             // var screen_id = (DISPLAY_ITEMS.length == 1) ? 0 : item.screen;
-            child_process.execSync(util.format(SCREEN_TPL, item.screen));
+            for (var i = SCREEN_REPEAT; i >= 0; i--) {
+                // repeat for Google Chrome and Microsoft apps
+                var name = child_process.execSync(util.format(SCREEN_TPL, item.screen)).toString();
+                // new Notification(name, { body: name });
+            }
             child_process.execSync(util.format(MOUSE_TPL, item.screen));
         }
     });
