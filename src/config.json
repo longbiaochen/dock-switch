@@ -2,100 +2,100 @@
     "dock_items": [{
             "name": "Finder",
             "key": "F",
-            "screen": "1"
+            "screen": "0"
         },
         {
             "name": "Safari",
             "key": "S",
-            "screen": "2"
+            "screen": "3"
         },
         {
             "name": "Chrome",
             "key": "G",
-            "screen": "3"
+            "screen": "4"
         },
         {
             "name": "Mail",
             "key": "E",
-            "screen": "2"
+            "screen": "3"
         },
         {
             "name": "Calendar",
             "key": "C",
-            "screen": "2"
+            "screen": "3"
         },
         {
             "name": "Contacts",
             "key": "A",
-            "screen": "3"
+            "screen": "4"
         },
         {
             "name": "Notes",
             "key": "N",
-            "screen": "2"
+            "screen": "3"
         },
         {
             "name": "微信",
             "key": "W",
-            "screen": "2"
+            "screen": "3"
         },
         {
             "name": "DingTalk",
             "key": "D",
-            "screen": "2"
+            "screen": "3"
         },
         {
             "name": "Zotero",
             "key": "Z",
-            "screen": "1"
+            "screen": "0"
         },
         {
             "name": "Reminders",
             "key": "R",
-            "screen": "1"
+            "screen": "3"
         },
         {
             "name": "Books",
             "key": "B",
-            "screen": "1"
+            "screen": "0"
         },
         {
             "name": "Photos",
             "key": "P",
-            "screen": "1"
+            "screen": "0"
         },
         {
             "name": "TV",
             "key": "V",
-            "screen": "1"
+            "screen": "0"
         },
         {
             "name": "Music",
             "key": "M",
-            "screen": "1"
+            "screen": "0"
         },
         {
             "name": "Sublime Text",
             "key": "T",
-            "screen": "2"
+            "screen": "3"
         },
         {
             "name": "Terminal",
             "key": "TAB",
             "icon": "⇥",
-            "screen": "1"
+            "screen": "2"
         },
         {
             "name": "Microsoft Remote Desktop",
             "key": "SHIFT",
             "icon": "⇧",
-            "screen": "1"
+            "screen": "0"
         },
         {
             "name": "System Preferences",
             "key": "META",
             "icon": "⌘",
-            "screen": "3"
+            "screen": "0"
         }
     ]
 }

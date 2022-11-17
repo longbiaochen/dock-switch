@@ -9,7 +9,7 @@ var ITEM_TPL = `<div class="item" style="left: %dpx; top: 0;""><button type="but
 var APP_TPL = `open -a "%s"; sleep .1;`;
 var SCREEN_TPL = `${__dirname}/ui-helper screen %s`;
 var MOUSE_TPL = `${__dirname}/ui-helper mouse %s`;
-var KEY_MAP = { "ArrowUp": "0", "ArrowDown": "1", "ArrowLeft": "2", "ArrowRight": "3" };
+var KEY_MAP = { "ArrowDown": "0", "ArrowUp": "1", "\\": "2", "ArrowLeft": "3", "ArrowRight": "4"};
 var DOCK_ITEMS = [],
     DISPLAY_ITEMS = [];
 
@@ -17,6 +17,7 @@ $(function() {
     $(document).on("keydown", function(e) {
         // electron.remote.app.hide();
         electron.ipcRenderer.invoke('hide-window');
+        // new Notification(name, { body: e.key });
         if (KEY_MAP[e.key] != undefined) {
             // arrow keys
             var name = child_process.execSync(util.format(SCREEN_TPL, KEY_MAP[e.key])).toString();
