@@ -83,7 +83,7 @@
             "name": "Terminal",
             "key": "TAB",
             "icon": "⇥",
-            "screen": "2"
+            "screen": "1"
         },
         {
             "name": "Microsoft Remote Desktop",
@@ -92,7 +92,7 @@
             "screen": "0"
         },
         {
-            "name": "System Preferences",
+            "name": "System Settings",
             "key": "META",
             "icon": "⌘",
             "screen": "0"

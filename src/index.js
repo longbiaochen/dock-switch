@@ -9,7 +9,7 @@ var ITEM_TPL = `<div class="item" style="left: %dpx; top: 0;""><button type="but
 var APP_TPL = `open -a "%s"; sleep .1;`;
 var SCREEN_TPL = `${__dirname}/ui-helper screen %s`;
 var MOUSE_TPL = `${__dirname}/ui-helper mouse %s`;
-var KEY_MAP = { "ArrowDown": "0", "ArrowUp": "1", "\\": "2", "ArrowLeft": "3", "ArrowRight": "4"};
+var KEY_MAP = { "ArrowDown": "0", "\\": "1", "ArrowUp": "2", "ArrowLeft": "3", "ArrowRight": "4"};
 var DOCK_ITEMS = [],
     DISPLAY_ITEMS = [];
 
