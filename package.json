@@ -1,29 +1,30 @@
 {
-    "name": "dock-switch",
-    "version": "1.0.0",
-    "description": "dock-switch",
-    "author": "Longbiao CHEN",
-    "main": "src/main.js",
-    "dependencies": {
-        "bootstrap": "^4.3.1",
-        "jquery": "^3.5.0",
-        "popper.js": "^1.15.0"
-    },
-    "devDependencies": {
-        "electron": "^16.0.2"
-    },
-    "scripts": {
-        "go": "killall -9 dock-switch; electron .",
-        "dist": "electron-builder build; killall -9 dock-switch; cp -rf dist/mac-arm64/dock-switch.app /Applications/; open -a dock-switch.app"
-    },
-    "license": "MIT",
-    "build": {
-        "asar": false,
-        "appId": "com.longbiao.dock-switch",
-        "mac": {
-            "category": "macos.utility",
-            "icon": "build/icon.icns",
-            "target": "dir"
-        }
+  "name": "dock-switch",
+  "version": "1.0.0",
+  "description": "dock-switch",
+  "author": "Longbiao CHEN",
+  "main": "src/main.js",
+  "dependencies": {
+    "bootstrap": "^4.3.1",
+    "cnpm": "^8.4.0",
+    "jquery": "^3.5.0",
+    "popper.js": "^1.15.0"
+  },
+  "devDependencies": {
+    "electron": "^16.0.2"
+  },
+  "scripts": {
+    "go": "killall -9 dock-switch; electron .",
+    "dist": "electron-builder build; killall -9 dock-switch; cp -rf dist/mac-arm64/dock-switch.app /Applications/; open -a dock-switch.app"
+  },
+  "license": "MIT",
+  "build": {
+    "asar": false,
+    "appId": "com.longbiao.dock-switch",
+    "mac": {
+      "category": "macos.utility",
+      "icon": "build/icon.icns",
+      "target": "dir"
     }
+  }
 }
