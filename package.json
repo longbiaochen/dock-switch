@@ -14,7 +14,7 @@
     },
     "scripts": {
         "go": "killall -9 dock-switch; electron .",
-        "dist": "electron-builder build; killall -9 dock-switch; cp -rf dist/mac-arm64/dock-switch.app /Applications/; open -a dock-switch.app"
+        "dist": "electron-builder build; killall -9 dock-switch; rm -rf /Applications/dock-switch.app; cp -rf dist/mac-arm64/dock-switch.app /Applications/; open -a dock-switch.app"
     },
     "license": "MIT",
     "build": {
