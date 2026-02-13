@@ -1,20 +1,59 @@
-.. dock-switch documentation master file, created by
-   sphinx-quickstart on Thu Jul  2 10:00:14 2020.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+dock-switch documentation
+=========================
 
-Welcome to dock-switch's documentation!
-=======================================
+Quickly switch among Dock apps via one global trigger key (default ``F20``).
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+Usage
+-----
 
+1. Trigger dock-switch (default ``F20``).
+2. Press the app key shown in the HUD.
 
+Configuration
+-------------
 
-Indices and tables
-==================
+Edit ``src/config.json``.
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+Basic app item:
+
+.. code-block:: json
+
+   {
+     "name": "Safari",
+     "key": "S",
+     "screen": "3"
+   }
+
+Browser fixed placement (external monitor right half)
+-----------------------------------------------------
+
+You can set browser windows to always land on the **right half of the external monitor** when launched from dock-switch:
+
+.. code-block:: json
+
+   {
+     "name": "Safari",
+     "key": "S",
+     "screen": "3",
+     "placement": "external_right_half"
+   }
+
+.. code-block:: json
+
+   {
+     "name": "Chrome",
+     "key": "G",
+     "screen": "4",
+     "placement": "external_right_half"
+   }
+
+Current placement support:
+
+- ``external_right_half``
+- app names supported by built-in placement: ``Safari``, ``Chrome`` / ``Google Chrome``
+
+Notes
+-----
+
+- If no external display is detected, placement is skipped.
+- You can map any convenient key to ``F20`` with Karabiner-Elements.

@@ -1,18 +1,36 @@
 {
     "dock_items": [{
             "name": "Finder",
-            "key": "F",
+            "key": "D",
             "screen": "0"
         },
         {
             "name": "Safari",
             "key": "S",
-            "screen": "3"
+            "screen": "3",
+            "placement": "external_right_half"
         },
         {
             "name": "Chrome",
             "key": "G",
-            "screen": "4"
+            "screen": "4",
+            "placement": "external_right_half"
+        },
+        {
+            "name": "ChatGPT",
+            "key": "SHIFT",
+            "icon": "⇧",
+            "screen": "3"
+        },
+        {
+            "name": "微信",
+            "key": "W",
+            "screen": "3"
+        },
+        {
+            "name": "Feishu",
+            "key": "F",
+            "screen": "3"
         },
         {
             "name": "Mail",
@@ -22,11 +40,11 @@
         {
             "name": "Calendar",
             "key": "C",
-            "screen": "3"
+            "screen": "0"
         },
         {
-            "name": "Contacts",
-            "key": "A",
+            "name": "Reminders",
+            "key": "R",
             "screen": "4"
         },
         {
@@ -35,14 +53,9 @@
             "screen": "3"
         },
         {
-            "name": "微信",
-            "key": "W",
-            "screen": "3"
-        },
-        {
-            "name": "DingTalk",
-            "key": "D",
-            "screen": "3"
+            "name": "Contacts",
+            "key": "A",
+            "screen": "4"
         },
         {
             "name": "Zotero",
@@ -50,23 +63,8 @@
             "screen": "0"
         },
         {
-            "name": "Reminders",
-            "key": "R",
-            "screen": "3"
-        },
-        {
-            "name": "Books",
-            "key": "B",
-            "screen": "0"
-        },
-        {
             "name": "Photos",
             "key": "P",
-            "screen": "0"
-        },
-        {
-            "name": "TV",
-            "key": "V",
             "screen": "0"
         },
         {
@@ -77,25 +75,24 @@
         {
             "name": "Sublime Text",
             "key": "T",
-            "screen": "3"
+            "screen": "4"
         },
         {
             "name": "Terminal",
             "key": "TAB",
             "icon": "⇥",
-            "screen": "1"
-        },
-        {
-            "name": "Microsoft Remote Desktop",
-            "key": "SHIFT",
-            "icon": "⇧",
-            "screen": "0"
+            "screen": "4"
         },
         {
             "name": "System Settings",
             "key": "META",
             "icon": "⌘",
-            "screen": "0"
+            "screen": "4"
+        },
+        {
+            "name": "iPhone Mirroring",
+            "key": "I",
+            "screen": "4"
         }
     ]
 }

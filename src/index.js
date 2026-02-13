@@ -13,6 +13,56 @@ var KEY_MAP = { "ArrowDown": "0", "\\": "2", "ArrowUp": "1", "ArrowLeft": "3", "
 var DOCK_ITEMS = [],
     DISPLAY_ITEMS = [];
 
+function shellEscapeAppleScript(str) {
+    return String(str).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function findExternalDisplay() {
+    if (!Array.isArray(DISPLAY_ITEMS) || DISPLAY_ITEMS.length === 0) return null;
+
+    // Prefer explicit external monitor on macOS
+    var external = DISPLAY_ITEMS.find(d => d && d.internal === false);
+    if (external) return external;
+
+    // Fallback: pick the display with the largest x (usually the external monitor on the right)
+    return DISPLAY_ITEMS
+        .filter(d => d && d.bounds)
+        .sort((a, b) => (b.bounds.x || 0) - (a.bounds.x || 0))[0] || null;
+}
+
+function applyWindowPlacement(item) {
+    if (!item) return;
+    var placement = item.placement || "";
+
+    if (placement !== "external_right_half") return;
+
+    var display = findExternalDisplay();
+    if (!display || !display.bounds) return;
+
+    var b = display.bounds;
+    var x = Math.floor(b.x + b.width / 2);
+    var y = Math.floor(b.y);
+    var w = Math.floor(b.width / 2);
+    var h = Math.floor(b.height);
+
+    var app = item.name || "";
+    var script = null;
+
+    if (app === "Safari") {
+        script = `tell application \"Safari\"\n` +
+            `  if (count of windows) > 0 then set bounds of front window to {${x}, ${y}, ${x + w}, ${y + h}}\n` +
+            `end tell`;
+    } else if (app === "Chrome" || app === "Google Chrome") {
+        script = `tell application \"Google Chrome\"\n` +
+            `  if (count of windows) > 0 then set bounds of front window to {${x}, ${y}, ${x + w}, ${y + h}}\n` +
+            `end tell`;
+    }
+
+    if (script) {
+        child_process.execSync(`osascript -e \"${shellEscapeAppleScript(script)}\"`);
+    }
+}
+
 $(function() {
     $(document).on("keydown", function(e) {
         // electron.remote.app.hide();
@@ -34,6 +84,7 @@ $(function() {
             // var screen_id = (DISPLAY_ITEMS.length == 1) ? 0 : item.screen;
             child_process.execSync(util.format(SCREEN_TPL, item.screen));
             child_process.execSync(util.format(MOUSE_TPL, item.screen));
+            applyWindowPlacement(item);
         }
     });
 
