@@ -1,7 +1,8 @@
-dock-switch documentation
+dock-switch Documentation
 =========================
 
-Quickly switch among Dock apps via one global trigger key (default ``F20``).
+``dock-switch`` is a macOS Electron utility for quickly switching Dock
+applications and controlling display focus with a global hotkey.
 
 Usage
 -----
@@ -9,20 +10,15 @@ Usage
 1. Trigger dock-switch (default ``F20``).
 2. Press the app key shown in the HUD.
 
-Configuration
--------------
+Reference
+=========
 
-Edit ``src/config.json``.
+.. toctree::
+   :maxdepth: 2
 
-Basic app item:
-
-.. code-block:: json
-
-   {
-     "name": "Safari",
-     "key": "S",
-     "screen": "3"
-   }
+   overview
+   development
+   configuration
 
 Browser fixed placement (external monitor right half)
 -----------------------------------------------------

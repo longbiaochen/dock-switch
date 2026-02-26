@@ -1,17 +1,19 @@
 # dock-switch
-Quickly switching among applications in the Dock.
+Quickly switch among applications in the macOS Dock with one global hotkey.
 
-## How to Use
-![A picture is worth a thousand words](https://github.com/longbiaochen/dock-switch/blob/master/help/screenshot-1.jpg)
+## Screenshot
+![Dock switch UI](help/screenshot-1.jpg)
 
-### Shortcut flow
-1. Trigger dock-switch (default global shortcut is `F20`; you can map another key to `F20` via Karabiner-Elements).
-2. Press the app key shown in the HUD (for example `S` for Safari, `G` for Chrome).
+## How It Works
+- Press `F20` to open the floating launcher UI.
+- Press the shown key for an app to focus it.
+- Press an arrow key to move/focus windows on another display.
+- The UI closes automatically after a selection.
 
-### Browser fixed placement (external monitor right half)
-This project now supports per-app window placement through `src/config.json`.
+## Browser Fixed Placement (External Monitor Right Half)
+This project supports per-app window placement through `src/config.json`.
 
-For Safari/Chrome, use:
+Example:
 
 ```json
 {
@@ -31,25 +33,31 @@ For Safari/Chrome, use:
 }
 ```
 
-When triggered from dock-switch, the app window will be resized/moved to:
-- external display
-- right half of that display
-
-Notes:
-- Supported now: `Safari`, `Chrome` / `Google Chrome`
-- If no external display is detected, placement is skipped safely.
+When triggered from dock-switch, supported browser windows are moved to the right half of the detected external display.
 
 ## Installation
-- Download the latest release: <https://github.com/longbiaochen/dock-switch/releases>
+- Download a release from [GitHub Releases](https://github.com/longbiaochen/dock-switch/releases).
 
-## Build from source
-1. `git clone ${this-repo}`
-2. `cd dock-switch`
-3. `npm run dist`
+## Build From Source
+1. Clone this repository.
+2. Install dependencies:
+   - `yarn install`
+3. Run locally:
+   - `yarn go`
+4. Build unsigned app bundle:
+   - `yarn dist`
+5. Build signed app bundle (requires signing identity):
+   - `yarn dist:signed`
 
-`/app/ui-helper` is a pre-built binary from this repo: <https://github.com/longbiaochen/ui-helper>
+## Configuration
+App key/display mapping is stored in `src/config.json` under `dock_items`.
 
-## Note
-- You can use [Karabiner-Elements](https://github.com/tekezo/Karabiner-Elements) to map any key to `F20`
-- For first-time use, go to `System Preferences -> Security & Privacy -> Privacy`, unlock and tick for `dock-switch.app`
-- You may need to allow apps from `unidentified developer (i.e., me)` several times during installation, because I didn't pay [the Apple Tax](https://www.urbandictionary.com/define.php?term=Apple%20Tax).
+## Permissions and First Run
+- Map a key to `F20` (for example with [Karabiner-Elements](https://github.com/pqrs-org/Karabiner-Elements)).
+- In macOS Privacy settings, allow accessibility/control permissions for `dock-switch.app` and related tooling.
+- macOS may warn about an unidentified developer depending on how the app is built/signed.
+
+## Project Notes
+- `src/ui-helper` is a prebuilt helper binary from: https://github.com/longbiaochen/ui-helper
+- Electron entry point: `src/main.js`
+- Renderer/UI logic: `src/index.js`
