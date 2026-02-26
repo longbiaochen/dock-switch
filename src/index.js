@@ -15,6 +15,13 @@ var KEY_MAP = { "ArrowDown": "0", "\\": "2", "ArrowUp": "1", "ArrowLeft": "3", "
 var DOCK_ITEMS = [],
     DISPLAY_ITEMS = [];
 
+function normalizeAppName(name) {
+    return (name || "")
+        .trim()
+        .replace(/\.app$/i, "")
+        .toLowerCase();
+}
+
 $(function() {
     $(document).on("keydown", function(e) {
         // electron.remote.app.hide();
@@ -32,6 +39,9 @@ $(function() {
             // App-key path: open/focus app, then place focus/mouse on mapped display.
             var key = e.key.toUpperCase();
             var item = DOCK_ITEMS.find(item => item.key == key);
+            if (item == undefined) {
+                return;
+            }
             // new Notification(item.name, { body: key });
             child_process.execSync(util.format(APP_TPL, item.name));
             // var screen_id = (DISPLAY_ITEMS.length == 1) ? 0 : item.screen;
@@ -46,7 +56,8 @@ $(function() {
         var k = 1;
         for (var i = 0; i < dock_items.length - 3; i++) {
             // Reuse configured key mapping when available; otherwise assign fallback keys.
-            var item = CONFIG.dock_items.find(item => item.name == dock_items[i].name);
+            var dockName = normalizeAppName(dock_items[i].name);
+            var item = CONFIG.dock_items.find(item => normalizeAppName(item.name) == dockName);
             if (item == undefined) {
                 item = {
                     name: dock_items[i].name,
