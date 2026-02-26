@@ -14,7 +14,8 @@
     },
     "scripts": {
         "go": "killall -9 dock-switch; electron .",
-        "dist": "electron-builder build; killall -9 dock-switch; rm -rf /Applications/dock-switch.app; cp -rf dist/mac-arm64/dock-switch.app /Applications/; open -a dock-switch.app"
+        "dist": "electron-builder build; killall -9 dock-switch; rm -rf /Applications/dock-switch.app; cp -rf dist/mac-arm64/dock-switch.app /Applications/; open -a dock-switch.app",
+        "dist:signed": "CSC_NAME='Developer ID Application' electron-builder --mac dir"
     },
     "license": "MIT",
     "build": {
@@ -22,7 +23,11 @@
         "appId": "com.longbiao.dock-switch",
         "mac": {
             "category": "macos.utility",
-            "icon": "build/icon.icns",
+            "icon": "build/icon@2x.icns",
+            "identity": "Developer ID Application",
+            "hardenedRuntime": true,
+            "entitlements": "build/entitlements.mac.plist",
+            "entitlementsInherit": "build/entitlements.mac.plist",
             "target": "dir"
         }
     }
