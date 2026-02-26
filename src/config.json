@@ -33,6 +33,11 @@
             "screen": "3"
         },
         {
+            "name": "Codex.app",
+            "key": "X",
+            "screen": "3"
+        },
+        {
             "name": "Mail",
             "key": "E",
             "screen": "3"
