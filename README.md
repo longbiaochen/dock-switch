@@ -1,23 +1,38 @@
 # dock-switch
-Quickly switching among applications in the Dock.
+Quickly switch among applications in the macOS Dock with one global hotkey.
 
+## Screenshot
+![Dock switch UI](help/screenshot-1.jpg)
 
-## How to Use
-![A picture is worth a thousand words](https://github.com/longbiaochen/dock-switch/blob/master/help/screenshot-1.jpg)
-
+## How It Works
+- Press `F20` to open the floating launcher UI.
+- Press the shown key for an app to focus it.
+- Press an arrow key to move/focus windows on another display.
+- The UI closes automatically after a selection.
 
 ## Installation
-* Download the latest release: https://github.com/longbiaochen/dock-switch/releases
+- Download a release from [GitHub Releases](https://github.com/longbiaochen/dock-switch/releases).
 
+## Build From Source
+1. Clone this repository.
+2. Install dependencies:
+   - `yarn install`
+3. Run locally:
+   - `yarn go`
+4. Build unsigned app bundle:
+   - `yarn dist`
+5. Build signed app bundle (requires signing identity):
+   - `yarn dist:signed`
 
-## Build from source
-1. `git clone ${this-repo}`
-2. `cd dock-switch; electron-builder;`
+## Configuration
+App key/display mapping is stored in `src/config.json` under `dock_items`.
 
-``/app/ui-helper`` is a pre-built binary from this repo: https://github.com/longbiaochen/ui-helper
+## Permissions and First Run
+- Map a key to `F20` (for example with [Karabiner-Elements](https://github.com/pqrs-org/Karabiner-Elements)).
+- In macOS Privacy settings, allow accessibility/control permissions for `dock-switch.app` and related tooling.
+- macOS may warn about an unidentified developer depending on how the app is built/signed.
 
-
-## Note
-* You can use [Karabiner-Elements](https://github.com/tekezo/Karabiner-Elements) to map any key to ``F20``
-* For the first time use, go to ``System Preferences -> Security & Privacy -> Privacy`` tab, unlock and tick for ``dock-switch.app`` 
-* You will need to allow apps from ``unidentified developer (i.e., me)`` several times during installation, because I didn't pay [the Apple Tax](https://www.urbandictionary.com/define.php?term=Apple%20Tax).
+## Project Notes
+- `src/ui-helper` is a prebuilt helper binary from: https://github.com/longbiaochen/ui-helper
+- Electron entry point: `src/main.js`
+- Renderer/UI logic: `src/index.js`

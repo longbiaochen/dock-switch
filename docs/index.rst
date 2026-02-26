@@ -1,19 +1,20 @@
-.. dock-switch documentation master file, created by
-   sphinx-quickstart on Thu Jul  2 10:00:14 2020.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+dock-switch Documentation
+=========================
 
-Welcome to dock-switch's documentation!
-=======================================
+``dock-switch`` is a macOS Electron utility for quickly switching Dock
+applications and controlling display focus with a global hotkey.
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
+   overview
+   development
+   configuration
 
 
-Indices and tables
-==================
+Reference
+=========
 
 * :ref:`genindex`
 * :ref:`modindex`
