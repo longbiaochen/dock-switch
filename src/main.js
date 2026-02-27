@@ -12,7 +12,6 @@ const dock_query_module_path = path.join(
     "dock_query.node"
 );
 var dock_query = null;
-const main_debug_path = path.join(electron.app.getPath("userData"), "main-debug.log");
 const dock_cache_path = path.join(electron.app.getPath("userData"), "dock-items-cache.json");
 const dock_poll_interval_ms = 120;
 var dock_poll_timer = null;
@@ -53,9 +52,6 @@ electron.app.on("ready", () => {
     });
 
     electron.win.loadURL(`file://${__dirname}/index.html`);
-    electron.win.webContents.on("did-finish-load", () => {
-        log_main_debug("renderer-ready");
-    });
 
     electron.win.on("blur", function() {
         // Hide whenever focus is lost so the launcher behaves like a transient palette.
@@ -65,15 +61,12 @@ electron.app.on("ready", () => {
 
     // F20 toggles the launcher and refreshes Dock/display data each time it opens.
     electron.globalShortcut.register("F20", () => {
-        log_main_debug("f20-pressed");
         if (!ensure_tcc_permissions()) {
-            log_main_debug("f20-abort-no-accessibility");
             return;
         }
         if (electron.win.isVisible()) {
             stop_dock_tracking();
             electron.win.hide();
-            log_main_debug("launcher-hidden");
         } else {
             overlay_open_t0 = Date.now();
             // Fast first paint from last known snapshot while fresh query is in flight.
@@ -84,7 +77,6 @@ electron.app.on("ready", () => {
             start_dock_tracking();
             display_items = electron.screen.getAllDisplays();
             electron.win.webContents.send("update-display", display_items);
-            log_main_debug(`post-start-dock-tracking ms=${Date.now() - overlay_open_t0}`);
         }
     });
 
@@ -187,7 +179,6 @@ function refresh_dock_overlay(force_send) {
         return;
     }
     dock_query_inflight = true;
-    var query_t0 = Date.now();
     query_dock_items_async((err, items) => {
         dock_query_inflight = false;
         if (!dock_tracking_active) {
@@ -195,11 +186,9 @@ function refresh_dock_overlay(force_send) {
         }
 
         if (err) {
-            log_main_debug(`dock-query-failed ${String(err && err.message || err)}`);
             schedule_next_dock_refresh();
             return;
         }
-        log_main_debug(`dock-query-ms=${Date.now() - query_t0}`);
 
         dock_items = Array.isArray(items) ? items : [];
         if (dock_items.length === 0) {
@@ -219,8 +208,6 @@ function refresh_dock_overlay(force_send) {
         if (force_send || sig !== last_dock_signature) {
             last_dock_signature = sig;
             electron.win.webContents.send("update-ui", dock_items);
-            var total = overlay_open_t0 ? (Date.now() - overlay_open_t0) : -1;
-            log_main_debug(`update-ui-sent count=${dock_items.length} total-open-ms=${total}`);
         }
         schedule_next_dock_refresh();
     });
@@ -284,12 +271,4 @@ function show_window() {
     y = Math.max(display.bounds.y, Math.min(y, display.bounds.y + display.bounds.height - electron.win.height));
     electron.win.setPosition(first.pos.x, y);
     electron.win.show();
-}
-
-function log_main_debug(message) {
-    try {
-        fs.appendFileSync(main_debug_path, `${new Date().toISOString()} ${message}\n`, "utf8");
-    } catch (e) {
-        // Best-effort debug logging.
-    }
 }
