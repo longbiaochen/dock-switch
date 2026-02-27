@@ -58,7 +58,10 @@ static std::vector<AXUIElementRef> GetAXChildren(AXUIElementRef element) {
     out.reserve((size_t)n);
     for (CFIndex i = 0; i < n; ++i) {
       AXUIElementRef child = (AXUIElementRef)CFArrayGetValueAtIndex(arr, i);
-      if (child) out.push_back(child);
+      if (child) {
+        CFRetain(child);
+        out.push_back(child);
+      }
     }
   }
   CFRelease(value);
@@ -83,6 +86,7 @@ static void CollectDockItems(AXUIElementRef element, int depth, std::vector<Dock
   auto children = GetAXChildren(element);
   for (AXUIElementRef child : children) {
     CollectDockItems(child, depth + 1, items);
+    CFRelease(child);
   }
 }
 
