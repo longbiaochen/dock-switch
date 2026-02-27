@@ -1,7 +1,10 @@
 const electron = require("electron");
 const util = require("util");
 const child_process = require("child_process");
+const fs = require("fs");
+const path = require("path");
 var dock_items = [], display_items = [];
+const helper_path = path.join(__dirname, "ui-helper");
 
 // Keep the app out of the Dock; interaction is via tray + global shortcut.
 electron.app.dock.hide();
@@ -37,10 +40,9 @@ electron.app.on("ready", () => {
             electron.win.hide();
         } else {
             // Query Dock items from the helper binary and pass them to the renderer.
-            var nextDockItems = getDockItems();
-            if (nextDockItems.length > 0) {
-                dock_items = nextDockItems;
-            }
+            ensure_helper_executable();
+            var response = child_process.execFileSync(helper_path, ["dock", "0"]).toString();
+            dock_items = JSON.parse(response);
             show_window();
             electron.win.webContents.send("update-ui", dock_items);
             // Also send display data so renderer shortcuts can switch displays.
@@ -65,20 +67,12 @@ electron.app.on("ready", () => {
 
 });
 
-function getDockItems() {
-    try {
-        var response = child_process.execSync(`${__dirname}/ui-helper dock 0`).toString();
-        return JSON.parse(response);
-    } catch (err) {
-        console.error("Failed to query dock items:", err.message);
-        return [];
-    }
+function ensure_helper_executable() {
+    fs.chmodSync(helper_path, 0o755);
+    fs.accessSync(helper_path, fs.constants.X_OK);
 }
 
 function show_window() {
-    if (!Array.isArray(dock_items) || dock_items.length === 0) {
-        return;
-    }
     // Match launcher width to Dock item span with small horizontal padding.
     var screen = electron.screen.getPrimaryDisplay().bounds;
     electron.win.width = dock_items[dock_items.length - 1].pos.x - dock_items[0].pos.x + 60;
