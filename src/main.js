@@ -9,6 +9,7 @@ var dock_items = [], display_items = [];
 const helper_path = path.join(__dirname, "ui-helper");
 const osascript_path = "/usr/bin/osascript";
 const dock_cache_path = path.join(electron.app.getPath("userData"), "dock-items-cache.json");
+const main_debug_path = path.join(electron.app.getPath("userData"), "main-debug.log");
 
 // Keep the app out of the Dock; interaction is via tray + global shortcut.
 electron.app.dock.hide();
@@ -32,6 +33,9 @@ electron.app.on("ready", () => {
     });
 
     electron.win.loadURL(`file://${__dirname}/index.html`);
+    electron.win.webContents.on("did-finish-load", () => {
+        log_main_debug("renderer-ready");
+    });
 
     electron.win.on("blur", function() {
         // Hide whenever focus is lost so the launcher behaves like a transient palette.
@@ -40,20 +44,25 @@ electron.app.on("ready", () => {
 
     // F20 toggles the launcher and refreshes Dock/display data each time it opens.
     electron.globalShortcut.register("F20", () => {
+        log_main_debug("f20-pressed");
         if (!ensure_tcc_permissions()) {
+            log_main_debug("f20-abort-no-accessibility");
             return;
         }
         if (electron.win.isVisible()) {
             electron.win.hide();
+            log_main_debug("launcher-hidden");
         } else {
             // Query Dock items from the helper binary and pass them to the renderer.
             ensure_helper_executable();
             dock_items = get_dock_items_robust();
+            log_main_debug(`dock-items-ready count=${dock_items.length}`);
             show_window();
             electron.win.webContents.send("update-ui", dock_items);
             // Also send display data so renderer shortcuts can switch displays.
             display_items = electron.screen.getAllDisplays();
             electron.win.webContents.send("update-display", display_items);
+            log_main_debug(`update-ui-sent count=${dock_items.length}`);
         }
     });
 
@@ -69,7 +78,11 @@ electron.app.on("ready", () => {
     electron.ipcMain.handle('hide-window', (event, path) => {
         // Renderer uses this to close after handling a key press.
         electron.app.hide();
-    })
+    });
+
+    electron.ipcMain.on("get-user-data-path", (event) => {
+        event.returnValue = electron.app.getPath("userData");
+    });
 
 });
 
@@ -224,9 +237,6 @@ function ensure_tcc_permissions() {
     if (!ensure_accessibility_permission()) {
         return false;
     }
-    if (!ensure_automation_permission()) {
-        return false;
-    }
     return true;
 }
 
@@ -251,29 +261,6 @@ function ensure_accessibility_permission() {
     return false;
 }
 
-function ensure_automation_permission() {
-    try {
-        child_process.execFileSync(osascript_path, [
-            "-e",
-            "tell application \"System Events\" to count (application processes)"
-        ]);
-        return true;
-    } catch (e) {
-        var action = electron.dialog.showMessageBoxSync({
-            type: "warning",
-            buttons: ["Open Automation Settings", "Cancel"],
-            defaultId: 0,
-            cancelId: 1,
-            message: "dock-switch needs Automation permission",
-            detail: "Allow dock-switch to control System Events in Privacy & Security > Automation."
-        });
-        if (action === 0) {
-            electron.shell.openExternal("x-apple.systempreferences:com.apple.preference.security?Privacy_Automation");
-        }
-        return false;
-    }
-}
-
 function show_window() {
     if (!Array.isArray(dock_items) || dock_items.length === 0) {
         return;
@@ -286,4 +273,12 @@ function show_window() {
     electron.win.setPosition(dock_items[0].pos.x, dock_items[0].pos.y);
     electron.win.show();
 
+}
+
+function log_main_debug(message) {
+    try {
+        fs.appendFileSync(main_debug_path, `${new Date().toISOString()} ${message}\n`, "utf8");
+    } catch (e) {
+        // Best-effort debug logging.
+    }
 }
