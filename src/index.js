@@ -271,13 +271,11 @@ $(function() {
             item &&
             item.name &&
             item.name !== "Trash" &&
-            item.name !== "Downloads"
-        );
-        if (visible_items.length === 0) {
-            // Last-resort UI fallback when helper data is unavailable/crashed.
-            visible_items = (CONFIG.dock_items || []).map(item => ({ name: item.name }));
-            logRendererDebug(`update-ui fallback-from-config incoming=${incoming_count} fallback=${visible_items.length}`);
-        }
+            item.name !== "Downloads" &&
+            item.pos &&
+            Number.isFinite(item.pos.x)
+        ).sort((a, b) => a.pos.x - b.pos.x);
+        var base_x = visible_items.length > 0 ? visible_items[0].pos.x : 0;
         for (var i = 0; i < visible_items.length; i++) {
             // Reuse configured key mapping when available; otherwise assign fallback keys.
             var dockName = normalizeAppName(visible_items[i].name);
@@ -290,7 +288,8 @@ $(function() {
                 }
             }
             DOCK_ITEMS.push(item);
-            $("#container").append(util.format(ITEM_TPL, i * 52, item.icon || item.key));
+            var left = Math.max(0, Math.round(visible_items[i].pos.x - base_x));
+            $("#container").append(util.format(ITEM_TPL, left, item.icon || item.key));
         }
         logRendererDebug(`update-ui rendered incoming=${incoming_count} visible=${visible_items.length} rendered=${DOCK_ITEMS.length}`);
     });

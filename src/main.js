@@ -4,12 +4,13 @@ const child_process = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
-const config = require(`${__dirname}/config.json`);
 var dock_items = [], display_items = [];
 const helper_path = path.join(__dirname, "ui-helper");
-const osascript_path = "/usr/bin/osascript";
 const dock_cache_path = path.join(electron.app.getPath("userData"), "dock-items-cache.json");
 const main_debug_path = path.join(electron.app.getPath("userData"), "main-debug.log");
+const dock_poll_interval_ms = 250;
+var dock_poll_timer = null;
+var last_dock_signature = "";
 
 // Keep the app out of the Dock; interaction is via tray + global shortcut.
 electron.app.dock.hide();
@@ -39,6 +40,7 @@ electron.app.on("ready", () => {
 
     electron.win.on("blur", function() {
         // Hide whenever focus is lost so the launcher behaves like a transient palette.
+        stop_dock_tracking();
         electron.win.hide();
     });
 
@@ -50,19 +52,13 @@ electron.app.on("ready", () => {
             return;
         }
         if (electron.win.isVisible()) {
+            stop_dock_tracking();
             electron.win.hide();
             log_main_debug("launcher-hidden");
         } else {
-            // Query Dock items from the helper binary and pass them to the renderer.
-            ensure_helper_executable();
-            dock_items = get_dock_items_robust();
-            log_main_debug(`dock-items-ready count=${dock_items.length}`);
-            show_window();
-            electron.win.webContents.send("update-ui", dock_items);
-            // Also send display data so renderer shortcuts can switch displays.
+            start_dock_tracking();
             display_items = electron.screen.getAllDisplays();
             electron.win.webContents.send("update-display", display_items);
-            log_main_debug(`update-ui-sent count=${dock_items.length}`);
         }
     });
 
@@ -77,6 +73,7 @@ electron.app.on("ready", () => {
 
     electron.ipcMain.handle('hide-window', (event, path) => {
         // Renderer uses this to close after handling a key press.
+        stop_dock_tracking();
         electron.app.hide();
     });
 
@@ -92,7 +89,7 @@ function ensure_helper_executable() {
 }
 
 function run_dock_query_with_debug() {
-    var result = child_process.spawnSync(helper_path, ["dock", "0"], { encoding: "utf8" });
+    var result = child_process.spawnSync(helper_path, ["dock", "0"], { encoding: "utf8", timeout: 500 });
     if (result.status === 0) {
         return result.stdout || "";
     }
@@ -106,38 +103,14 @@ function run_dock_query_with_debug() {
     throw err;
 }
 
-function get_dock_items_robust() {
-    var last_report_path = null;
-
-    for (var i = 0; i < 3; i++) {
-        try {
-            var response = run_dock_query_with_debug();
-            var parsed = JSON.parse(response);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-                write_dock_cache(parsed);
-                return parsed;
-            }
-        } catch (err) {
-            var msg = String(err && err.message || "");
-            var marker = "Debug report:";
-            if (msg.includes(marker)) {
-                last_report_path = msg.split(marker).pop().trim();
-            }
-        }
-        child_process.execFileSync("/bin/sleep", ["0.05"]);
-    }
-
-    var cached = read_dock_cache();
-    if (cached.length > 0) {
-        return cached;
-    }
-
-    var fallback = build_fallback_dock_items();
-    if (fallback.length > 0) {
-        return fallback;
-    }
-
-    throw new Error(`Unable to get dock items. Last helper debug report: ${last_report_path || "n/a"}`);
+function query_live_dock_items() {
+    ensure_helper_executable();
+    var response = run_dock_query_with_debug();
+    var parsed = JSON.parse(response);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+        .filter(item => item && item.pos && Number.isFinite(item.pos.x) && Number.isFinite(item.pos.y))
+        .sort((a, b) => a.pos.x - b.pos.x);
 }
 
 function write_dock_cache(items) {
@@ -155,20 +128,70 @@ function read_dock_cache() {
     }
 }
 
-function build_fallback_dock_items() {
-    var configured = Array.isArray(config.dock_items) ? config.dock_items : [];
-    if (configured.length === 0) {
-        configured = [{ name: "Finder" }, { name: "Terminal" }];
+function get_visible_dock_items(items) {
+    return (items || []).filter(item =>
+        item &&
+        item.name &&
+        item.name !== "Trash" &&
+        item.name !== "Downloads" &&
+        item.pos &&
+        Number.isFinite(item.pos.x) &&
+        Number.isFinite(item.pos.y)
+    );
+}
+
+function dock_signature(items) {
+    return items.map(item => `${item.name}:${item.pos.x},${item.pos.y}`).join("|");
+}
+
+function start_dock_tracking() {
+    stop_dock_tracking();
+    refresh_dock_overlay(true);
+    dock_poll_timer = setInterval(() => {
+        refresh_dock_overlay(false);
+    }, dock_poll_interval_ms);
+}
+
+function stop_dock_tracking() {
+    if (dock_poll_timer) {
+        clearInterval(dock_poll_timer);
+        dock_poll_timer = null;
+    }
+}
+
+function refresh_dock_overlay(force_send) {
+    var next_items = [];
+    try {
+        next_items = query_live_dock_items();
+        if (next_items.length > 0) {
+            write_dock_cache(next_items);
+        }
+    } catch (err) {
+        if (dock_items.length === 0) {
+            next_items = read_dock_cache();
+        } else {
+            next_items = dock_items;
+        }
+        log_main_debug(`dock-query-failed ${String(err && err.message || err)}`);
     }
 
-    var primary = electron.screen.getPrimaryDisplay().bounds;
-    var start_x = Math.max(40, Math.floor(primary.width / 2) - Math.floor(configured.length * 26));
-    var y = Math.max(0, primary.height - 120);
+    if (!Array.isArray(next_items) || next_items.length === 0) {
+        return;
+    }
 
-    return configured.map((item, idx) => ({
-        name: item.name,
-        pos: { x: start_x + idx * 52, y: y }
-    }));
+    dock_items = next_items;
+    var visible = get_visible_dock_items(dock_items);
+    if (visible.length === 0) {
+        return;
+    }
+
+    var sig = dock_signature(visible);
+    show_window();
+    if (force_send || sig !== last_dock_signature) {
+        last_dock_signature = sig;
+        electron.win.webContents.send("update-ui", dock_items);
+        log_main_debug(`update-ui-sent count=${dock_items.length}`);
+    }
 }
 
 function write_helper_debug_report(result) {
@@ -262,15 +285,16 @@ function ensure_accessibility_permission() {
 }
 
 function show_window() {
-    if (!Array.isArray(dock_items) || dock_items.length === 0) {
+    var visible = get_visible_dock_items(dock_items);
+    if (visible.length === 0) {
         return;
     }
-    // Match launcher width to Dock item span with small horizontal padding.
-    var screen = electron.screen.getPrimaryDisplay().bounds;
-    electron.win.width = dock_items[dock_items.length - 1].pos.x - dock_items[0].pos.x + 60;
+    var first = visible[0];
+    var last = visible[visible.length - 1];
+    electron.win.width = Math.max(120, last.pos.x - first.pos.x + 60);
     electron.win.height = 60;
     electron.win.setSize(electron.win.width, electron.win.height);
-    electron.win.setPosition(dock_items[0].pos.x, dock_items[0].pos.y);
+    electron.win.setPosition(first.pos.x, first.pos.y);
     electron.win.show();
 
 }
