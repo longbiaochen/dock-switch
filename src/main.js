@@ -5,12 +5,14 @@ const path = require("path");
 var dock_items = [], display_items = [];
 const osascript_path = "/usr/bin/osascript";
 const main_debug_path = path.join(electron.app.getPath("userData"), "main-debug.log");
-const dock_poll_interval_ms = 320;
+const dock_cache_path = path.join(electron.app.getPath("userData"), "dock-items-cache.json");
+const dock_poll_interval_ms = 120;
 var dock_poll_timer = null;
 var last_dock_signature = "";
-var last_automation_prompt_at = 0;
 var dock_tracking_active = false;
 var dock_query_inflight = false;
+var overlay_open_t0 = 0;
+var last_automation_prompt_at = 0;
 const dock_query_script =
     "tell application \"System Events\"\n" +
     "  tell process \"Dock\"\n" +
@@ -75,9 +77,16 @@ electron.app.on("ready", () => {
             electron.win.hide();
             log_main_debug("launcher-hidden");
         } else {
+            overlay_open_t0 = Date.now();
+            // Fast first paint from last known snapshot while fresh query is in flight.
+            if (Array.isArray(dock_items) && dock_items.length > 0) {
+                show_window();
+                electron.win.webContents.send("update-ui", dock_items);
+            }
             start_dock_tracking();
             display_items = electron.screen.getAllDisplays();
             electron.win.webContents.send("update-display", display_items);
+            log_main_debug(`post-start-dock-tracking ms=${Date.now() - overlay_open_t0}`);
         }
     });
 
@@ -100,29 +109,26 @@ electron.app.on("ready", () => {
         event.returnValue = electron.app.getPath("userData");
     });
 
+    dock_items = read_dock_cache();
 });
 
 function query_live_dock_items() {
-    return query_dock_items_via_osascript();
-}
-
-function query_dock_items_via_osascript() {
     var output = child_process.execFileSync(osascript_path, ["-e", dock_query_script], { encoding: "utf8" });
-    return parse_osascript_dock_output(output);
+    return parse_dock_query_output(output);
 }
 
-function query_dock_items_via_osascript_async(cb) {
+function query_dock_items_async(cb) {
     child_process.execFile(
         osascript_path,
         ["-e", dock_query_script],
-        { encoding: "utf8", timeout: 800 },
+        { encoding: "utf8", timeout: 900 },
         (err, stdout) => {
             if (err) {
                 cb(err);
                 return;
             }
             try {
-                cb(null, parse_osascript_dock_output(stdout));
+                cb(null, parse_dock_query_output(stdout));
             } catch (parseErr) {
                 cb(parseErr);
             }
@@ -130,7 +136,7 @@ function query_dock_items_via_osascript_async(cb) {
     );
 }
 
-function parse_osascript_dock_output(output) {
+function parse_dock_query_output(output) {
     return String(output || "")
         .split(/\r?\n/)
         .map(line => line.trim())
@@ -146,6 +152,25 @@ function parse_osascript_dock_output(output) {
         })
         .filter(Boolean)
         .sort((a, b) => a.pos.x - b.pos.x);
+}
+
+function write_dock_cache(items) {
+    try {
+        fs.writeFileSync(dock_cache_path, JSON.stringify(items), "utf8");
+    } catch (e) {
+        // best effort
+    }
+}
+
+function read_dock_cache() {
+    try {
+        if (!fs.existsSync(dock_cache_path)) return [];
+        var raw = fs.readFileSync(dock_cache_path, "utf8");
+        var parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+        return [];
+    }
 }
 
 function get_visible_dock_items(items) {
@@ -191,7 +216,8 @@ function refresh_dock_overlay(force_send) {
         return;
     }
     dock_query_inflight = true;
-    query_dock_items_via_osascript_async((err, items) => {
+    var query_t0 = Date.now();
+    query_dock_items_async((err, items) => {
         dock_query_inflight = false;
         if (!dock_tracking_active) {
             return;
@@ -202,12 +228,14 @@ function refresh_dock_overlay(force_send) {
             schedule_next_dock_refresh();
             return;
         }
+        log_main_debug(`dock-query-ms=${Date.now() - query_t0}`);
 
         dock_items = Array.isArray(items) ? items : [];
         if (dock_items.length === 0) {
             schedule_next_dock_refresh();
             return;
         }
+        write_dock_cache(dock_items);
 
         var visible = get_visible_dock_items(dock_items);
         if (visible.length === 0) {
@@ -220,7 +248,8 @@ function refresh_dock_overlay(force_send) {
         if (force_send || sig !== last_dock_signature) {
             last_dock_signature = sig;
             electron.win.webContents.send("update-ui", dock_items);
-            log_main_debug(`update-ui-sent count=${dock_items.length}`);
+            var total = overlay_open_t0 ? (Date.now() - overlay_open_t0) : -1;
+            log_main_debug(`update-ui-sent count=${dock_items.length} total-open-ms=${total}`);
         }
         schedule_next_dock_refresh();
     });
@@ -315,7 +344,6 @@ function show_window() {
     y = Math.max(display.bounds.y, Math.min(y, display.bounds.y + display.bounds.height - electron.win.height));
     electron.win.setPosition(first.pos.x, y);
     electron.win.show();
-
 }
 
 function log_main_debug(message) {
