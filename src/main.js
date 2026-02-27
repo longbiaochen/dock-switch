@@ -37,9 +37,10 @@ electron.app.on("ready", () => {
             electron.win.hide();
         } else {
             // Query Dock items from the helper binary and pass them to the renderer.
-            var response = child_process.execSync(`${__dirname}/ui-helper dock 0`).toString();
-            console.log(response);
-            dock_items = JSON.parse(response);
+            var nextDockItems = getDockItems();
+            if (nextDockItems.length > 0) {
+                dock_items = nextDockItems;
+            }
             show_window();
             electron.win.webContents.send("update-ui", dock_items);
             // Also send display data so renderer shortcuts can switch displays.
@@ -64,7 +65,20 @@ electron.app.on("ready", () => {
 
 });
 
+function getDockItems() {
+    try {
+        var response = child_process.execSync(`${__dirname}/ui-helper dock 0`).toString();
+        return JSON.parse(response);
+    } catch (err) {
+        console.error("Failed to query dock items:", err.message);
+        return [];
+    }
+}
+
 function show_window() {
+    if (!Array.isArray(dock_items) || dock_items.length === 0) {
+        return;
+    }
     // Match launcher width to Dock item span with small horizontal padding.
     var screen = electron.screen.getPrimaryDisplay().bounds;
     electron.win.width = dock_items[dock_items.length - 1].pos.x - dock_items[0].pos.x + 60;
