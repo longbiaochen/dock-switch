@@ -72,7 +72,12 @@ App key/display mapping is stored in `src/config.json` under `dock_items`.
 
 ## Permissions and First Run
 - Map a key to `F20` (for example with [Karabiner-Elements](https://github.com/pqrs-org/Karabiner-Elements)).
-- In macOS Privacy settings, allow accessibility/control permissions for `dock-switch.app` and related tooling.
+- On first use, dock-switch prompts for required macOS permissions:
+  - Accessibility (control UI elements / Dock metadata)
+  - Automation (control `System Events` for window focus/placement)
+- If previously denied, re-enable in Privacy & Security:
+  - Accessibility: `Privacy & Security > Accessibility`
+  - Automation: `Privacy & Security > Automation` (allow dock-switch -> `System Events`)
 - macOS may warn about an unidentified developer depending on how the app is built/signed.
 
 ## Project Notes
