@@ -5,6 +5,7 @@ const fs = require("fs");
 const path = require("path");
 var dock_items = [], display_items = [];
 const helper_path = path.join(__dirname, "ui-helper");
+const osascript_path = "/usr/bin/osascript";
 
 // Keep the app out of the Dock; interaction is via tray + global shortcut.
 electron.app.dock.hide();
@@ -36,6 +37,9 @@ electron.app.on("ready", () => {
 
     // F20 toggles the launcher and refreshes Dock/display data each time it opens.
     electron.globalShortcut.register("F20", () => {
+        if (!ensure_tcc_permissions()) {
+            return;
+        }
         if (electron.win.isVisible()) {
             electron.win.hide();
         } else {
@@ -70,6 +74,60 @@ electron.app.on("ready", () => {
 function ensure_helper_executable() {
     fs.chmodSync(helper_path, 0o755);
     fs.accessSync(helper_path, fs.constants.X_OK);
+}
+
+function ensure_tcc_permissions() {
+    if (!ensure_accessibility_permission()) {
+        return false;
+    }
+    if (!ensure_automation_permission()) {
+        return false;
+    }
+    return true;
+}
+
+function ensure_accessibility_permission() {
+    if (electron.systemPreferences.isTrustedAccessibilityClient(false)) {
+        return true;
+    }
+
+    // Trigger the native Accessibility prompt.
+    electron.systemPreferences.isTrustedAccessibilityClient(true);
+    var action = electron.dialog.showMessageBoxSync({
+        type: "warning",
+        buttons: ["Open Accessibility Settings", "Cancel"],
+        defaultId: 0,
+        cancelId: 1,
+        message: "dock-switch needs Accessibility permission",
+        detail: "Enable dock-switch in Privacy & Security > Accessibility, then reopen the app."
+    });
+    if (action === 0) {
+        electron.shell.openExternal("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility");
+    }
+    return false;
+}
+
+function ensure_automation_permission() {
+    try {
+        child_process.execFileSync(osascript_path, [
+            "-e",
+            "tell application \"System Events\" to count (application processes)"
+        ]);
+        return true;
+    } catch (e) {
+        var action = electron.dialog.showMessageBoxSync({
+            type: "warning",
+            buttons: ["Open Automation Settings", "Cancel"],
+            defaultId: 0,
+            cancelId: 1,
+            message: "dock-switch needs Automation permission",
+            detail: "Allow dock-switch to control System Events in Privacy & Security > Automation."
+        });
+        if (action === 0) {
+            electron.shell.openExternal("x-apple.systempreferences:com.apple.preference.security?Privacy_Automation");
+        }
+        return false;
+    }
 }
 
 function show_window() {

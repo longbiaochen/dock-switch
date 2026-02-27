@@ -14,7 +14,7 @@
     },
     "scripts": {
         "go": "killall -9 dock-switch; electron .",
-        "dist": "electron-builder build; chmod +x dist/mac-arm64/dock-switch.app/Contents/Resources/app/src/ui-helper; killall -9 dock-switch; rm -rf /Applications/dock-switch.app; cp -rf dist/mac-arm64/dock-switch.app /Applications/; chmod +x /Applications/dock-switch.app/Contents/Resources/app/src/ui-helper; open -a dock-switch.app",
+        "dist": "electron-builder build; /usr/libexec/PlistBuddy -c 'Delete :NSAppleEventsUsageDescription' dist/mac-arm64/dock-switch.app/Contents/Info.plist >/dev/null 2>&1 || true; /usr/libexec/PlistBuddy -c 'Add :NSAppleEventsUsageDescription string dock-switch needs automation permission to focus and place application windows.' dist/mac-arm64/dock-switch.app/Contents/Info.plist; chmod +x dist/mac-arm64/dock-switch.app/Contents/Resources/app/src/ui-helper; killall -9 dock-switch; rm -rf /Applications/dock-switch.app; cp -rf dist/mac-arm64/dock-switch.app /Applications/; /usr/libexec/PlistBuddy -c 'Delete :NSAppleEventsUsageDescription' /Applications/dock-switch.app/Contents/Info.plist >/dev/null 2>&1 || true; /usr/libexec/PlistBuddy -c 'Add :NSAppleEventsUsageDescription string dock-switch needs automation permission to focus and place application windows.' /Applications/dock-switch.app/Contents/Info.plist; chmod +x /Applications/dock-switch.app/Contents/Resources/app/src/ui-helper; open -a dock-switch.app",
         "dist:signed": "CSC_NAME='Developer ID Application' electron-builder --mac dir"
     },
     "license": "MIT",
