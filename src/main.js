@@ -3,16 +3,12 @@ const util = require("util");
 const child_process = require("child_process");
 const fs = require("fs");
 const path = require("path");
-const os = require("os");
 var dock_items = [], display_items = [];
-const helper_path = path.join(__dirname, "ui-helper");
 const osascript_path = "/usr/bin/osascript";
-const dock_cache_path = path.join(electron.app.getPath("userData"), "dock-items-cache.json");
 const main_debug_path = path.join(electron.app.getPath("userData"), "main-debug.log");
-const dock_poll_interval_ms = 250;
+const dock_poll_interval_ms = 120;
 var dock_poll_timer = null;
 var last_dock_signature = "";
-var dock_query_backend = "helper";
 var last_automation_prompt_at = 0;
 
 // Keep the app out of the Dock; interaction is via tray + global shortcut.
@@ -86,41 +82,7 @@ electron.app.on("ready", () => {
 
 });
 
-function ensure_helper_executable() {
-    fs.chmodSync(helper_path, 0o755);
-    fs.accessSync(helper_path, fs.constants.X_OK);
-}
-
-function run_dock_query_with_debug() {
-    var result = child_process.spawnSync(helper_path, ["dock", "0"], { encoding: "utf8", timeout: 500 });
-    if (result.status === 0) {
-        return result.stdout || "";
-    }
-
-    var report_path = write_helper_debug_report(result);
-    var err = new Error(
-        `ui-helper dock query failed (status=${result.status}, signal=${result.signal || "none"}). ` +
-        `Debug report: ${report_path}`
-    );
-    err.name = "DockQueryError";
-    throw err;
-}
-
 function query_live_dock_items() {
-    if (dock_query_backend === "helper") {
-        try {
-            ensure_helper_executable();
-            var response = run_dock_query_with_debug();
-            var parsed = JSON.parse(response);
-            if (!Array.isArray(parsed)) return [];
-            return parsed
-                .filter(item => item && item.pos && Number.isFinite(item.pos.x) && Number.isFinite(item.pos.y))
-                .sort((a, b) => a.pos.x - b.pos.x);
-        } catch (e) {
-            dock_query_backend = "osascript";
-            log_main_debug(`helper-dock-query-failed, switch-backend=osascript: ${String(e && e.message || e)}`);
-        }
-    }
     return query_dock_items_via_osascript();
 }
 
@@ -175,21 +137,6 @@ function parse_osascript_dock_output(output) {
         .sort((a, b) => a.pos.x - b.pos.x);
 }
 
-function write_dock_cache(items) {
-    fs.writeFileSync(dock_cache_path, JSON.stringify(items), "utf8");
-}
-
-function read_dock_cache() {
-    try {
-        if (!fs.existsSync(dock_cache_path)) return [];
-        var raw = fs.readFileSync(dock_cache_path, "utf8");
-        var parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
-        return [];
-    }
-}
-
 function get_visible_dock_items(items) {
     return (items || []).filter(item =>
         item &&
@@ -208,7 +155,7 @@ function dock_signature(items) {
 
 function start_dock_tracking() {
     stop_dock_tracking();
-    if (dock_query_backend === "osascript" && !ensure_automation_permission()) {
+    if (!ensure_automation_permission()) {
         return;
     }
     refresh_dock_overlay(true);
@@ -225,26 +172,17 @@ function stop_dock_tracking() {
 }
 
 function refresh_dock_overlay(force_send) {
-    var next_items = [];
     try {
-        next_items = query_live_dock_items();
-        if (next_items.length > 0) {
-            write_dock_cache(next_items);
-        }
+        dock_items = query_live_dock_items();
     } catch (err) {
-        if (dock_items.length === 0) {
-            next_items = read_dock_cache();
-        } else {
-            next_items = dock_items;
-        }
         log_main_debug(`dock-query-failed ${String(err && err.message || err)}`);
-    }
-
-    if (!Array.isArray(next_items) || next_items.length === 0) {
         return;
     }
 
-    dock_items = next_items;
+    if (!Array.isArray(dock_items) || dock_items.length === 0) {
+        return;
+    }
+
     var visible = get_visible_dock_items(dock_items);
     if (visible.length === 0) {
         return;
@@ -259,70 +197,11 @@ function refresh_dock_overlay(force_send) {
     }
 }
 
-function write_helper_debug_report(result) {
-    var user_data = electron.app.getPath("userData");
-    var report_path = path.join(user_data, "ui-helper-debug.log");
-    var helper_stat = null;
-    var x_ok = false;
-    var r_ok = false;
-
-    try {
-        helper_stat = fs.statSync(helper_path);
-    } catch (e) {
-        helper_stat = { stat_error: e.message };
-    }
-
-    try {
-        fs.accessSync(helper_path, fs.constants.X_OK);
-        x_ok = true;
-    } catch (e) {
-        x_ok = false;
-    }
-
-    try {
-        fs.accessSync(helper_path, fs.constants.R_OK);
-        r_ok = true;
-    } catch (e) {
-        r_ok = false;
-    }
-
-    var debug_payload = {
-        timestamp: new Date().toISOString(),
-        appPath: electron.app.getAppPath(),
-        userDataPath: user_data,
-        helperPath: helper_path,
-        helperExists: fs.existsSync(helper_path),
-        helperModeOctal: helper_stat && helper_stat.mode ? (helper_stat.mode & 0o777).toString(8) : null,
-        helperUid: helper_stat && helper_stat.uid,
-        helperGid: helper_stat && helper_stat.gid,
-        helperSize: helper_stat && helper_stat.size,
-        helperReadable: r_ok,
-        helperExecutable: x_ok,
-        platform: process.platform,
-        arch: process.arch,
-        release: os.release(),
-        accessibilityTrusted: electron.systemPreferences.isTrustedAccessibilityClient(false),
-        spawnError: result.error ? {
-            message: result.error.message,
-            code: result.error.code,
-            errno: result.error.errno,
-            syscall: result.error.syscall,
-            path: result.error.path,
-            spawnargs: result.error.spawnargs
-        } : null,
-        status: result.status,
-        signal: result.signal,
-        stdout: result.stdout,
-        stderr: result.stderr
-    };
-
-    var line = `${JSON.stringify(debug_payload)}\n`;
-    fs.appendFileSync(report_path, line, "utf8");
-    return report_path;
-}
-
 function ensure_tcc_permissions() {
     if (!ensure_accessibility_permission()) {
+        return false;
+    }
+    if (!ensure_automation_permission()) {
         return false;
     }
     return true;
@@ -384,10 +263,18 @@ function show_window() {
     }
     var first = visible[0];
     var last = visible[visible.length - 1];
+    var min_y = Math.min.apply(null, visible.map(item => item.pos.y));
+    var max_y = Math.max.apply(null, visible.map(item => item.pos.y));
+    var center_y = Math.round((min_y + max_y) / 2);
+    var display = electron.screen.getDisplayNearestPoint({ x: Math.round(first.pos.x), y: center_y });
+    var display_mid_y = display.bounds.y + Math.floor(display.bounds.height / 2);
+    var is_bottom_dock = center_y >= display_mid_y;
     electron.win.width = Math.max(120, last.pos.x - first.pos.x + 60);
     electron.win.height = 60;
     electron.win.setSize(electron.win.width, electron.win.height);
-    electron.win.setPosition(first.pos.x, first.pos.y);
+    var y = is_bottom_dock ? (min_y - electron.win.height - 8) : (max_y + 52 + 8);
+    y = Math.max(display.bounds.y, Math.min(y, display.bounds.y + display.bounds.height - electron.win.height));
+    electron.win.setPosition(first.pos.x, y);
     electron.win.show();
 
 }
