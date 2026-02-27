@@ -6,6 +6,7 @@ dist/
 output/
 release/
 bin/
+native/dock-query/build/
 
 # Documentation build artifacts
 docs/_build/
