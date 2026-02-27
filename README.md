@@ -35,6 +35,24 @@ Example:
 
 When triggered from dock-switch, supported browser windows are moved to the right half of the detected external display.
 
+## Remember Last Window Size/Position
+By default, dock-switch remembers the last known window bounds (x/y/width/height) for each app and restores them when that app is reopened from dock-switch.
+
+- Window state cache location: Electron `userData` directory (`window-state.json`)
+- This includes maximized-like window sizes because the actual bounds are restored.
+- Apps with explicit `placement` (for example `external_right_half`) keep that placement behavior.
+
+To disable restore for a specific app, add:
+
+```json
+{
+  "name": "Terminal",
+  "key": "T",
+  "screen": "4",
+  "remember_window_state": false
+}
+```
+
 ## Installation
 - Download a release from [GitHub Releases](https://github.com/longbiaochen/dock-switch/releases).
 

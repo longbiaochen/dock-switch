@@ -3,6 +3,8 @@ var util = require("util");
 var $ = require("jquery");
 var bootstrap = require("bootstrap");
 const child_process = require("child_process");
+const fs = require("fs");
+const path = require("path");
 
 var CONFIG = require(`${__dirname}/config.json`);
 // Renderer-side templates for buttons and helper command invocations.
@@ -15,11 +17,71 @@ var KEY_MAP = { "ArrowDown": "0", "\\": "2", "ArrowUp": "1", "ArrowLeft": "3", "
 var DOCK_ITEMS = [],
     DISPLAY_ITEMS = [];
 
+var WINDOW_STATE_PATH = path.join(electron.remote.app.getPath("userData"), "window-state.json");
+var WINDOW_STATE_CACHE = loadWindowStateCache();
+
 function normalizeAppName(name) {
     return (name || "")
         .trim()
         .replace(/\.app$/i, "")
         .toLowerCase();
+}
+
+function loadWindowStateCache() {
+    try {
+        if (!fs.existsSync(WINDOW_STATE_PATH)) {
+            return {};
+        }
+        var raw = fs.readFileSync(WINDOW_STATE_PATH, "utf8");
+        if (!raw) return {};
+        return JSON.parse(raw);
+    } catch (e) {
+        console.error("Failed to read window state cache:", e.message);
+        return {};
+    }
+}
+
+function saveWindowStateCache() {
+    try {
+        fs.mkdirSync(path.dirname(WINDOW_STATE_PATH), { recursive: true });
+        fs.writeFileSync(WINDOW_STATE_PATH, JSON.stringify(WINDOW_STATE_CACHE, null, 2));
+    } catch (e) {
+        console.error("Failed to persist window state cache:", e.message);
+    }
+}
+
+function setSavedWindowState(appName, bounds) {
+    if (!appName || !bounds) return;
+
+    var key = normalizeAppName(appName);
+    if (!key) return;
+
+    WINDOW_STATE_CACHE[key] = {
+        x: Math.round(bounds.x),
+        y: Math.round(bounds.y),
+        w: Math.round(bounds.w),
+        h: Math.round(bounds.h),
+        updatedAt: Date.now()
+    };
+    saveWindowStateCache();
+}
+
+function getSavedWindowState(appName) {
+    var key = normalizeAppName(appName);
+    if (!key) return null;
+
+    var s = WINDOW_STATE_CACHE[key];
+    if (!s) return null;
+
+    if (![s.x, s.y, s.w, s.h].every(Number.isFinite)) {
+        return null;
+    }
+
+    if (s.w <= 0 || s.h <= 0) {
+        return null;
+    }
+
+    return s;
 }
 
 function shellEscapeAppleScript(str) {
@@ -69,6 +131,80 @@ function applyWindowPlacement(item) {
 
     if (script) {
         child_process.execSync(`osascript -e \"${shellEscapeAppleScript(script)}\"`);
+        setSavedWindowState(app, { x: x, y: y, w: w, h: h });
+    }
+}
+
+function saveFrontmostWindowState() {
+    var script =
+        `tell application \"System Events\"\n` +
+        `  set frontApps to (application processes where frontmost is true)\n` +
+        `  if (count of frontApps) = 0 then return \"\"\n` +
+        `  set frontProc to item 1 of frontApps\n` +
+        `  set frontName to name of frontProc\n` +
+        `  tell frontProc\n` +
+        `    if (count of windows) = 0 then return \"\"\n` +
+        `    set winPos to position of window 1\n` +
+        `    set winSize to size of window 1\n` +
+        `    return frontName & \"|\" & (item 1 of winPos as text) & \"|\" & (item 2 of winPos as text) & \"|\" & (item 1 of winSize as text) & \"|\" & (item 2 of winSize as text)\n` +
+        `  end tell\n` +
+        `end tell`;
+
+    try {
+        var output = child_process
+            .execSync(`osascript -e \"${shellEscapeAppleScript(script)}\"`)
+            .toString()
+            .trim();
+
+        if (!output) return;
+
+        var parts = output.split("|");
+        if (parts.length !== 5) return;
+
+        var appName = parts[0].trim();
+        var x = Number(parts[1]);
+        var y = Number(parts[2]);
+        var w = Number(parts[3]);
+        var h = Number(parts[4]);
+
+        if (![x, y, w, h].every(Number.isFinite) || w <= 0 || h <= 0) {
+            return;
+        }
+
+        setSavedWindowState(appName, { x: x, y: y, w: w, h: h });
+    } catch (e) {
+        // Ignore transient accessibility/automation errors.
+    }
+}
+
+function restoreWindowState(item) {
+    if (!item || item.remember_window_state === false) return;
+
+    var app = item.name || "";
+    var state = getSavedWindowState(app);
+    if (!state) return;
+
+    var script =
+        `tell application \"System Events\"\n` +
+        `  repeat 12 times\n` +
+        `    if exists (application process \"${shellEscapeAppleScript(app)}\") then\n` +
+        `      tell application process \"${shellEscapeAppleScript(app)}\"\n` +
+        `        if (count of windows) > 0 then\n` +
+        `          set position of window 1 to {${state.x}, ${state.y}}\n` +
+        `          set size of window 1 to {${state.w}, ${state.h}}\n` +
+        `          return \"ok\"\n` +
+        `        end if\n` +
+        `      end tell\n` +
+        `    end if\n` +
+        `    delay 0.1\n` +
+        `  end repeat\n` +
+        `end tell\n` +
+        `return \"\"`;
+
+    try {
+        child_process.execSync(`osascript -e \"${shellEscapeAppleScript(script)}\"`);
+    } catch (e) {
+        // Ignore apps/windows that don't expose AX position/size.
     }
 }
 
@@ -92,12 +228,19 @@ $(function() {
             if (item == undefined) {
                 return;
             }
+
+            saveFrontmostWindowState();
             // new Notification(item.name, { body: key });
             child_process.execSync(util.format(APP_TPL, item.name));
             // var screen_id = (DISPLAY_ITEMS.length == 1) ? 0 : item.screen;
             child_process.execSync(util.format(SCREEN_TPL, item.screen));
             child_process.execSync(util.format(MOUSE_TPL, item.screen));
-            applyWindowPlacement(item);
+
+            if (item.placement) {
+                applyWindowPlacement(item);
+            } else {
+                restoreWindowState(item);
+            }
         }
     });
 
