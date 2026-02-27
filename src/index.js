@@ -96,113 +96,6 @@ function shellEscapeAppleScript(str) {
     return String(str).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
-function getDisplayForPoint(x, y) {
-    if (!Array.isArray(DISPLAY_ITEMS) || DISPLAY_ITEMS.length === 0) return null;
-    for (var i = 0; i < DISPLAY_ITEMS.length; i++) {
-        var d = DISPLAY_ITEMS[i];
-        if (!d || !d.bounds) continue;
-        var b = d.bounds;
-        if (x >= b.x && x < (b.x + b.width) && y >= b.y && y < (b.y + b.height)) {
-            return d;
-        }
-    }
-    return null;
-}
-
-function pickDisplayByArrow(currentDisplay, arrowKey) {
-    if (!currentDisplay || !currentDisplay.bounds) return null;
-    var c = currentDisplay.bounds;
-    var cx = c.x + c.width / 2;
-    var cy = c.y + c.height / 2;
-    var best = null;
-    var bestDist = Number.POSITIVE_INFINITY;
-
-    for (var i = 0; i < DISPLAY_ITEMS.length; i++) {
-        var d = DISPLAY_ITEMS[i];
-        if (!d || !d.bounds) continue;
-        if (d.id === currentDisplay.id) continue;
-        var b = d.bounds;
-        var dx = (b.x + b.width / 2) - cx;
-        var dy = (b.y + b.height / 2) - cy;
-        var ok = false;
-
-        if (arrowKey === "ArrowLeft") ok = dx < 0;
-        if (arrowKey === "ArrowRight") ok = dx > 0;
-        if (arrowKey === "ArrowUp") ok = dy < 0;
-        if (arrowKey === "ArrowDown") ok = dy > 0;
-        if (!ok) continue;
-
-        var dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < bestDist) {
-            bestDist = dist;
-            best = d;
-        }
-    }
-    return best;
-}
-
-function getFrontWindowGeometry() {
-    var script =
-        `tell application \"System Events\"\n` +
-        `  set frontApps to (application processes where frontmost is true)\n` +
-        `  if (count of frontApps) = 0 then return \"\"\n` +
-        `  set frontProc to item 1 of frontApps\n` +
-        `  tell frontProc\n` +
-        `    if (count of windows) = 0 then return \"\"\n` +
-        `    set p to position of window 1\n` +
-        `    set s to size of window 1\n` +
-        `    return (item 1 of p as text) & \"|\" & (item 2 of p as text) & \"|\" & (item 1 of s as text) & \"|\" & (item 2 of s as text)\n` +
-        `  end tell\n` +
-        `end tell`;
-    try {
-        var out = child_process.execSync(`osascript -e \"${shellEscapeAppleScript(script)}\"`).toString().trim();
-        if (!out) return null;
-        var parts = out.split("|");
-        if (parts.length !== 4) return null;
-        var x = Number(parts[0]), y = Number(parts[1]), w = Number(parts[2]), h = Number(parts[3]);
-        if (![x, y, w, h].every(Number.isFinite) || w <= 0 || h <= 0) return null;
-        return { x: x, y: y, w: w, h: h };
-    } catch (e) {
-        return null;
-    }
-}
-
-function setFrontWindowGeometry(x, y, w, h) {
-    var script =
-        `tell application \"System Events\"\n` +
-        `  set frontApps to (application processes where frontmost is true)\n` +
-        `  if (count of frontApps) = 0 then return\n` +
-        `  set frontProc to item 1 of frontApps\n` +
-        `  tell frontProc\n` +
-        `    if (count of windows) = 0 then return\n` +
-        `    set position of window 1 to {${Math.round(x)}, ${Math.round(y)}}\n` +
-        `    set size of window 1 to {${Math.round(w)}, ${Math.round(h)}}\n` +
-        `  end tell\n` +
-        `end tell`;
-    child_process.execSync(`osascript -e \"${shellEscapeAppleScript(script)}\"`);
-}
-
-function moveFrontWindowByArrow(arrowKey) {
-    var g = getFrontWindowGeometry();
-    if (!g) return;
-    var cx = g.x + g.w / 2;
-    var cy = g.y + g.h / 2;
-    var currentDisplay = getDisplayForPoint(cx, cy);
-    if (!currentDisplay || !currentDisplay.bounds) return;
-    var targetDisplay = pickDisplayByArrow(currentDisplay, arrowKey);
-    if (!targetDisplay || !targetDisplay.bounds) return;
-
-    var from = currentDisplay.bounds;
-    var to = targetDisplay.bounds;
-    var relX = g.x - from.x;
-    var relY = g.y - from.y;
-    var nextX = to.x + relX;
-    var nextY = to.y + relY;
-    nextX = Math.max(to.x, Math.min(nextX, to.x + to.width - g.w));
-    nextY = Math.max(to.y, Math.min(nextY, to.y + to.height - g.h));
-    setFrontWindowGeometry(nextX, nextY, g.w, g.h);
-}
-
 function findExternalDisplay() {
     if (!Array.isArray(DISPLAY_ITEMS) || DISPLAY_ITEMS.length === 0) return null;
 
@@ -330,7 +223,6 @@ $(function() {
         electron.ipcRenderer.invoke('hide-window');
         // new Notification(name, { body: e.key });
         if (KEY_MAP[e.key] != undefined) {
-            moveFrontWindowByArrow(e.key);
             // Arrow-key path: derive the currently focused app on target display.
             var name = child_process.execSync(util.format(SCREEN_TPL, KEY_MAP[e.key])).toString();
             // new Notification(name, { body: e.key });
