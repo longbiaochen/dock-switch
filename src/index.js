@@ -7,13 +7,10 @@ const fs = require("fs");
 const path = require("path");
 
 var CONFIG = require(`${__dirname}/config.json`);
-// Renderer-side templates for buttons and helper command invocations.
+// Renderer-side templates for buttons and app launch command.
 var ITEM_TPL = `<div class="item" style="left: %dpx; top: 0;""><button type="button" class="btn btn-info">%s</button></div>`;
 var APP_TPL = `open -a "%s"; sleep .1;`;
-var SCREEN_TPL = `${__dirname}/ui-helper screen %s`;
-var MOUSE_TPL = `${__dirname}/ui-helper mouse %s`;
-// Arrow keys are mapped to display ids expected by ui-helper.
-var KEY_MAP = { "ArrowDown": "0", "\\": "2", "ArrowUp": "1", "ArrowLeft": "3", "ArrowRight": "4"};
+var ARROW_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"]);
 var DOCK_ITEMS = [],
     DISPLAY_ITEMS = [];
 
@@ -216,23 +213,152 @@ function restoreWindowState(item) {
     }
 }
 
+function runAppleScript(script) {
+    return child_process.execFileSync("osascript", ["-e", script], {
+        encoding: "utf8"
+    });
+}
+
+function getFrontmostWindowGeometry() {
+    var script =
+        `tell application "System Events"\n` +
+        `  set frontApps to (application processes where frontmost is true)\n` +
+        `  if (count of frontApps) = 0 then return ""\n` +
+        `  set frontProc to item 1 of frontApps\n` +
+        `  tell frontProc\n` +
+        `    if (count of windows) = 0 then return ""\n` +
+        `    set winPos to position of window 1\n` +
+        `    set winSize to size of window 1\n` +
+        `    return (item 1 of winPos as text) & "|" & (item 2 of winPos as text) & "|" & (item 1 of winSize as text) & "|" & (item 2 of winSize as text)\n` +
+        `  end tell\n` +
+        `end tell`;
+
+    try {
+        var output = runAppleScript(script).trim();
+        if (!output) return null;
+        var parts = output.split("|");
+        if (parts.length !== 4) return null;
+        var x = Number(parts[0]);
+        var y = Number(parts[1]);
+        var w = Number(parts[2]);
+        var h = Number(parts[3]);
+        if (![x, y, w, h].every(Number.isFinite) || w <= 0 || h <= 0) {
+            return null;
+        }
+        return { x: x, y: y, w: w, h: h };
+    } catch (e) {
+        return null;
+    }
+}
+
+function moveFrontmostWindowToBounds(bounds) {
+    var script =
+        `tell application "System Events"\n` +
+        `  set frontApps to (application processes where frontmost is true)\n` +
+        `  if (count of frontApps) = 0 then return ""\n` +
+        `  set frontProc to item 1 of frontApps\n` +
+        `  tell frontProc\n` +
+        `    if (count of windows) = 0 then return ""\n` +
+        `    set position of window 1 to {${Math.round(bounds.x)}, ${Math.round(bounds.y)}}\n` +
+        `    set size of window 1 to {${Math.round(bounds.w)}, ${Math.round(bounds.h)}}\n` +
+        `    return "ok"\n` +
+        `  end tell\n` +
+        `end tell`;
+    runAppleScript(script);
+}
+
+function getCurrentDisplays() {
+    if (Array.isArray(DISPLAY_ITEMS) && DISPLAY_ITEMS.length > 0) {
+        return DISPLAY_ITEMS;
+    }
+    try {
+        if (electron.remote && electron.remote.screen) {
+            return electron.remote.screen.getAllDisplays();
+        }
+    } catch (e) {
+        // ignore
+    }
+    return [];
+}
+
+function getDisplayForWindow(rect) {
+    var displays = getCurrentDisplays();
+    if (!Array.isArray(displays) || displays.length === 0) {
+        return null;
+    }
+
+    var cx = rect.x + rect.w / 2;
+    var cy = rect.y + rect.h / 2;
+    for (var i = 0; i < displays.length; i++) {
+        var d = displays[i];
+        if (!d || !d.bounds) continue;
+        var b = d.bounds;
+        if (cx >= b.x && cx < b.x + b.width && cy >= b.y && cy < b.y + b.height) {
+            return d;
+        }
+    }
+
+    var best = null;
+    var bestDist = Number.POSITIVE_INFINITY;
+    for (var j = 0; j < displays.length; j++) {
+        var s = displays[j];
+        if (!s || !s.bounds) continue;
+        var sb = s.bounds;
+        var dx = 0;
+        if (cx < sb.x) dx = sb.x - cx;
+        else if (cx > sb.x + sb.width) dx = cx - (sb.x + sb.width);
+        var dy = 0;
+        if (cy < sb.y) dy = sb.y - cy;
+        else if (cy > sb.y + sb.height) dy = cy - (sb.y + sb.height);
+        var dist = dx * dx + dy * dy;
+        if (dist < bestDist) {
+            bestDist = dist;
+            best = s;
+        }
+    }
+    return best;
+}
+
+function tileWindowByArrowKey(key) {
+    var rect = getFrontmostWindowGeometry();
+    if (!rect) return;
+
+    var display = getDisplayForWindow(rect);
+    if (!display || !display.bounds) return;
+
+    var b = display.bounds;
+    var halfW = Math.floor(b.width / 2);
+    var halfH = Math.floor(b.height / 2);
+    var target = null;
+
+    if (key === "ArrowLeft") {
+        target = { x: b.x, y: b.y, w: halfW, h: b.height };
+    } else if (key === "ArrowRight") {
+        target = { x: b.x + halfW, y: b.y, w: b.width - halfW, h: b.height };
+    } else if (key === "ArrowUp") {
+        target = { x: b.x, y: b.y, w: b.width, h: halfH };
+    } else if (key === "ArrowDown") {
+        target = { x: b.x, y: b.y + halfH, w: b.width, h: b.height - halfH };
+    }
+
+    if (!target || target.w <= 0 || target.h <= 0) return;
+    try {
+        moveFrontmostWindowToBounds(target);
+    } catch (e) {
+        // Ignore windows that cannot be resized/moved.
+    }
+}
+
 $(function() {
     $(document).on("keydown", function(e) {
         // electron.remote.app.hide();
         // Hide first so launcher feels instant after key selection.
         electron.ipcRenderer.invoke('hide-window');
         // new Notification(name, { body: e.key });
-        if (KEY_MAP[e.key] != undefined) {
-            // Arrow-key path: derive the currently focused app on target display.
-            var name = child_process.execSync(util.format(SCREEN_TPL, KEY_MAP[e.key])).toString();
-            // new Notification(name, { body: e.key });
-            var item = DOCK_ITEMS.find(item => item.name == name);
-            if (item != undefined) {
-                item.screen = KEY_MAP[e.key];
-                child_process.execSync(util.format(MOUSE_TPL, item.screen));
-            }
+        if (ARROW_KEYS.has(e.key)) {
+            tileWindowByArrowKey(e.key);
         } else {
-            // App-key path: open/focus app, then place focus/mouse on mapped display.
+            // App-key path: open/focus app, then restore configured placement/window state.
             var key = e.key.toUpperCase();
             var item = DOCK_ITEMS.find(item => item.key == key);
             if (item == undefined) {
@@ -242,9 +368,6 @@ $(function() {
             saveFrontmostWindowState();
             // new Notification(item.name, { body: key });
             child_process.execSync(util.format(APP_TPL, item.name));
-            // var screen_id = (DISPLAY_ITEMS.length == 1) ? 0 : item.screen;
-            child_process.execSync(util.format(SCREEN_TPL, item.screen));
-            child_process.execSync(util.format(MOUSE_TPL, item.screen));
 
             if (item.placement) {
                 applyWindowPlacement(item);

@@ -7,7 +7,7 @@ Quickly switch among applications in the macOS Dock with one global hotkey.
 ## How It Works
 - Press `F20` to open the floating launcher UI.
 - Press the shown key for an app to focus it.
-- Press an arrow key to move/focus windows on another display.
+- Press an arrow key to tile the frontmost window to a screen half (`left/right/up/down`) on its current display.
 - The UI closes automatically after a selection.
 
 ## Browser Fixed Placement (External Monitor Right Half)
@@ -81,6 +81,6 @@ App key/display mapping is stored in `src/config.json` under `dock_items`.
 - macOS may warn about an unidentified developer depending on how the app is built/signed.
 
 ## Project Notes
-- `src/ui-helper` is a prebuilt helper binary from: https://github.com/longbiaochen/ui-helper
 - Electron entry point: `src/main.js`
 - Renderer/UI logic: `src/index.js`
+- Dock metadata provider: native Node addon (`native/dock-query`)

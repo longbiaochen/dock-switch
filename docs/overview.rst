@@ -11,16 +11,16 @@ Core Flow
 ---------
 
 1. A global shortcut (`F20`) toggles the launcher window.
-2. The main process calls ``ui-helper`` to fetch Dock app metadata.
+2. The main process calls the native ``dock-query`` addon to fetch Dock app metadata.
 3. The renderer builds a compact key map UI.
-4. Key presses launch/focus apps and optionally move focus across displays.
+4. Key presses launch/focus apps; arrow keys tile the frontmost window to a screen half.
 
 Architecture
 ------------
 
 - ``src/main.js``:
-  Electron main process, tray setup, global shortcut registration, and IPC.
+  Electron main process, tray setup, global shortcut registration, IPC, and dock-query integration.
 - ``src/index.js``:
-  Renderer process for key handling, rendering mapped items, and helper calls.
-- ``src/ui-helper``:
-  Native helper binary used to query Dock details and set display/mouse state.
+  Renderer process for key handling, rendering mapped items, and AppleScript-based window placement.
+- ``native/dock-query``:
+  Native Node addon that reads live Dock metadata directly in-process.
