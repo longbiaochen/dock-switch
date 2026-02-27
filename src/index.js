@@ -17,8 +17,17 @@ var KEY_MAP = { "ArrowDown": "0", "\\": "2", "ArrowUp": "1", "ArrowLeft": "3", "
 var DOCK_ITEMS = [],
     DISPLAY_ITEMS = [];
 
-var WINDOW_STATE_PATH = path.join(electron.remote.app.getPath("userData"), "window-state.json");
+function getUserDataPath() {
+    try {
+        return electron.ipcRenderer.sendSync("get-user-data-path");
+    } catch (e) {
+        return path.join(process.env.HOME || "~", "Library", "Application Support", "dock-switch");
+    }
+}
+
+var WINDOW_STATE_PATH = path.join(getUserDataPath(), "window-state.json");
 var WINDOW_STATE_CACHE = loadWindowStateCache();
+var RENDERER_DEBUG_PATH = path.join(getUserDataPath(), "renderer-debug.log");
 
 function normalizeAppName(name) {
     return (name || "")
@@ -38,6 +47,14 @@ function loadWindowStateCache() {
     } catch (e) {
         console.error("Failed to read window state cache:", e.message);
         return {};
+    }
+}
+
+function logRendererDebug(message) {
+    try {
+        fs.appendFileSync(RENDERER_DEBUG_PATH, `${new Date().toISOString()} ${message}\n`, "utf8");
+    } catch (e) {
+        // Best-effort debug logging.
     }
 }
 
@@ -209,6 +226,7 @@ function restoreWindowState(item) {
 }
 
 $(function() {
+    logRendererDebug("renderer-dom-ready");
     $(document).on("keydown", function(e) {
         // electron.remote.app.hide();
         // Hide first so launcher feels instant after key selection.
@@ -245,6 +263,7 @@ $(function() {
     });
 
     electron.ipcRenderer.on("update-ui", (event, dock_items) => {
+        var incoming_count = Array.isArray(dock_items) ? dock_items.length : 0;
         $("#container").html("");
         DOCK_ITEMS = [];
         var k = 1;
@@ -257,6 +276,7 @@ $(function() {
         if (visible_items.length === 0) {
             // Last-resort UI fallback when helper data is unavailable/crashed.
             visible_items = (CONFIG.dock_items || []).map(item => ({ name: item.name }));
+            logRendererDebug(`update-ui fallback-from-config incoming=${incoming_count} fallback=${visible_items.length}`);
         }
         for (var i = 0; i < visible_items.length; i++) {
             // Reuse configured key mapping when available; otherwise assign fallback keys.
@@ -272,6 +292,7 @@ $(function() {
             DOCK_ITEMS.push(item);
             $("#container").append(util.format(ITEM_TPL, i * 52, item.icon || item.key));
         }
+        logRendererDebug(`update-ui rendered incoming=${incoming_count} visible=${visible_items.length} rendered=${DOCK_ITEMS.length}`);
     });
 
     electron.ipcRenderer.on("update-display", (event, display_items) => {
