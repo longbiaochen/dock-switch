@@ -254,6 +254,10 @@ $(function() {
             item.name !== "Trash" &&
             item.name !== "Downloads"
         );
+        if (visible_items.length === 0) {
+            // Last-resort UI fallback when helper data is unavailable/crashed.
+            visible_items = (CONFIG.dock_items || []).map(item => ({ name: item.name }));
+        }
         for (var i = 0; i < visible_items.length; i++) {
             // Reuse configured key mapping when available; otherwise assign fallback keys.
             var dockName = normalizeAppName(visible_items[i].name);
