@@ -3,9 +3,12 @@ const util = require("util");
 const child_process = require("child_process");
 const fs = require("fs");
 const path = require("path");
+const os = require("os");
+const config = require(`${__dirname}/config.json`);
 var dock_items = [], display_items = [];
 const helper_path = path.join(__dirname, "ui-helper");
 const osascript_path = "/usr/bin/osascript";
+const dock_cache_path = path.join(electron.app.getPath("userData"), "dock-items-cache.json");
 
 // Keep the app out of the Dock; interaction is via tray + global shortcut.
 electron.app.dock.hide();
@@ -45,8 +48,7 @@ electron.app.on("ready", () => {
         } else {
             // Query Dock items from the helper binary and pass them to the renderer.
             ensure_helper_executable();
-            var response = child_process.execFileSync(helper_path, ["dock", "0"]).toString();
-            dock_items = JSON.parse(response);
+            dock_items = get_dock_items_robust();
             show_window();
             electron.win.webContents.send("update-ui", dock_items);
             // Also send display data so renderer shortcuts can switch displays.
@@ -74,6 +76,146 @@ electron.app.on("ready", () => {
 function ensure_helper_executable() {
     fs.chmodSync(helper_path, 0o755);
     fs.accessSync(helper_path, fs.constants.X_OK);
+}
+
+function run_dock_query_with_debug() {
+    var result = child_process.spawnSync(helper_path, ["dock", "0"], { encoding: "utf8" });
+    if (result.status === 0) {
+        return result.stdout || "";
+    }
+
+    var report_path = write_helper_debug_report(result);
+    var err = new Error(
+        `ui-helper dock query failed (status=${result.status}, signal=${result.signal || "none"}). ` +
+        `Debug report: ${report_path}`
+    );
+    err.name = "DockQueryError";
+    throw err;
+}
+
+function get_dock_items_robust() {
+    var last_report_path = null;
+
+    for (var i = 0; i < 3; i++) {
+        try {
+            var response = run_dock_query_with_debug();
+            var parsed = JSON.parse(response);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                write_dock_cache(parsed);
+                return parsed;
+            }
+        } catch (err) {
+            var msg = String(err && err.message || "");
+            var marker = "Debug report:";
+            if (msg.includes(marker)) {
+                last_report_path = msg.split(marker).pop().trim();
+            }
+        }
+        child_process.execFileSync("/bin/sleep", ["0.05"]);
+    }
+
+    var cached = read_dock_cache();
+    if (cached.length > 0) {
+        return cached;
+    }
+
+    var fallback = build_fallback_dock_items();
+    if (fallback.length > 0) {
+        return fallback;
+    }
+
+    throw new Error(`Unable to get dock items. Last helper debug report: ${last_report_path || "n/a"}`);
+}
+
+function write_dock_cache(items) {
+    fs.writeFileSync(dock_cache_path, JSON.stringify(items), "utf8");
+}
+
+function read_dock_cache() {
+    try {
+        if (!fs.existsSync(dock_cache_path)) return [];
+        var raw = fs.readFileSync(dock_cache_path, "utf8");
+        var parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function build_fallback_dock_items() {
+    var configured = Array.isArray(config.dock_items) ? config.dock_items : [];
+    if (configured.length === 0) return [];
+
+    var primary = electron.screen.getPrimaryDisplay().bounds;
+    var start_x = Math.max(40, Math.floor(primary.width / 2) - Math.floor(configured.length * 26));
+    var y = Math.max(0, primary.height - 120);
+
+    return configured.map((item, idx) => ({
+        name: item.name,
+        pos: { x: start_x + idx * 52, y: y }
+    }));
+}
+
+function write_helper_debug_report(result) {
+    var user_data = electron.app.getPath("userData");
+    var report_path = path.join(user_data, "ui-helper-debug.log");
+    var helper_stat = null;
+    var x_ok = false;
+    var r_ok = false;
+
+    try {
+        helper_stat = fs.statSync(helper_path);
+    } catch (e) {
+        helper_stat = { stat_error: e.message };
+    }
+
+    try {
+        fs.accessSync(helper_path, fs.constants.X_OK);
+        x_ok = true;
+    } catch (e) {
+        x_ok = false;
+    }
+
+    try {
+        fs.accessSync(helper_path, fs.constants.R_OK);
+        r_ok = true;
+    } catch (e) {
+        r_ok = false;
+    }
+
+    var debug_payload = {
+        timestamp: new Date().toISOString(),
+        appPath: electron.app.getAppPath(),
+        userDataPath: user_data,
+        helperPath: helper_path,
+        helperExists: fs.existsSync(helper_path),
+        helperModeOctal: helper_stat && helper_stat.mode ? (helper_stat.mode & 0o777).toString(8) : null,
+        helperUid: helper_stat && helper_stat.uid,
+        helperGid: helper_stat && helper_stat.gid,
+        helperSize: helper_stat && helper_stat.size,
+        helperReadable: r_ok,
+        helperExecutable: x_ok,
+        platform: process.platform,
+        arch: process.arch,
+        release: os.release(),
+        accessibilityTrusted: electron.systemPreferences.isTrustedAccessibilityClient(false),
+        spawnError: result.error ? {
+            message: result.error.message,
+            code: result.error.code,
+            errno: result.error.errno,
+            syscall: result.error.syscall,
+            path: result.error.path,
+            spawnargs: result.error.spawnargs
+        } : null,
+        status: result.status,
+        signal: result.signal,
+        stdout: result.stdout,
+        stderr: result.stderr
+    };
+
+    var line = `${JSON.stringify(debug_payload)}\n`;
+    fs.appendFileSync(report_path, line, "utf8");
+    return report_path;
 }
 
 function ensure_tcc_permissions() {
@@ -131,6 +273,9 @@ function ensure_automation_permission() {
 }
 
 function show_window() {
+    if (!Array.isArray(dock_items) || dock_items.length === 0) {
+        return;
+    }
     // Match launcher width to Dock item span with small horizontal padding.
     var screen = electron.screen.getPrimaryDisplay().bounds;
     electron.win.width = dock_items[dock_items.length - 1].pos.x - dock_items[0].pos.x + 60;

@@ -248,13 +248,19 @@ $(function() {
         $("#container").html("");
         DOCK_ITEMS = [];
         var k = 1;
-        for (var i = 0; i < dock_items.length - 3; i++) {
+        var visible_items = (dock_items || []).filter(item =>
+            item &&
+            item.name &&
+            item.name !== "Trash" &&
+            item.name !== "Downloads"
+        );
+        for (var i = 0; i < visible_items.length; i++) {
             // Reuse configured key mapping when available; otherwise assign fallback keys.
-            var dockName = normalizeAppName(dock_items[i].name);
+            var dockName = normalizeAppName(visible_items[i].name);
             var item = CONFIG.dock_items.find(item => normalizeAppName(item.name) == dockName);
             if (item == undefined) {
                 item = {
-                    name: dock_items[i].name,
+                    name: visible_items[i].name,
                     key: k++,
                     screen: ""
                 }
