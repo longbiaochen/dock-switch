@@ -144,7 +144,9 @@ function read_dock_cache() {
 
 function build_fallback_dock_items() {
     var configured = Array.isArray(config.dock_items) ? config.dock_items : [];
-    if (configured.length === 0) return [];
+    if (configured.length === 0) {
+        configured = [{ name: "Finder" }, { name: "Terminal" }];
+    }
 
     var primary = electron.screen.getPrimaryDisplay().bounds;
     var start_x = Math.max(40, Math.floor(primary.width / 2) - Math.floor(configured.length * 26));
