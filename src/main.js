@@ -6,11 +6,14 @@ const path = require("path");
 const os = require("os");
 var dock_items = [], display_items = [];
 const helper_path = path.join(__dirname, "ui-helper");
+const osascript_path = "/usr/bin/osascript";
 const dock_cache_path = path.join(electron.app.getPath("userData"), "dock-items-cache.json");
 const main_debug_path = path.join(electron.app.getPath("userData"), "main-debug.log");
 const dock_poll_interval_ms = 250;
 var dock_poll_timer = null;
 var last_dock_signature = "";
+var dock_query_backend = "helper";
+var last_automation_prompt_at = 0;
 
 // Keep the app out of the Dock; interaction is via tray + global shortcut.
 electron.app.dock.hide();
@@ -104,12 +107,71 @@ function run_dock_query_with_debug() {
 }
 
 function query_live_dock_items() {
-    ensure_helper_executable();
-    var response = run_dock_query_with_debug();
-    var parsed = JSON.parse(response);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-        .filter(item => item && item.pos && Number.isFinite(item.pos.x) && Number.isFinite(item.pos.y))
+    if (dock_query_backend === "helper") {
+        try {
+            ensure_helper_executable();
+            var response = run_dock_query_with_debug();
+            var parsed = JSON.parse(response);
+            if (!Array.isArray(parsed)) return [];
+            return parsed
+                .filter(item => item && item.pos && Number.isFinite(item.pos.x) && Number.isFinite(item.pos.y))
+                .sort((a, b) => a.pos.x - b.pos.x);
+        } catch (e) {
+            dock_query_backend = "osascript";
+            log_main_debug(`helper-dock-query-failed, switch-backend=osascript: ${String(e && e.message || e)}`);
+        }
+    }
+    return query_dock_items_via_osascript();
+}
+
+function query_dock_items_via_osascript() {
+    var script =
+        "tell application \"System Events\"\n" +
+        "  tell process \"Dock\"\n" +
+        "    set theList to list 1\n" +
+        "    set out to \"\"\n" +
+        "    repeat with e in UI elements of theList\n" +
+        "      try\n" +
+        "        set n to name of e\n" +
+        "      on error\n" +
+        "        set n to \"\"\n" +
+        "      end try\n" +
+        "      try\n" +
+        "        set p to position of e\n" +
+        "        set out to out & n & \"|\" & (item 1 of p as text) & \"|\" & (item 2 of p as text) & linefeed\n" +
+        "      end try\n" +
+        "    end repeat\n" +
+        "    return out\n" +
+        "  end tell\n" +
+        "end tell";
+
+    try {
+        var output = child_process.execFileSync(osascript_path, ["-e", script], { encoding: "utf8" });
+        return parse_osascript_dock_output(output);
+    } catch (e) {
+        if (ensure_automation_permission()) {
+            var retry = child_process.execFileSync(osascript_path, ["-e", script], { encoding: "utf8" });
+            return parse_osascript_dock_output(retry);
+        }
+        throw e;
+    }
+}
+
+function parse_osascript_dock_output(output) {
+    return String(output || "")
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(Boolean)
+        .map(line => {
+            var parts = line.split("|");
+            if (parts.length < 3) return null;
+            var name = parts[0] === "missing value" ? "" : parts[0];
+            var x = Number(parts[1]);
+            var y = Number(parts[2]);
+            if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+            return { name: name, pos: { x: x, y: y } };
+        })
+        .filter(Boolean)
         .sort((a, b) => a.pos.x - b.pos.x);
 }
 
@@ -146,6 +208,9 @@ function dock_signature(items) {
 
 function start_dock_tracking() {
     stop_dock_tracking();
+    if (dock_query_backend === "osascript" && !ensure_automation_permission()) {
+        return;
+    }
     refresh_dock_overlay(true);
     dock_poll_timer = setInterval(() => {
         refresh_dock_overlay(false);
@@ -282,6 +347,34 @@ function ensure_accessibility_permission() {
         electron.shell.openExternal("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility");
     }
     return false;
+}
+
+function ensure_automation_permission() {
+    try {
+        child_process.execFileSync(osascript_path, [
+            "-e",
+            "tell application \"System Events\" to count (application processes)"
+        ], { encoding: "utf8" });
+        return true;
+    } catch (e) {
+        var now = Date.now();
+        if (now - last_automation_prompt_at < 10000) {
+            return false;
+        }
+        last_automation_prompt_at = now;
+        var action = electron.dialog.showMessageBoxSync({
+            type: "warning",
+            buttons: ["Open Automation Settings", "Cancel"],
+            defaultId: 0,
+            cancelId: 1,
+            message: "dock-switch needs Automation permission",
+            detail: "Allow dock-switch to control System Events in Privacy & Security > Automation."
+        });
+        if (action === 0) {
+            electron.shell.openExternal("x-apple.systempreferences:com.apple.preference.security?Privacy_Automation");
+        }
+        return false;
+    }
 }
 
 function show_window() {
