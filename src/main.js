@@ -1,15 +1,35 @@
 const electron = require("electron");
-const util = require("util");
 const child_process = require("child_process");
 const fs = require("fs");
 const path = require("path");
 var dock_items = [], display_items = [];
 const osascript_path = "/usr/bin/osascript";
 const main_debug_path = path.join(electron.app.getPath("userData"), "main-debug.log");
-const dock_poll_interval_ms = 120;
+const dock_poll_interval_ms = 320;
 var dock_poll_timer = null;
 var last_dock_signature = "";
 var last_automation_prompt_at = 0;
+var dock_tracking_active = false;
+var dock_query_inflight = false;
+const dock_query_script =
+    "tell application \"System Events\"\n" +
+    "  tell process \"Dock\"\n" +
+    "    set theList to list 1\n" +
+    "    set out to \"\"\n" +
+    "    repeat with e in UI elements of theList\n" +
+    "      try\n" +
+    "        set n to name of e\n" +
+    "      on error\n" +
+    "        set n to \"\"\n" +
+    "      end try\n" +
+    "      try\n" +
+    "        set p to position of e\n" +
+    "        set out to out & n & \"|\" & (item 1 of p as text) & \"|\" & (item 2 of p as text) & linefeed\n" +
+    "      end try\n" +
+    "    end repeat\n" +
+    "    return out\n" +
+    "  end tell\n" +
+    "end tell";
 
 // Keep the app out of the Dock; interaction is via tray + global shortcut.
 electron.app.dock.hide();
@@ -87,36 +107,27 @@ function query_live_dock_items() {
 }
 
 function query_dock_items_via_osascript() {
-    var script =
-        "tell application \"System Events\"\n" +
-        "  tell process \"Dock\"\n" +
-        "    set theList to list 1\n" +
-        "    set out to \"\"\n" +
-        "    repeat with e in UI elements of theList\n" +
-        "      try\n" +
-        "        set n to name of e\n" +
-        "      on error\n" +
-        "        set n to \"\"\n" +
-        "      end try\n" +
-        "      try\n" +
-        "        set p to position of e\n" +
-        "        set out to out & n & \"|\" & (item 1 of p as text) & \"|\" & (item 2 of p as text) & linefeed\n" +
-        "      end try\n" +
-        "    end repeat\n" +
-        "    return out\n" +
-        "  end tell\n" +
-        "end tell";
+    var output = child_process.execFileSync(osascript_path, ["-e", dock_query_script], { encoding: "utf8" });
+    return parse_osascript_dock_output(output);
+}
 
-    try {
-        var output = child_process.execFileSync(osascript_path, ["-e", script], { encoding: "utf8" });
-        return parse_osascript_dock_output(output);
-    } catch (e) {
-        if (ensure_automation_permission()) {
-            var retry = child_process.execFileSync(osascript_path, ["-e", script], { encoding: "utf8" });
-            return parse_osascript_dock_output(retry);
+function query_dock_items_via_osascript_async(cb) {
+    child_process.execFile(
+        osascript_path,
+        ["-e", dock_query_script],
+        { encoding: "utf8", timeout: 800 },
+        (err, stdout) => {
+            if (err) {
+                cb(err);
+                return;
+            }
+            try {
+                cb(null, parse_osascript_dock_output(stdout));
+            } catch (parseErr) {
+                cb(parseErr);
+            }
         }
-        throw e;
-    }
+    );
 }
 
 function parse_osascript_dock_output(output) {
@@ -158,43 +169,71 @@ function start_dock_tracking() {
     if (!ensure_automation_permission()) {
         return;
     }
+    dock_tracking_active = true;
     refresh_dock_overlay(true);
-    dock_poll_timer = setInterval(() => {
-        refresh_dock_overlay(false);
-    }, dock_poll_interval_ms);
 }
 
 function stop_dock_tracking() {
+    dock_tracking_active = false;
+    dock_query_inflight = false;
     if (dock_poll_timer) {
-        clearInterval(dock_poll_timer);
+        clearTimeout(dock_poll_timer);
         dock_poll_timer = null;
     }
 }
 
 function refresh_dock_overlay(force_send) {
-    try {
-        dock_items = query_live_dock_items();
-    } catch (err) {
-        log_main_debug(`dock-query-failed ${String(err && err.message || err)}`);
+    if (!dock_tracking_active) {
         return;
     }
-
-    if (!Array.isArray(dock_items) || dock_items.length === 0) {
+    if (dock_query_inflight) {
+        schedule_next_dock_refresh();
         return;
     }
+    dock_query_inflight = true;
+    query_dock_items_via_osascript_async((err, items) => {
+        dock_query_inflight = false;
+        if (!dock_tracking_active) {
+            return;
+        }
 
-    var visible = get_visible_dock_items(dock_items);
-    if (visible.length === 0) {
-        return;
-    }
+        if (err) {
+            log_main_debug(`dock-query-failed ${String(err && err.message || err)}`);
+            schedule_next_dock_refresh();
+            return;
+        }
 
-    var sig = dock_signature(visible);
-    show_window();
-    if (force_send || sig !== last_dock_signature) {
-        last_dock_signature = sig;
-        electron.win.webContents.send("update-ui", dock_items);
-        log_main_debug(`update-ui-sent count=${dock_items.length}`);
+        dock_items = Array.isArray(items) ? items : [];
+        if (dock_items.length === 0) {
+            schedule_next_dock_refresh();
+            return;
+        }
+
+        var visible = get_visible_dock_items(dock_items);
+        if (visible.length === 0) {
+            schedule_next_dock_refresh();
+            return;
+        }
+
+        var sig = dock_signature(visible);
+        show_window();
+        if (force_send || sig !== last_dock_signature) {
+            last_dock_signature = sig;
+            electron.win.webContents.send("update-ui", dock_items);
+            log_main_debug(`update-ui-sent count=${dock_items.length}`);
+        }
+        schedule_next_dock_refresh();
+    });
+}
+
+function schedule_next_dock_refresh() {
+    if (!dock_tracking_active) return;
+    if (dock_poll_timer) {
+        clearTimeout(dock_poll_timer);
     }
+    dock_poll_timer = setTimeout(() => {
+        refresh_dock_overlay(false);
+    }, dock_poll_interval_ms);
 }
 
 function ensure_tcc_permissions() {
