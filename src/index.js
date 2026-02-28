@@ -319,26 +319,68 @@ function getDisplayForWindow(rect) {
     return best;
 }
 
+function getPrimaryDisplay() {
+    try {
+        if (electron.remote && electron.remote.screen) {
+            return electron.remote.screen.getPrimaryDisplay();
+        }
+    } catch (e) {
+        // ignore
+    }
+    return null;
+}
+
+function getExternalDisplay() {
+    var displays = getCurrentDisplays();
+    if (!Array.isArray(displays) || displays.length === 0) return null;
+    var external = displays.find(d => d && d.internal === false);
+    if (external) return external;
+    return null;
+}
+
+function getInternalDisplay() {
+    var displays = getCurrentDisplays();
+    if (!Array.isArray(displays) || displays.length === 0) return null;
+    var internal = displays.find(d => d && d.internal === true);
+    if (internal) return internal;
+    return getPrimaryDisplay() || displays[0] || null;
+}
+
 function tileWindowByArrowKey(key) {
     var rect = getFrontmostWindowGeometry();
     if (!rect) return;
 
-    var display = getDisplayForWindow(rect);
-    if (!display || !display.bounds) return;
+    var currentDisplay = getDisplayForWindow(rect);
+    if (!currentDisplay) return;
 
-    var b = display.bounds;
-    var halfW = Math.floor(b.width / 2);
-    var halfH = Math.floor(b.height / 2);
+    var currentArea = currentDisplay.workArea || currentDisplay.bounds;
+    if (!currentArea) return;
+
     var target = null;
 
     if (key === "ArrowLeft") {
-        target = { x: b.x, y: b.y, w: halfW, h: b.height };
+        var leftHalfW = Math.floor(currentArea.width / 2);
+        target = { x: currentArea.x, y: currentArea.y, w: leftHalfW, h: currentArea.height };
     } else if (key === "ArrowRight") {
-        target = { x: b.x + halfW, y: b.y, w: b.width - halfW, h: b.height };
+        var rightHalfW = Math.floor(currentArea.width / 2);
+        target = {
+            x: currentArea.x + rightHalfW,
+            y: currentArea.y,
+            w: currentArea.width - rightHalfW,
+            h: currentArea.height
+        };
     } else if (key === "ArrowUp") {
-        target = { x: b.x, y: b.y, w: b.width, h: halfH };
+        var ext = getExternalDisplay() || currentDisplay;
+        var extArea = ext.workArea || ext.bounds;
+        if (extArea) {
+            target = { x: extArea.x, y: extArea.y, w: extArea.width, h: extArea.height };
+        }
     } else if (key === "ArrowDown") {
-        target = { x: b.x, y: b.y + halfH, w: b.width, h: b.height - halfH };
+        var internal = getInternalDisplay() || currentDisplay;
+        var intArea = internal.workArea || internal.bounds;
+        if (intArea) {
+            target = { x: intArea.x, y: intArea.y, w: intArea.width, h: intArea.height };
+        }
     }
 
     if (!target || target.w <= 0 || target.h <= 0) return;
