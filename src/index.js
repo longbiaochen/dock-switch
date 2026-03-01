@@ -267,6 +267,38 @@ function moveFrontmostWindowToBounds(bounds) {
     runAppleScript(script);
 }
 
+function moveFrontmostWindowToDisplayAndMaximize(area) {
+    var x = Math.round(area.x);
+    var y = Math.round(area.y);
+    var w = Math.max(200, Math.round(area.width));
+    var h = Math.max(120, Math.round(area.height));
+
+    var script =
+        `tell application "System Events"\n` +
+        `  set frontApps to (application processes where frontmost is true)\n` +
+        `  if (count of frontApps) = 0 then return ""\n` +
+        `  set frontProc to item 1 of frontApps\n` +
+        `  tell frontProc\n` +
+        `    if (count of windows) = 0 then return ""\n` +
+        `    try\n` +
+        `      set value of attribute "AXFullScreen" of window 1 to false\n` +
+        `    end try\n` +
+        `    set position of window 1 to {${x}, ${y}}\n` +
+        `    set size of window 1 to {${w}, ${h}}\n` +
+        `    try\n` +
+        `      set value of attribute "AXZoomed" of window 1 to true\n` +
+        `      return "ok"\n` +
+        `    on error\n` +
+        `      set position of window 1 to {${x}, ${y}}\n` +
+        `      set size of window 1 to {${w}, ${h}}\n` +
+        `      return "bounds"\n` +
+        `    end try\n` +
+        `  end tell\n` +
+        `end tell`;
+
+    runAppleScript(script);
+}
+
 function getCurrentDisplays() {
     if (Array.isArray(DISPLAY_ITEMS) && DISPLAY_ITEMS.length > 0) {
         return DISPLAY_ITEMS;
@@ -357,6 +389,7 @@ function tileWindowByArrowKey(key) {
     if (!currentArea) return;
 
     var target = null;
+    var maximizeTargetArea = null;
 
     if (key === "ArrowLeft") {
         var leftHalfW = Math.floor(currentArea.width / 2);
@@ -374,17 +407,23 @@ function tileWindowByArrowKey(key) {
         var extArea = ext.workArea || ext.bounds;
         if (extArea) {
             target = { x: extArea.x, y: extArea.y, w: extArea.width, h: extArea.height };
+            maximizeTargetArea = extArea;
         }
     } else if (key === "ArrowDown") {
         var internal = getInternalDisplay() || currentDisplay;
         var intArea = internal.workArea || internal.bounds;
         if (intArea) {
             target = { x: intArea.x, y: intArea.y, w: intArea.width, h: intArea.height };
+            maximizeTargetArea = intArea;
         }
     }
 
     if (!target || target.w <= 0 || target.h <= 0) return;
     try {
+        if (maximizeTargetArea && (key === "ArrowUp" || key === "ArrowDown")) {
+            moveFrontmostWindowToDisplayAndMaximize(maximizeTargetArea);
+            return;
+        }
         moveFrontmostWindowToBounds(target);
     } catch (e) {
         // Ignore windows that cannot be resized/moved.
