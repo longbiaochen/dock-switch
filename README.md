@@ -33,7 +33,8 @@ Example:
 }
 ```
 
-When triggered from dock-switch, supported browser windows are moved to the right half of the detected external display.
+When triggered from dock-switch, configured browser windows are moved to the external display half.
+If no external display is available, they are maximized on the built-in display.
 
 ## Remember Last Window Size/Position
 By default, dock-switch remembers the last known window bounds (x/y/width/height) for each app and restores them when that app is reopened from dock-switch.

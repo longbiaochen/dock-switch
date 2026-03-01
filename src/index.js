@@ -112,31 +112,42 @@ function applyWindowPlacement(item) {
 
     if (placement !== "external_right_half") return;
 
-    var display = findExternalDisplay();
-    if (!display || !display.bounds) return;
-
-    var b = display.bounds;
-    var x = Math.floor(b.x + b.width / 2);
-    var y = Math.floor(b.y);
-    var w = Math.floor(b.width / 2);
-    var h = Math.floor(b.height);
-
-    var app = item.name || "";
-    var script = null;
-
-    if (app === "Safari") {
-        script = `tell application \"Safari\"\n` +
-            `  if (count of windows) > 0 then set bounds of front window to {${x}, ${y}, ${x + w}, ${y + h}}\n` +
-            `end tell`;
-    } else if (app === "Chrome" || app === "Google Chrome") {
-        script = `tell application \"Google Chrome\"\n` +
-            `  if (count of windows) > 0 then set bounds of front window to {${x}, ${y}, ${x + w}, ${y + h}}\n` +
-            `end tell`;
+    var external = getExternalDisplay() || findExternalDisplay();
+    if (!external) {
+        // No external monitor: default browser-like apps to maximized on built-in display.
+        var internal = getInternalDisplay();
+        var internalArea = internal && (internal.workArea || internal.bounds);
+        if (!internalArea) return;
+        try {
+            moveFrontmostWindowToDisplayAndMaximize(internalArea);
+            setSavedWindowState(item.name || "", {
+                x: internalArea.x,
+                y: internalArea.y,
+                w: internalArea.width,
+                h: internalArea.height
+            });
+        } catch (e) {
+            // Ignore windows that cannot be moved/resized.
+        }
+        return;
     }
 
-    if (script) {
-        child_process.execSync(`osascript -e \"${shellEscapeAppleScript(script)}\"`);
-        setSavedWindowState(app, { x: x, y: y, w: w, h: h });
+    var b = external.workArea || external.bounds;
+    if (!b) return;
+    // Legacy screen mapping (from historical ui-helper setup):
+    // "3" => external left half, "4" => external right half.
+    var isLeftHalf = String(item.screen || "") === "3";
+    var halfW = Math.floor(b.width / 2);
+    var x = isLeftHalf ? Math.floor(b.x) : Math.floor(b.x + halfW);
+    var y = Math.floor(b.y);
+    var w = isLeftHalf ? halfW : Math.floor(b.width - halfW);
+    var h = Math.floor(b.height);
+
+    try {
+        moveFrontmostWindowToBounds({ x: x, y: y, w: w, h: h });
+        setSavedWindowState(item.name || "", { x: x, y: y, w: w, h: h });
+    } catch (e) {
+        // Ignore windows that cannot be moved/resized.
     }
 }
 
