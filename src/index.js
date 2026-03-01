@@ -235,8 +235,18 @@ function getFrontmostWindowGeometry() {
         `  set frontProc to item 1 of frontApps\n` +
         `  tell frontProc\n` +
         `    if (count of windows) = 0 then return ""\n` +
-        `    set winPos to position of window 1\n` +
-        `    set winSize to size of window 1\n` +
+        `    set targetWin to missing value\n` +
+        `    repeat with w in windows\n` +
+        `      try\n` +
+        `        if (value of attribute "AXSubrole" of w) is "AXStandardWindow" then\n` +
+        `          set targetWin to w\n` +
+        `          exit repeat\n` +
+        `        end if\n` +
+        `      end try\n` +
+        `    end repeat\n` +
+        `    if targetWin is missing value then set targetWin to window 1\n` +
+        `    set winPos to position of targetWin\n` +
+        `    set winSize to size of targetWin\n` +
         `    return (item 1 of winPos as text) & "|" & (item 2 of winPos as text) & "|" & (item 1 of winSize as text) & "|" & (item 2 of winSize as text)\n` +
         `  end tell\n` +
         `end tell`;
@@ -267,8 +277,18 @@ function moveFrontmostWindowToBounds(bounds) {
         `  set frontProc to item 1 of frontApps\n` +
         `  tell frontProc\n` +
         `    if (count of windows) = 0 then return ""\n` +
-        `    set position of window 1 to {${Math.round(bounds.x)}, ${Math.round(bounds.y)}}\n` +
-        `    set size of window 1 to {${Math.round(bounds.w)}, ${Math.round(bounds.h)}}\n` +
+        `    set targetWin to missing value\n` +
+        `    repeat with w in windows\n` +
+        `      try\n` +
+        `        if (value of attribute "AXSubrole" of w) is "AXStandardWindow" then\n` +
+        `          set targetWin to w\n` +
+        `          exit repeat\n` +
+        `        end if\n` +
+        `      end try\n` +
+        `    end repeat\n` +
+        `    if targetWin is missing value then set targetWin to window 1\n` +
+        `    set position of targetWin to {${Math.round(bounds.x)}, ${Math.round(bounds.y)}}\n` +
+        `    set size of targetWin to {${Math.round(bounds.w)}, ${Math.round(bounds.h)}}\n` +
         `    return "ok"\n` +
         `  end tell\n` +
         `end tell`;
@@ -288,17 +308,27 @@ function moveFrontmostWindowToDisplayAndMaximize(area) {
         `  set frontProc to item 1 of frontApps\n` +
         `  tell frontProc\n` +
         `    if (count of windows) = 0 then return ""\n` +
+        `    set targetWin to missing value\n` +
+        `    repeat with w in windows\n` +
+        `      try\n` +
+        `        if (value of attribute "AXSubrole" of w) is "AXStandardWindow" then\n` +
+        `          set targetWin to w\n` +
+        `          exit repeat\n` +
+        `        end if\n` +
+        `      end try\n` +
+        `    end repeat\n` +
+        `    if targetWin is missing value then set targetWin to window 1\n` +
         `    try\n` +
-        `      set value of attribute "AXFullScreen" of window 1 to false\n` +
+        `      set value of attribute "AXFullScreen" of targetWin to false\n` +
         `    end try\n` +
-        `    set position of window 1 to {${x}, ${y}}\n` +
-        `    set size of window 1 to {${w}, ${h}}\n` +
+        `    set position of targetWin to {${x}, ${y}}\n` +
+        `    set size of targetWin to {${w}, ${h}}\n` +
         `    try\n` +
-        `      set value of attribute "AXZoomed" of window 1 to true\n` +
+        `      set value of attribute "AXZoomed" of targetWin to true\n` +
         `      return "ok"\n` +
         `    on error\n` +
-        `      set position of window 1 to {${x}, ${y}}\n` +
-        `      set size of window 1 to {${w}, ${h}}\n` +
+        `      set position of targetWin to {${x}, ${y}}\n` +
+        `      set size of targetWin to {${w}, ${h}}\n` +
         `      return "bounds"\n` +
         `    end try\n` +
         `  end tell\n` +
