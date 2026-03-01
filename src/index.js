@@ -134,13 +134,10 @@ function applyWindowPlacement(item) {
 
     var b = external.workArea || external.bounds;
     if (!b) return;
-    // Legacy screen mapping (from historical ui-helper setup):
-    // "3" => external left half, "4" => external right half.
-    var isLeftHalf = String(item.screen || "") === "3";
     var halfW = Math.floor(b.width / 2);
-    var x = isLeftHalf ? Math.floor(b.x) : Math.floor(b.x + halfW);
+    var x = Math.floor(b.x + halfW);
     var y = Math.floor(b.y);
-    var w = isLeftHalf ? halfW : Math.floor(b.width - halfW);
+    var w = Math.floor(b.width - halfW);
     var h = Math.floor(b.height);
 
     try {
