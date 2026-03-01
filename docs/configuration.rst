@@ -26,3 +26,7 @@ Notes
 - Key matching in the renderer is case-insensitive (`event.key.toUpperCase()`).
 - Arrow keys tile the current frontmost window to display halves (`ArrowUp/Down/Left/Right`).
 - If ``placement`` is set, placement behavior takes precedence over remembered bounds.
+- Legacy ``screen`` mapping reference:
+  - ``3``: external display left half
+  - ``4``: external display right half
+  - ``0``: built-in display
