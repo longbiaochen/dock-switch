@@ -3,8 +3,6 @@ var util = require("util");
 var $ = require("jquery");
 var bootstrap = require("bootstrap");
 const child_process = require("child_process");
-const fs = require("fs");
-const path = require("path");
 
 var CONFIG = require(`${__dirname}/config.json`);
 // Renderer-side templates for buttons and app launch command.
@@ -13,45 +11,14 @@ var ARROW_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"]);
 var DOCK_ITEMS = [],
     DISPLAY_ITEMS = [];
 
-function getUserDataPath() {
-    try {
-        return electron.ipcRenderer.sendSync("get-user-data-path");
-    } catch (e) {
-        return path.join(process.env.HOME || "~", "Library", "Application Support", "dock-switch");
-    }
-}
-
-var WINDOW_STATE_PATH = path.join(getUserDataPath(), "window-state.json");
-var WINDOW_STATE_CACHE = loadWindowStateCache();
+// In-memory only window state cache (per app, current app session).
+var WINDOW_STATE_CACHE = {};
 
 function normalizeAppName(name) {
     return (name || "")
         .trim()
         .replace(/\.app$/i, "")
         .toLowerCase();
-}
-
-function loadWindowStateCache() {
-    try {
-        if (!fs.existsSync(WINDOW_STATE_PATH)) {
-            return {};
-        }
-        var raw = fs.readFileSync(WINDOW_STATE_PATH, "utf8");
-        if (!raw) return {};
-        return JSON.parse(raw);
-    } catch (e) {
-        console.error("Failed to read window state cache:", e.message);
-        return {};
-    }
-}
-
-function saveWindowStateCache() {
-    try {
-        fs.mkdirSync(path.dirname(WINDOW_STATE_PATH), { recursive: true });
-        fs.writeFileSync(WINDOW_STATE_PATH, JSON.stringify(WINDOW_STATE_CACHE, null, 2));
-    } catch (e) {
-        console.error("Failed to persist window state cache:", e.message);
-    }
 }
 
 function setSavedWindowState(appName, bounds) {
@@ -67,7 +34,6 @@ function setSavedWindowState(appName, bounds) {
         h: Math.round(bounds.h),
         updatedAt: Date.now()
     };
-    saveWindowStateCache();
 }
 
 function getSavedWindowState(appName) {

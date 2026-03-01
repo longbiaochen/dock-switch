@@ -95,10 +95,6 @@ electron.app.on("ready", () => {
         electron.app.hide();
     });
 
-    electron.ipcMain.on("get-user-data-path", (event) => {
-        event.returnValue = electron.app.getPath("userData");
-    });
-
     dock_items = read_dock_cache();
 });
 

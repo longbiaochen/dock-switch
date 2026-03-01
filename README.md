@@ -39,7 +39,7 @@ If no external display is available, they are maximized on the built-in display.
 ## Remember Last Window Size/Position
 By default, dock-switch remembers the last known window bounds (x/y/width/height) for each app and restores them when that app is reopened from dock-switch.
 
-- Window state cache location: Electron `userData` directory (`window-state.json`)
+- Window state is kept in memory for the current app session (no disk persistence).
 - This includes maximized-like window sizes because the actual bounds are restored.
 - Apps with explicit `placement` (for example `external_right_half`) keep that placement behavior.
 

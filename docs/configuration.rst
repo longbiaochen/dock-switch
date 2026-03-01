@@ -16,7 +16,7 @@ The top-level key is ``dock_items``, each containing:
 - ``name``: app name expected from Dock metadata
 - ``key``: keyboard key used to trigger app focus/launch
 - ``screen``: legacy field retained for backward compatibility (not used by the current node-only runtime path)
-- ``remember_window_state`` (optional): defaults to ``true``; when enabled, dock-switch restores last known window bounds for that app
+- ``remember_window_state`` (optional): defaults to ``true``; when enabled, dock-switch restores last known window bounds for that app (in-memory for current app session)
 - ``placement`` (optional): explicit placement policy (for example ``external_right_half``)
 
 Notes
