@@ -9,7 +9,6 @@ const path = require("path");
 var CONFIG = require(`${__dirname}/config.json`);
 // Renderer-side templates for buttons and app launch command.
 var ITEM_TPL = `<div class="item" style="left: %dpx; top: 0;""><button type="button" class="btn btn-info">%s</button></div>`;
-var APP_TPL = `open -a "%s"; sleep .1;`;
 var ARROW_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"]);
 var DOCK_ITEMS = [],
     DISPLAY_ITEMS = [];
@@ -119,7 +118,7 @@ function applyWindowPlacement(item) {
         var internalArea = internal && (internal.workArea || internal.bounds);
         if (!internalArea) return;
         try {
-            moveFrontmostWindowToDisplayAndMaximize(internalArea);
+            moveFrontmostWindowToDisplayAndMaximize(internalArea, { async: true, timeoutMs: 1200 });
             setSavedWindowState(item.name || "", {
                 x: internalArea.x,
                 y: internalArea.y,
@@ -141,7 +140,7 @@ function applyWindowPlacement(item) {
     var h = Math.floor(b.height);
 
     try {
-        moveFrontmostWindowToBounds({ x: x, y: y, w: w, h: h });
+        moveFrontmostWindowToBounds({ x: x, y: y, w: w, h: h }, { async: true, timeoutMs: 1200 });
         setSavedWindowState(item.name || "", { x: x, y: y, w: w, h: h });
     } catch (e) {
         // Ignore windows that cannot be moved/resized.
@@ -163,12 +162,7 @@ function saveFrontmostWindowState() {
         `  end tell\n` +
         `end tell`;
 
-    try {
-        var output = child_process
-            .execSync(`osascript -e \"${shellEscapeAppleScript(script)}\"`)
-            .toString()
-            .trim();
-
+    runAppleScriptAsync(script, 700, (output) => {
         if (!output) return;
 
         var parts = output.split("|");
@@ -185,9 +179,7 @@ function saveFrontmostWindowState() {
         }
 
         setSavedWindowState(appName, { x: x, y: y, w: w, h: h });
-    } catch (e) {
-        // Ignore transient accessibility/automation errors.
-    }
+    });
 }
 
 function restoreWindowState(item) {
@@ -199,7 +191,7 @@ function restoreWindowState(item) {
 
     var script =
         `tell application \"System Events\"\n` +
-        `  repeat 12 times\n` +
+        `  repeat 8 times\n` +
         `    if exists (application process \"${shellEscapeAppleScript(app)}\") then\n` +
         `      tell application process \"${shellEscapeAppleScript(app)}\"\n` +
         `        if (count of windows) > 0 then\n` +
@@ -209,21 +201,32 @@ function restoreWindowState(item) {
         `        end if\n` +
         `      end tell\n` +
         `    end if\n` +
-        `    delay 0.1\n` +
+        `    delay 0.05\n` +
         `  end repeat\n` +
         `end tell\n` +
         `return \"\"`;
 
-    try {
-        child_process.execSync(`osascript -e \"${shellEscapeAppleScript(script)}\"`);
-    } catch (e) {
-        // Ignore apps/windows that don't expose AX position/size.
-    }
+    runAppleScriptAsync(script, 900);
 }
 
-function runAppleScript(script) {
+function runAppleScriptSync(script, timeoutMs) {
     return child_process.execFileSync("osascript", ["-e", script], {
-        encoding: "utf8"
+        encoding: "utf8",
+        timeout: timeoutMs || 900,
+        maxBuffer: 1024 * 256
+    });
+}
+
+function runAppleScriptAsync(script, timeoutMs, onSuccess) {
+    child_process.execFile("osascript", ["-e", script], {
+        encoding: "utf8",
+        timeout: timeoutMs || 900,
+        maxBuffer: 1024 * 256
+    }, (err, stdout) => {
+        if (err) return;
+        if (typeof onSuccess === "function") {
+            onSuccess((stdout || "").trim());
+        }
     });
 }
 
@@ -252,7 +255,7 @@ function getFrontmostWindowGeometry() {
         `end tell`;
 
     try {
-        var output = runAppleScript(script).trim();
+        var output = runAppleScriptSync(script, 900).trim();
         if (!output) return null;
         var parts = output.split("|");
         if (parts.length !== 4) return null;
@@ -269,7 +272,7 @@ function getFrontmostWindowGeometry() {
     }
 }
 
-function moveFrontmostWindowToBounds(bounds) {
+function moveFrontmostWindowToBounds(bounds, options) {
     var script =
         `tell application "System Events"\n` +
         `  set frontApps to (application processes where frontmost is true)\n` +
@@ -292,10 +295,14 @@ function moveFrontmostWindowToBounds(bounds) {
         `    return "ok"\n` +
         `  end tell\n` +
         `end tell`;
-    runAppleScript(script);
+    if (options && options.async) {
+        runAppleScriptAsync(script, (options && options.timeoutMs) || 900);
+        return;
+    }
+    runAppleScriptSync(script, (options && options.timeoutMs) || 900);
 }
 
-function moveFrontmostWindowToDisplayAndMaximize(area) {
+function moveFrontmostWindowToDisplayAndMaximize(area, options) {
     var x = Math.round(area.x);
     var y = Math.round(area.y);
     var w = Math.max(200, Math.round(area.width));
@@ -334,7 +341,11 @@ function moveFrontmostWindowToDisplayAndMaximize(area) {
         `  end tell\n` +
         `end tell`;
 
-    runAppleScript(script);
+    if (options && options.async) {
+        runAppleScriptAsync(script, (options && options.timeoutMs) || 900);
+        return;
+    }
+    runAppleScriptSync(script, (options && options.timeoutMs) || 900);
 }
 
 function getCurrentDisplays() {
@@ -486,13 +497,14 @@ $(function() {
 
             saveFrontmostWindowState();
             // new Notification(item.name, { body: key });
-            child_process.execSync(util.format(APP_TPL, item.name));
-
-            if (item.placement) {
-                applyWindowPlacement(item);
-            } else {
-                restoreWindowState(item);
-            }
+            child_process.execFile("open", ["-a", item.name], () => {});
+            setTimeout(() => {
+                if (item.placement) {
+                    applyWindowPlacement(item);
+                } else {
+                    restoreWindowState(item);
+                }
+            }, 120);
         }
     });
 
