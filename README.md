@@ -7,7 +7,12 @@ Quickly switch among applications in the macOS Dock with one global hotkey.
 ## How It Works
 - Press `F20` to open the floating launcher UI.
 - Press the shown key for an app to focus it.
-- Press an arrow key to tile the frontmost window to a screen half (`left/right/up/down`) on its current display.
+- Press an arrow key to tile the frontmost window on its current display:
+  - `←` left half
+  - `→` right half
+  - `↑` external display
+  - `↓` internal display
+- Press `\` to enter macOS native fullscreen (same as the green window button).
 - The UI closes automatically after a selection.
 
 ## Browser Fixed Placement (External Monitor Right Half)
@@ -75,10 +80,8 @@ App key/display mapping is stored in `src/config.json` under `dock_items`.
 - Map a key to `F20` (for example with [Karabiner-Elements](https://github.com/pqrs-org/Karabiner-Elements)).
 - On first use, dock-switch prompts for required macOS permissions:
   - Accessibility (control UI elements / Dock metadata)
-  - Automation (control `System Events` for window focus/placement)
 - If previously denied, re-enable in Privacy & Security:
   - Accessibility: `Privacy & Security > Accessibility`
-  - Automation: `Privacy & Security > Automation` (allow dock-switch -> `System Events`)
 - macOS may warn about an unidentified developer depending on how the app is built/signed.
 
 ## Project Notes

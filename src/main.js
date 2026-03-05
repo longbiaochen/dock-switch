@@ -1,6 +1,7 @@
 const electron = require("electron");
 const fs = require("fs");
 const path = require("path");
+const { placeFocusedWindowByAction, placeProcessWindowByAction } = require("./window-control");
 var dock_items = [], display_items = [];
 const dock_query_module_path = path.join(
     __dirname,
@@ -19,6 +20,7 @@ var last_dock_signature = "";
 var dock_tracking_active = false;
 var dock_query_inflight = false;
 var overlay_open_t0 = 0;
+const arrow_control_apply_delay_ms = 90;
 
 // Keep the app out of the Dock; interaction is via tray + global shortcut.
 electron.app.dock.hide();
@@ -80,7 +82,12 @@ electron.app.on("ready", () => {
         }
     });
 
-    electron.tray = new electron.Tray(`${__dirname}/icon@2x.png`);
+    var trayIconPath = path.join(__dirname, "icon@2x.png");
+    var trayIcon = electron.nativeImage.createFromPath(trayIconPath);
+    if (process.platform === "darwin" && trayIcon && !trayIcon.isEmpty()) {
+        trayIcon.setTemplateImage(true);
+    }
+    electron.tray = new electron.Tray(trayIcon);
     const contextMenu = electron.Menu.buildFromTemplate([
         { label: "Settings..." },
         { label: "Quit", role: "quit" }
@@ -93,6 +100,10 @@ electron.app.on("ready", () => {
         // Renderer uses this to close after handling a key press.
         stop_dock_tracking();
         electron.app.hide();
+    });
+
+    electron.ipcMain.on("arrow-window-control", (event, action) => {
+        run_arrow_window_control(action);
     });
 
     dock_items = read_dock_cache();
@@ -164,6 +175,41 @@ function stop_dock_tracking() {
         clearTimeout(dock_poll_timer);
         dock_poll_timer = null;
     }
+}
+
+function run_arrow_window_control(action) {
+    stop_dock_tracking();
+    electron.app.hide();
+    setTimeout(() => {
+        try {
+            // Target the actual focused app process first; fallback to generic focused-window move.
+            var processName = focused_process_name();
+            if (processName) {
+                var ok = placeProcessWindowByAction(processName, dock_query, electron.screen, action);
+                if (!ok) {
+                    placeFocusedWindowByAction(dock_query, electron.screen, action);
+                }
+            } else {
+                placeFocusedWindowByAction(dock_query, electron.screen, action);
+            }
+        } catch (e) {
+            // Ignore windows that cannot be moved/resized.
+        }
+    }, arrow_control_apply_delay_ms);
+}
+
+function focused_process_name() {
+    try {
+        if (dock_query && typeof dock_query.getFocusedApplicationName === "function") {
+            var name = String(dock_query.getFocusedApplicationName() || "").trim();
+            if (name && name !== "dock-switch" && name !== "Electron") {
+                return name;
+            }
+        }
+    } catch (e) {
+        // ignore
+    }
+    return "";
 }
 
 function refresh_dock_overlay(force_send) {
