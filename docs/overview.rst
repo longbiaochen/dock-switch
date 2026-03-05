@@ -13,7 +13,10 @@ Core Flow
 1. A global shortcut (`F20`) toggles the launcher window.
 2. The main process calls the native ``dock-query`` addon to fetch Dock app metadata.
 3. The renderer builds a compact key map UI.
-4. Key presses launch/focus apps; arrow keys tile the frontmost window to a screen half.
+4. Key presses launch/focus apps; ``ArrowLeft``/``ArrowRight`` tile left/right
+   half on the current display, ``ArrowUp`` moves to the external display,
+   ``ArrowDown`` moves to the internal display, and ``\`` fills current display
+   work area.
 
 Architecture
 ------------

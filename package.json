@@ -25,6 +25,9 @@
         "mac": {
             "category": "macos.utility",
             "icon": "build/icon@2x.icns",
+            "extendInfo": {
+                "LSUIElement": true
+            },
             "identity": "Developer ID Application",
             "hardenedRuntime": true,
             "entitlements": "build/entitlements.mac.plist",

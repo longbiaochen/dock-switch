@@ -3,13 +3,36 @@ var util = require("util");
 var $ = require("jquery");
 var bootstrap = require("bootstrap");
 const child_process = require("child_process");
+const path = require("path");
 
 var CONFIG = require(`${__dirname}/config.json`);
 // Renderer-side templates for buttons and app launch command.
 var ITEM_TPL = `<div class="item" style="left: %dpx; top: 0;""><button type="button" class="btn btn-info">%s</button></div>`;
-var ARROW_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"]);
+var ARROW_KEY_ACTIONS = Object.freeze({
+    ArrowUp: "up",
+    ArrowDown: "down",
+    ArrowLeft: "left",
+    ArrowRight: "right",
+    "\\": "fill",
+    "Backslash": "fill"
+});
 var DOCK_ITEMS = [],
     DISPLAY_ITEMS = [];
+const DOCK_QUERY_MODULE_PATH = path.join(
+    __dirname,
+    "..",
+    "native",
+    "dock-query",
+    "build",
+    "Release",
+    "dock_query.node"
+);
+var dockQuery = null;
+try {
+    dockQuery = require(DOCK_QUERY_MODULE_PATH);
+} catch (e) {
+    dockQuery = null;
+}
 
 // In-memory only window state cache (per app, current app session).
 var WINDOW_STATE_CACHE = {};
@@ -54,10 +77,6 @@ function getSavedWindowState(appName) {
     return s;
 }
 
-function shellEscapeAppleScript(str) {
-    return String(str).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-}
-
 function findExternalDisplay() {
     if (!Array.isArray(DISPLAY_ITEMS) || DISPLAY_ITEMS.length === 0) return null;
 
@@ -79,12 +98,17 @@ function applyWindowPlacement(item) {
 
     var external = getExternalDisplay() || findExternalDisplay();
     if (!external) {
-        // No external monitor: default browser-like apps to maximized on built-in display.
+        // No external monitor: fill built-in display work area.
         var internal = getInternalDisplay();
         var internalArea = internal && (internal.workArea || internal.bounds);
         if (!internalArea) return;
         try {
-            moveFrontmostWindowToDisplayAndMaximize(internalArea, { async: true, timeoutMs: 1200 });
+            moveFrontmostWindowToBounds({
+                x: internalArea.x,
+                y: internalArea.y,
+                w: internalArea.width,
+                h: internalArea.height
+            }, { async: true, timeoutMs: 1200 });
             setSavedWindowState(item.name || "", {
                 x: internalArea.x,
                 y: internalArea.y,
@@ -114,38 +138,20 @@ function applyWindowPlacement(item) {
 }
 
 function saveFrontmostWindowState() {
-    var script =
-        `tell application \"System Events\"\n` +
-        `  set frontApps to (application processes where frontmost is true)\n` +
-        `  if (count of frontApps) = 0 then return \"\"\n` +
-        `  set frontProc to item 1 of frontApps\n` +
-        `  set frontName to name of frontProc\n` +
-        `  tell frontProc\n` +
-        `    if (count of windows) = 0 then return \"\"\n` +
-        `    set winPos to position of window 1\n` +
-        `    set winSize to size of window 1\n` +
-        `    return frontName & \"|\" & (item 1 of winPos as text) & \"|\" & (item 2 of winPos as text) & \"|\" & (item 1 of winSize as text) & \"|\" & (item 2 of winSize as text)\n` +
-        `  end tell\n` +
-        `end tell`;
-
-    runAppleScriptAsync(script, 700, (output) => {
-        if (!output) return;
-
-        var parts = output.split("|");
-        if (parts.length !== 5) return;
-
-        var appName = parts[0].trim();
-        var x = Number(parts[1]);
-        var y = Number(parts[2]);
-        var w = Number(parts[3]);
-        var h = Number(parts[4]);
-
-        if (![x, y, w, h].every(Number.isFinite) || w <= 0 || h <= 0) {
-            return;
-        }
-
-        setSavedWindowState(appName, { x: x, y: y, w: w, h: h });
-    });
+    if (!dockQuery ||
+        typeof dockQuery.getFocusedApplicationName !== "function" ||
+        typeof dockQuery.getFocusedWindowBounds !== "function") {
+        return;
+    }
+    try {
+        var appName = String(dockQuery.getFocusedApplicationName() || "").trim();
+        var b = dockQuery.getFocusedWindowBounds();
+        if (!appName || !b) return;
+        if (![b.x, b.y, b.w, b.h].every(Number.isFinite) || b.w <= 0 || b.h <= 0) return;
+        setSavedWindowState(appName, { x: b.x, y: b.y, w: b.w, h: b.h });
+    } catch (e) {
+        // ignore
+    }
 }
 
 function restoreWindowState(item) {
@@ -155,305 +161,72 @@ function restoreWindowState(item) {
     var state = getSavedWindowState(app);
     if (!state) return;
 
-    var script =
-        `tell application \"System Events\"\n` +
-        `  repeat 8 times\n` +
-        `    if exists (application process \"${shellEscapeAppleScript(app)}\") then\n` +
-        `      tell application process \"${shellEscapeAppleScript(app)}\"\n` +
-        `        if (count of windows) > 0 then\n` +
-        `          set position of window 1 to {${state.x}, ${state.y}}\n` +
-        `          set size of window 1 to {${state.w}, ${state.h}}\n` +
-        `          return \"ok\"\n` +
-        `        end if\n` +
-        `      end tell\n` +
-        `    end if\n` +
-        `    delay 0.05\n` +
-        `  end repeat\n` +
-        `end tell\n` +
-        `return \"\"`;
-
-    runAppleScriptAsync(script, 900);
-}
-
-function runAppleScriptSync(script, timeoutMs) {
-    return child_process.execFileSync("osascript", ["-e", script], {
-        encoding: "utf8",
-        timeout: timeoutMs || 900,
-        maxBuffer: 1024 * 256
-    });
-}
-
-function runAppleScriptAsync(script, timeoutMs, onSuccess) {
-    child_process.execFile("osascript", ["-e", script], {
-        encoding: "utf8",
-        timeout: timeoutMs || 900,
-        maxBuffer: 1024 * 256
-    }, (err, stdout) => {
-        if (err) return;
-        if (typeof onSuccess === "function") {
-            onSuccess((stdout || "").trim());
-        }
-    });
-}
-
-function getFrontmostWindowGeometry() {
-    var script =
-        `tell application "System Events"\n` +
-        `  set frontApps to (application processes where frontmost is true)\n` +
-        `  if (count of frontApps) = 0 then return ""\n` +
-        `  set frontProc to item 1 of frontApps\n` +
-        `  tell frontProc\n` +
-        `    if (count of windows) = 0 then return ""\n` +
-        `    set targetWin to missing value\n` +
-        `    repeat with w in windows\n` +
-        `      try\n` +
-        `        if (value of attribute "AXSubrole" of w) is "AXStandardWindow" then\n` +
-        `          set targetWin to w\n` +
-        `          exit repeat\n` +
-        `        end if\n` +
-        `      end try\n` +
-        `    end repeat\n` +
-        `    if targetWin is missing value then set targetWin to window 1\n` +
-        `    set winPos to position of targetWin\n` +
-        `    set winSize to size of targetWin\n` +
-        `    return (item 1 of winPos as text) & "|" & (item 2 of winPos as text) & "|" & (item 1 of winSize as text) & "|" & (item 2 of winSize as text)\n` +
-        `  end tell\n` +
-        `end tell`;
-
+    if (!dockQuery || typeof dockQuery.moveApplicationWindow !== "function") return;
     try {
-        var output = runAppleScriptSync(script, 900).trim();
-        if (!output) return null;
-        var parts = output.split("|");
-        if (parts.length !== 4) return null;
-        var x = Number(parts[0]);
-        var y = Number(parts[1]);
-        var w = Number(parts[2]);
-        var h = Number(parts[3]);
-        if (![x, y, w, h].every(Number.isFinite) || w <= 0 || h <= 0) {
-            return null;
-        }
-        return { x: x, y: y, w: w, h: h };
+        dockQuery.moveApplicationWindow({
+            name: app,
+            x: state.x,
+            y: state.y,
+            w: state.w,
+            h: state.h
+        });
     } catch (e) {
-        return null;
+        // ignore
     }
 }
 
 function moveFrontmostWindowToBounds(bounds, options) {
-    var script =
-        `tell application "System Events"\n` +
-        `  set frontApps to (application processes where frontmost is true)\n` +
-        `  if (count of frontApps) = 0 then return ""\n` +
-        `  set frontProc to item 1 of frontApps\n` +
-        `  tell frontProc\n` +
-        `    if (count of windows) = 0 then return ""\n` +
-        `    set targetWin to missing value\n` +
-        `    repeat with w in windows\n` +
-        `      try\n` +
-        `        if (value of attribute "AXSubrole" of w) is "AXStandardWindow" then\n` +
-        `          set targetWin to w\n` +
-        `          exit repeat\n` +
-        `        end if\n` +
-        `      end try\n` +
-        `    end repeat\n` +
-        `    if targetWin is missing value then set targetWin to window 1\n` +
-        `    set position of targetWin to {${Math.round(bounds.x)}, ${Math.round(bounds.y)}}\n` +
-        `    set size of targetWin to {${Math.round(bounds.w)}, ${Math.round(bounds.h)}}\n` +
-        `    return "ok"\n` +
-        `  end tell\n` +
-        `end tell`;
-    if (options && options.async) {
-        runAppleScriptAsync(script, (options && options.timeoutMs) || 900);
-        return;
-    }
-    runAppleScriptSync(script, (options && options.timeoutMs) || 900);
-}
-
-function moveFrontmostWindowToDisplayAndMaximize(area, options) {
-    var x = Math.round(area.x);
-    var y = Math.round(area.y);
-    var w = Math.max(200, Math.round(area.width));
-    var h = Math.max(120, Math.round(area.height));
-
-    var script =
-        `tell application "System Events"\n` +
-        `  set frontApps to (application processes where frontmost is true)\n` +
-        `  if (count of frontApps) = 0 then return ""\n` +
-        `  set frontProc to item 1 of frontApps\n` +
-        `  tell frontProc\n` +
-        `    if (count of windows) = 0 then return ""\n` +
-        `    set targetWin to missing value\n` +
-        `    repeat with w in windows\n` +
-        `      try\n` +
-        `        if (value of attribute "AXSubrole" of w) is "AXStandardWindow" then\n` +
-        `          set targetWin to w\n` +
-        `          exit repeat\n` +
-        `        end if\n` +
-        `      end try\n` +
-        `    end repeat\n` +
-        `    if targetWin is missing value then set targetWin to window 1\n` +
-        `    try\n` +
-        `      set value of attribute "AXFullScreen" of targetWin to false\n` +
-        `    end try\n` +
-        `    set position of targetWin to {${x}, ${y}}\n` +
-        `    set size of targetWin to {${w}, ${h}}\n` +
-        `    try\n` +
-        `      set value of attribute "AXZoomed" of targetWin to true\n` +
-        `      return "ok"\n` +
-        `    on error\n` +
-        `      set position of targetWin to {${x}, ${y}}\n` +
-        `      set size of targetWin to {${w}, ${h}}\n` +
-        `      return "bounds"\n` +
-        `    end try\n` +
-        `  end tell\n` +
-        `end tell`;
-
-    if (options && options.async) {
-        runAppleScriptAsync(script, (options && options.timeoutMs) || 900);
-        return;
-    }
-    runAppleScriptSync(script, (options && options.timeoutMs) || 900);
-}
-
-function getCurrentDisplays() {
-    if (Array.isArray(DISPLAY_ITEMS) && DISPLAY_ITEMS.length > 0) {
-        return DISPLAY_ITEMS;
-    }
-    try {
-        if (electron.remote && electron.remote.screen) {
-            return electron.remote.screen.getAllDisplays();
-        }
-    } catch (e) {
-        // ignore
-    }
-    return [];
-}
-
-function getDisplayForWindow(rect) {
-    var displays = getCurrentDisplays();
-    if (!Array.isArray(displays) || displays.length === 0) {
-        return null;
-    }
-
-    var cx = rect.x + rect.w / 2;
-    var cy = rect.y + rect.h / 2;
-    for (var i = 0; i < displays.length; i++) {
-        var d = displays[i];
-        if (!d || !d.bounds) continue;
-        var b = d.bounds;
-        if (cx >= b.x && cx < b.x + b.width && cy >= b.y && cy < b.y + b.height) {
-            return d;
+    if (dockQuery && typeof dockQuery.moveFocusedWindow === "function") {
+        try {
+            var ok = dockQuery.moveFocusedWindow({
+                x: Math.round(bounds.x),
+                y: Math.round(bounds.y),
+                w: Math.round(bounds.w),
+                h: Math.round(bounds.h)
+            });
+            if (options && options.async) return !!ok;
+            return !!ok;
+        } catch (e) {
+            return false;
         }
     }
-
-    var best = null;
-    var bestDist = Number.POSITIVE_INFINITY;
-    for (var j = 0; j < displays.length; j++) {
-        var s = displays[j];
-        if (!s || !s.bounds) continue;
-        var sb = s.bounds;
-        var dx = 0;
-        if (cx < sb.x) dx = sb.x - cx;
-        else if (cx > sb.x + sb.width) dx = cx - (sb.x + sb.width);
-        var dy = 0;
-        if (cy < sb.y) dy = sb.y - cy;
-        else if (cy > sb.y + sb.height) dy = cy - (sb.y + sb.height);
-        var dist = dx * dx + dy * dy;
-        if (dist < bestDist) {
-            bestDist = dist;
-            best = s;
-        }
-    }
-    return best;
-}
-
-function getPrimaryDisplay() {
-    try {
-        if (electron.remote && electron.remote.screen) {
-            return electron.remote.screen.getPrimaryDisplay();
-        }
-    } catch (e) {
-        // ignore
-    }
-    return null;
+    return false;
 }
 
 function getExternalDisplay() {
-    var displays = getCurrentDisplays();
-    if (!Array.isArray(displays) || displays.length === 0) return null;
-    var external = displays.find(d => d && d.internal === false);
+    if (!Array.isArray(DISPLAY_ITEMS) || DISPLAY_ITEMS.length === 0) return null;
+    var external = DISPLAY_ITEMS.find(d => d && d.internal === false);
     if (external) return external;
     return null;
 }
 
 function getInternalDisplay() {
-    var displays = getCurrentDisplays();
-    if (!Array.isArray(displays) || displays.length === 0) return null;
-    var internal = displays.find(d => d && d.internal === true);
+    if (!Array.isArray(DISPLAY_ITEMS) || DISPLAY_ITEMS.length === 0) return null;
+    var internal = DISPLAY_ITEMS.find(d => d && d.internal === true);
     if (internal) return internal;
-    return getPrimaryDisplay() || displays[0] || null;
+    return DISPLAY_ITEMS[0] || null;
 }
 
-function tileWindowByArrowKey(key) {
-    var rect = getFrontmostWindowGeometry();
-    if (!rect) return;
+function getArrowAction(key, code) {
+    if (ARROW_KEY_ACTIONS[key] !== undefined) return ARROW_KEY_ACTIONS[key];
+    if (ARROW_KEY_ACTIONS[code] !== undefined) return ARROW_KEY_ACTIONS[code];
+    return undefined;
+}
 
-    var currentDisplay = getDisplayForWindow(rect);
-    if (!currentDisplay) return;
-
-    var currentArea = currentDisplay.workArea || currentDisplay.bounds;
-    if (!currentArea) return;
-
-    var target = null;
-    var maximizeTargetArea = null;
-
-    if (key === "ArrowLeft") {
-        var leftHalfW = Math.floor(currentArea.width / 2);
-        target = { x: currentArea.x, y: currentArea.y, w: leftHalfW, h: currentArea.height };
-    } else if (key === "ArrowRight") {
-        var rightHalfW = Math.floor(currentArea.width / 2);
-        target = {
-            x: currentArea.x + rightHalfW,
-            y: currentArea.y,
-            w: currentArea.width - rightHalfW,
-            h: currentArea.height
-        };
-    } else if (key === "ArrowUp") {
-        var ext = getExternalDisplay() || currentDisplay;
-        var extArea = ext.workArea || ext.bounds;
-        if (extArea) {
-            target = { x: extArea.x, y: extArea.y, w: extArea.width, h: extArea.height };
-            maximizeTargetArea = extArea;
-        }
-    } else if (key === "ArrowDown") {
-        var internal = getInternalDisplay() || currentDisplay;
-        var intArea = internal.workArea || internal.bounds;
-        if (intArea) {
-            target = { x: intArea.x, y: intArea.y, w: intArea.width, h: intArea.height };
-            maximizeTargetArea = intArea;
-        }
-    }
-
-    if (!target || target.w <= 0 || target.h <= 0) return;
-    try {
-        if (maximizeTargetArea && (key === "ArrowUp" || key === "ArrowDown")) {
-            moveFrontmostWindowToDisplayAndMaximize(maximizeTargetArea);
-            return;
-        }
-        moveFrontmostWindowToBounds(target);
-    } catch (e) {
-        // Ignore windows that cannot be resized/moved.
-    }
+function handleArrowWindowControl(key, code) {
+    var action = getArrowAction(key, code);
+    if (action === undefined) return;
+    // Fire-and-forget to main process: hide + one-shot placement with no retry loops.
+    electron.ipcRenderer.send("arrow-window-control", action);
 }
 
 $(function() {
     $(document).on("keydown", function(e) {
-        // electron.remote.app.hide();
-        // Hide first so launcher feels instant after key selection.
-        electron.ipcRenderer.invoke('hide-window');
-        // new Notification(name, { body: e.key });
-        if (ARROW_KEYS.has(e.key)) {
-            tileWindowByArrowKey(e.key);
+        if (getArrowAction(e.key, e.code) !== undefined) {
+            handleArrowWindowControl(e.key, e.code);
         } else {
+            // Hide first so launcher feels instant after key selection.
+            electron.ipcRenderer.invoke('hide-window');
             // App-key path: open/focus app, then restore configured placement/window state.
             var key = e.key.toUpperCase();
             var item = DOCK_ITEMS.find(item => item.key == key);

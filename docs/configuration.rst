@@ -24,5 +24,9 @@ Notes
 
 - App names are matched exactly against Dock item names.
 - Key matching in the renderer is case-insensitive (`event.key.toUpperCase()`).
-- Arrow keys tile the current frontmost window to display halves (`ArrowUp/Down/Left/Right`).
+- `ArrowLeft` / `ArrowRight` tile the current display left/right half.
+- `ArrowUp` moves the frontmost window to the external display work area.
+- `ArrowDown` moves the frontmost window to the internal display work area.
+- `\` tiles to full size on the current display work area.
+- Screen direction codes used by keyboard movement are: `0=external`, `1=internal`, `2=full`, `3=left`, `4=right`.
 - If ``placement`` is set, placement behavior takes precedence over remembered bounds.
