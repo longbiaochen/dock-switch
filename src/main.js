@@ -2,6 +2,7 @@ const electron = require("electron");
 const fs = require("fs");
 const path = require("path");
 const { placeFocusedWindowByAction, placeProcessWindowByAction } = require("./window-control");
+const { setupControlServer } = require("./control-server");
 var dock_items = [], display_items = [];
 const dock_query_module_path = path.join(
     __dirname,
@@ -21,6 +22,7 @@ var dock_tracking_active = false;
 var dock_query_inflight = false;
 var overlay_open_t0 = 0;
 const arrow_control_apply_delay_ms = 90;
+var control_server_handle = null;
 
 // Keep the app out of the Dock; interaction is via tray + global shortcut.
 electron.app.dock.hide();
@@ -107,6 +109,18 @@ electron.app.on("ready", () => {
     });
 
     dock_items = read_dock_cache();
+    control_server_handle = setupControlServer({
+        dockQuery: dock_query,
+        electronScreen: electron.screen,
+        ensurePermissions: ensure_tcc_permissions
+    });
+});
+
+electron.app.on("before-quit", () => {
+    if (control_server_handle && typeof control_server_handle.cleanup === "function") {
+        control_server_handle.cleanup();
+        control_server_handle = null;
+    }
 });
 
 function query_live_dock_items() {

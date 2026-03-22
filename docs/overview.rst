@@ -15,8 +15,8 @@ Core Flow
 3. The renderer builds a compact key map UI.
 4. Key presses launch/focus apps; ``ArrowLeft``/``ArrowRight`` tile left/right
    half on the current display, ``ArrowUp`` moves to the external display,
-   ``ArrowDown`` moves to the internal display, and ``\`` fills current display
-   work area.
+   ``ArrowDown`` moves to or maximizes on the internal display, and ``\``
+   fills current display work area.
 
 Architecture
 ------------

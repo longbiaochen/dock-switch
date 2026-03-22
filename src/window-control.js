@@ -3,6 +3,23 @@ function getDisplayArea(display) {
     return display.workArea || display.bounds || null;
 }
 
+function getAvailableDisplays(dockQuery, electronScreen) {
+    // AX window bounds align with Electron's screen coordinates on macOS.
+    // Native NSScreen snapshots are useful for debugging, but not for target
+    // bounds resolution because their Y origin does not match AX window bounds.
+    return electronScreen.getAllDisplays();
+}
+
+function getPrimaryDisplay(dockQuery, electronScreen, displays) {
+    return electronScreen.getPrimaryDisplay();
+}
+
+function getDisplayPixelArea(display) {
+    var area = getDisplayArea(display);
+    if (!area) return 0;
+    return Math.max(0, area.width) * Math.max(0, area.height);
+}
+
 function isCurrentDisplayInternal(currentDisplay, primaryDisplay) {
     if (!currentDisplay) return false;
     if (currentDisplay.internal === true) return true;
@@ -28,6 +45,14 @@ function getExternalDisplay(displays, primaryDisplay, currentDisplay) {
         if (nonCurrent) return nonCurrent;
     }
 
+    if (displays.length > 1) {
+        var internalGuess = getInternalDisplay(displays, primaryDisplay);
+        var externalGuess = displays
+            .filter(d => d && d !== internalGuess)
+            .sort((a, b) => getDisplayPixelArea(b) - getDisplayPixelArea(a))[0];
+        if (externalGuess) return externalGuess;
+    }
+
     if (primaryDisplay && Number.isFinite(primaryDisplay.id)) {
         var nonPrimary = displays.find(d => d && Number.isFinite(d.id) && d.id !== primaryDisplay.id);
         if (nonPrimary) return nonPrimary;
@@ -38,7 +63,15 @@ function getExternalDisplay(displays, primaryDisplay, currentDisplay) {
 
 function getInternalDisplay(displays, primaryDisplay) {
     if (!Array.isArray(displays)) return primaryDisplay || null;
-    return displays.find(d => d && d.internal === true) || primaryDisplay || displays[0] || null;
+    var explicitInternal = displays.find(d => d && d.internal === true);
+    if (explicitInternal) return explicitInternal;
+    if (displays.length > 1) {
+        var smallest = displays
+            .filter(Boolean)
+            .sort((a, b) => getDisplayPixelArea(a) - getDisplayPixelArea(b))[0];
+        if (smallest) return smallest;
+    }
+    return primaryDisplay || displays[0] || null;
 }
 
 function getDisplayForRect(displays, rect) {
@@ -111,17 +144,45 @@ function resolveBoundsForAction(action, displays, primaryDisplay, currentDisplay
             if (currentIsInternal && external) {
                 targetDisplay = external;
             } else {
-                targetDisplay = internal;
+                targetDisplay = currentDisplay;
             }
         } else {
-            if (currentIsInternal) {
-                return null;
-            }
             targetDisplay = internal || currentDisplay;
         }
         var targetArea = getDisplayArea(targetDisplay);
         if (!targetArea) return null;
         return { x: targetArea.x, y: targetArea.y, w: targetArea.width, h: targetArea.height };
+    }
+
+    return null;
+}
+
+function resolveBoundsForPlacement(placement, displays, primaryDisplay) {
+    if (!Array.isArray(displays) || displays.length === 0) return null;
+
+    if (placement === "external_right_half") {
+        var external = getExternalDisplay(displays, primaryDisplay, null);
+        if (external) {
+            var externalArea = getDisplayArea(external);
+            if (!externalArea) return null;
+            var externalHalfW = Math.floor(externalArea.width / 2);
+            return {
+                x: externalArea.x + externalHalfW,
+                y: externalArea.y,
+                w: externalArea.width - externalHalfW,
+                h: externalArea.height
+            };
+        }
+
+        var internal = getInternalDisplay(displays, primaryDisplay) || primaryDisplay || displays[0];
+        var internalArea = getDisplayArea(internal);
+        if (!internalArea) return null;
+        return {
+            x: internalArea.x,
+            y: internalArea.y,
+            w: internalArea.width,
+            h: internalArea.height
+        };
     }
 
     return null;
@@ -144,9 +205,9 @@ function placeFocusedWindowByAction(dockQuery, electronScreen, action) {
         return false;
     }
 
-    var displays = electronScreen.getAllDisplays();
+    var displays = getAvailableDisplays(dockQuery, electronScreen);
     if (!Array.isArray(displays) || displays.length === 0) return false;
-    var primary = electronScreen.getPrimaryDisplay();
+    var primary = getPrimaryDisplay(dockQuery, electronScreen, displays);
     var current = getDisplayForRect(displays, rect);
     if (!current) return false;
 
@@ -179,9 +240,9 @@ function placeProcessWindowByAction(processName, dockQuery, electronScreen, acti
         return false;
     }
 
-    var displays = electronScreen.getAllDisplays();
+    var displays = getAvailableDisplays(dockQuery, electronScreen);
     if (!Array.isArray(displays) || displays.length === 0) return false;
-    var primary = electronScreen.getPrimaryDisplay();
+    var primary = getPrimaryDisplay(dockQuery, electronScreen, displays);
     var current = getDisplayForRect(displays, rect);
     if (!current) return false;
 
@@ -198,9 +259,33 @@ function placeProcessWindowByAction(processName, dockQuery, electronScreen, acti
     return !!dockQuery.moveApplicationWindow(payload);
 }
 
+function placeProcessWindowByPlacement(processName, dockQuery, electronScreen, placement) {
+    if (!processName || !dockQuery || !placement) return false;
+    if (typeof dockQuery.moveApplicationWindow !== "function") {
+        return false;
+    }
+
+    var displays = getAvailableDisplays(dockQuery, electronScreen);
+    if (!Array.isArray(displays) || displays.length === 0) return false;
+    var primary = getPrimaryDisplay(dockQuery, electronScreen, displays);
+    var target = resolveBoundsForPlacement(placement, displays, primary);
+    if (!target || target.w <= 0 || target.h <= 0) return false;
+
+    var payload = {
+        name: processName,
+        x: Math.round(target.x),
+        y: Math.round(target.y),
+        w: Math.round(target.w),
+        h: Math.round(target.h)
+    };
+    return !!dockQuery.moveApplicationWindow(payload);
+}
+
 module.exports = {
     getDisplayForRect,
     resolveBoundsForAction,
+    resolveBoundsForPlacement,
     placeFocusedWindowByAction,
-    placeProcessWindowByAction
+    placeProcessWindowByAction,
+    placeProcessWindowByPlacement
 };

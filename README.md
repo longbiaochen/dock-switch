@@ -11,7 +11,7 @@ Quickly switch among applications in the macOS Dock with one global hotkey.
   - `←` left half
   - `→` right half
   - `↑` external display
-  - `↓` internal display
+  - `↓` internal display, or maximize on the internal display when already there
 - Press `\` to enter macOS native fullscreen (same as the green window button).
 - The UI closes automatically after a selection.
 
