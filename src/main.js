@@ -196,15 +196,14 @@ function run_arrow_window_control(action) {
     electron.app.hide();
     setTimeout(() => {
         try {
-            // Target the actual focused app process first; fallback to generic focused-window move.
-            var processName = focused_process_name();
-            if (processName) {
-                var ok = placeProcessWindowByAction(processName, dock_query, electron.screen, action);
-                if (!ok) {
-                    placeFocusedWindowByAction(dock_query, electron.screen, action);
+            // Arrow commands should act on the real frontmost window, even when an app
+            // has multiple windows (for example Playwright-managed Chrome windows).
+            var ok = placeFocusedWindowByAction(dock_query, electron.screen, action);
+            if (!ok) {
+                var processName = focused_process_name();
+                if (processName) {
+                    placeProcessWindowByAction(processName, dock_query, electron.screen, action);
                 }
-            } else {
-                placeFocusedWindowByAction(dock_query, electron.screen, action);
             }
         } catch (e) {
             // Ignore windows that cannot be moved/resized.
