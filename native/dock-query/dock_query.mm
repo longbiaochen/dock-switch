@@ -164,6 +164,7 @@ static bool ApplyWindowBoundsPrecise(AXUIElementRef win, const CGPoint& p, const
 
   // One deterministic correction pass only.
   if (!exact) {
+    SetAXSize(win, kAXSizeAttribute, s);
     SetAXPoint(win, kAXPositionAttribute, p);
     SetAXSize(win, kAXSizeAttribute, s);
     usleep(kSettleUs);
@@ -234,6 +235,87 @@ static bool EnterWindowFullscreen(AXUIElementRef win) {
   }
   if (btn) CFRelease(btn);
   return ok;
+}
+
+static napi_value RectToObject(napi_env env, CGFloat x, CGFloat y, CGFloat w, CGFloat h) {
+  napi_value out;
+  napi_create_object(env, &out);
+
+  napi_value xVal;
+  napi_create_double(env, x, &xVal);
+  napi_set_named_property(env, out, "x", xVal);
+
+  napi_value yVal;
+  napi_create_double(env, y, &yVal);
+  napi_set_named_property(env, out, "y", yVal);
+
+  napi_value wVal;
+  napi_create_double(env, w, &wVal);
+  napi_set_named_property(env, out, "width", wVal);
+
+  napi_value hVal;
+  napi_create_double(env, h, &hVal);
+  napi_set_named_property(env, out, "height", hVal);
+
+  return out;
+}
+
+static NSRect ConvertScreenRectToAXSpace(NSRect rect, CGFloat mainScreenHeight) {
+  return NSMakeRect(rect.origin.x,
+                    mainScreenHeight - NSMaxY(rect),
+                    rect.size.width,
+                    rect.size.height);
+}
+
+static napi_value GetDisplays(napi_env env, napi_callback_info info) {
+  NSArray<NSScreen*>* screens = [NSScreen screens];
+  CGFloat mainHeight = NSHeight([[NSScreen mainScreen] frame]);
+
+  napi_value out;
+  napi_create_array_with_length(env, screens.count, &out);
+
+  for (NSUInteger i = 0; i < screens.count; i++) {
+    NSScreen* screen = screens[i];
+    NSDictionary* desc = [screen deviceDescription];
+    NSNumber* screenNumber = desc[@"NSScreenNumber"];
+    CGDirectDisplayID displayID = screenNumber ? (CGDirectDisplayID)screenNumber.unsignedIntValue : 0;
+    bool internal = displayID != 0 && CGDisplayIsBuiltin(displayID);
+
+    NSRect frame = ConvertScreenRectToAXSpace(screen.frame, mainHeight);
+    NSRect visibleFrame = ConvertScreenRectToAXSpace(screen.visibleFrame, mainHeight);
+
+    napi_value item;
+    napi_create_object(env, &item);
+
+    napi_value idVal;
+    napi_create_double(env, (double)displayID, &idVal);
+    napi_set_named_property(env, item, "id", idVal);
+
+    napi_value internalVal;
+    napi_get_boolean(env, internal, &internalVal);
+    napi_set_named_property(env, item, "internal", internalVal);
+
+    napi_value boundsVal =
+        RectToObject(env, frame.origin.x, frame.origin.y, frame.size.width, frame.size.height);
+    napi_set_named_property(env, item, "bounds", boundsVal);
+
+    napi_value workAreaVal = RectToObject(env, visibleFrame.origin.x, visibleFrame.origin.y,
+                                          visibleFrame.size.width, visibleFrame.size.height);
+    napi_set_named_property(env, item, "workArea", workAreaVal);
+
+    napi_value scaleVal;
+    napi_create_double(env, screen.backingScaleFactor, &scaleVal);
+    napi_set_named_property(env, item, "scaleFactor", scaleVal);
+
+    NSString* name = screen.localizedName ?: @"";
+    napi_value labelVal;
+    napi_create_string_utf8(env, name.UTF8String, NAPI_AUTO_LENGTH, &labelVal);
+    napi_set_named_property(env, item, "label", labelVal);
+
+    napi_set_element(env, out, i, item);
+  }
+
+  return out;
 }
 
 static std::string GetAXString(AXUIElementRef element, CFStringRef attr) {
@@ -310,6 +392,23 @@ static std::string FocusedApplicationName() {
   return [name UTF8String] ?: "";
 }
 
+static AXUIElementRef CopyUsableWindowFromAppAttribute(AXUIElementRef app, CFStringRef attr) {
+  if (!app || !attr) return nullptr;
+  CFTypeRef value = CopyAXAttr(app, attr);
+  if (!value || CFGetTypeID(value) != AXUIElementGetTypeID()) {
+    if (value) CFRelease(value);
+    return nullptr;
+  }
+
+  AXUIElementRef win = (AXUIElementRef)value;  // retained
+  if (IsStandardWindow(win) && IsUsableWindowForMoveResize(win)) {
+    return win;
+  }
+
+  CFRelease(win);
+  return nullptr;
+}
+
 static AXUIElementRef CopyFirstStandardWindow(AXUIElementRef app) {
   CFTypeRef wins = CopyAXAttr(app, kAXWindowsAttribute);
   if (!wins) return nullptr;
@@ -361,16 +460,12 @@ static AXUIElementRef CopyFirstStandardWindow(AXUIElementRef app) {
 
 static AXUIElementRef CopyFocusedWindow(AXUIElementRef app) {
   if (!app) return nullptr;
-  CFTypeRef value = CopyAXAttr(app, kAXFocusedWindowAttribute);
-  if (value && CFGetTypeID(value) == AXUIElementGetTypeID()) {
-    AXUIElementRef focused = (AXUIElementRef)value;  // retained
-    if (IsStandardWindow(focused) && IsUsableWindowForMoveResize(focused)) {
-      return focused;
-    }
-    CFRelease(focused);
-    value = nullptr;
-  }
-  if (value) CFRelease(value);
+  AXUIElementRef focused = CopyUsableWindowFromAppAttribute(app, kAXFocusedWindowAttribute);
+  if (focused) return focused;
+
+  AXUIElementRef main = CopyUsableWindowFromAppAttribute(app, kAXMainWindowAttribute);
+  if (main) return main;
+
   return CopyFirstStandardWindow(app);
 }
 
@@ -944,6 +1039,9 @@ static napi_value Init(napi_env env, napi_value exports) {
   napi_value fn;
   napi_create_function(env, "getDockItems", NAPI_AUTO_LENGTH, GetDockItems, nullptr, &fn);
   napi_set_named_property(env, exports, "getDockItems", fn);
+  napi_value getDisplaysFn;
+  napi_create_function(env, "getDisplays", NAPI_AUTO_LENGTH, GetDisplays, nullptr, &getDisplaysFn);
+  napi_set_named_property(env, exports, "getDisplays", getDisplaysFn);
   napi_value getBoundsFn;
   napi_create_function(env, "getFocusedWindowBounds", NAPI_AUTO_LENGTH,
                        GetFocusedWindowBounds, nullptr, &getBoundsFn);
