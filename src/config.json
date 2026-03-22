@@ -17,7 +17,7 @@
             "placement": "external_right_half"
         },
         {
-            "name": "ChatGPT",
+            "name": "Codex",
             "key": "SHIFT",
             "icon": "⇧",
             "screen": "3"
@@ -33,7 +33,7 @@
             "screen": "3"
         },
         {
-            "name": "Codex.app",
+            "name": "X",
             "key": "X",
             "screen": "3"
         },
