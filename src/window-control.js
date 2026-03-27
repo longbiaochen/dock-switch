@@ -281,11 +281,34 @@ function placeProcessWindowByPlacement(processName, dockQuery, electronScreen, p
     return !!dockQuery.moveApplicationWindow(payload);
 }
 
+function placePidWindowByPlacement(processPid, dockQuery, electronScreen, placement) {
+    if (!Number.isFinite(processPid) || processPid <= 0 || !dockQuery || !placement) return false;
+    if (typeof dockQuery.moveApplicationWindowByPid !== "function") {
+        return false;
+    }
+
+    var displays = getAvailableDisplays(dockQuery, electronScreen);
+    if (!Array.isArray(displays) || displays.length === 0) return false;
+    var primary = getPrimaryDisplay(dockQuery, electronScreen, displays);
+    var target = resolveBoundsForPlacement(placement, displays, primary);
+    if (!target || target.w <= 0 || target.h <= 0) return false;
+
+    var payload = {
+        pid: Math.round(processPid),
+        x: Math.round(target.x),
+        y: Math.round(target.y),
+        w: Math.round(target.w),
+        h: Math.round(target.h)
+    };
+    return !!dockQuery.moveApplicationWindowByPid(payload);
+}
+
 module.exports = {
     getDisplayForRect,
     resolveBoundsForAction,
     resolveBoundsForPlacement,
     placeFocusedWindowByAction,
     placeProcessWindowByAction,
-    placeProcessWindowByPlacement
+    placeProcessWindowByPlacement,
+    placePidWindowByPlacement
 };

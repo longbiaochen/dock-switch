@@ -31,7 +31,7 @@ Example:
 
 ```json
 {
-  "name": "Chrome",
+  "name": "Google Chrome",
   "key": "G",
   "screen": "4",
   "placement": "external_right_half"
@@ -73,6 +73,41 @@ To disable restore for a specific app, add:
 5. Build signed app bundle (requires signing identity):
    - `yarn dist:signed`
 
+## CLI
+`dock-switch-cli` is the canonical command-line entrypoint for window placement, display inspection, and Playwright-managed Chrome targeting.
+
+Examples:
+
+```bash
+dock-switch-cli displays
+dock-switch-cli place --app "Terminal" --placement external_right_half
+dock-switch-cli place --pid 12345 --placement external_right_half
+dock-switch-cli move --app "Terminal" --x 0 --y 25 --w 1512 --h 875
+dock-switch-cli move --pid 12345 --x 0 --y 25 --w 1512 --h 875
+dock-switch-cli get-chrome-window --profile-dir /tmp/playwright_chromiumdev_profile-XXXXXX
+dock-switch-cli move-chrome-window --profile-dir /tmp/playwright_chromiumdev_profile-XXXXXX --x 713 --y -1410 --w 1280 --h 1410
+```
+
+Notes:
+
+- `--pid` is useful when you need to target one managed window from a multi-window app, but it is not sufficient for Playwright-managed Chrome.
+- `get-chrome-window` and `move-chrome-window` target the exact Chrome window for a specific `--user-data-dir` profile through Chrome DevTools, which is the reliable path for Playwright-managed Chrome windows.
+- If the dock-switch control socket is not running, the CLI launches `/Applications/dock-switch.app` and retries automatically.
+- `displays` prints JSON with Electron display bounds and work areas.
+
+## Playwright Integration
+Headed Playwright Chrome should be targeted by profile, not by generic app name and not by the Playwright session pid reported in CLI output.
+
+Typical flow:
+
+```bash
+dock-switch-cli displays
+dock-switch-cli get-chrome-window --profile-dir /tmp/playwright_chromiumdev_profile-XXXXXX
+dock-switch-cli move-chrome-window --profile-dir /tmp/playwright_chromiumdev_profile-XXXXXX --x 713 --y -1410 --w 1280 --h 1410
+```
+
+This is the path used by the shared Codex Playwright wrapper.
+
 ## Configuration
 App key/display mapping is stored in `src/config.json` under `dock_items`.
 
@@ -88,3 +123,4 @@ App key/display mapping is stored in `src/config.json` under `dock_items`.
 - Electron entry point: `src/main.js`
 - Renderer/UI logic: `src/index.js`
 - Dock metadata provider: native Node addon (`native/dock-query`)
+- Canonical automation entrypoint: `bin/dock-switch-cli.js`

@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cctype>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -118,6 +119,33 @@ static bool IsUsableWindowForMoveResize(AXUIElementRef win) {
 
 static bool IsNearScalar(CGFloat a, CGFloat b, CGFloat tol) {
   return std::fabs((double)a - (double)b) <= (double)tol;
+}
+
+static std::string NormalizeApplicationName(const std::string& rawName) {
+  std::string normalized;
+  normalized.reserve(rawName.size());
+  for (char ch : rawName) {
+    normalized.push_back((char)std::tolower((unsigned char)ch));
+  }
+
+  const std::string suffix = ".app";
+  if (normalized.size() >= suffix.size() &&
+      normalized.compare(normalized.size() - suffix.size(), suffix.size(), suffix) == 0) {
+    normalized.erase(normalized.size() - suffix.size());
+  }
+
+  while (!normalized.empty() && std::isspace((unsigned char)normalized.front())) {
+    normalized.erase(normalized.begin());
+  }
+  while (!normalized.empty() && std::isspace((unsigned char)normalized.back())) {
+    normalized.pop_back();
+  }
+
+  if (normalized == "chrome") {
+    return "google chrome";
+  }
+
+  return normalized;
 }
 
 static bool IsNearPoint(const CGPoint& a, const CGPoint& b, CGFloat tol) {
@@ -357,8 +385,8 @@ static AXUIElementRef CopyFocusedApplication() {
 
 static NSRunningApplication* FindRunningApplicationByName(const std::string& appNameUtf8) {
   if (appNameUtf8.empty()) return nil;
-  NSString* target = [NSString stringWithUTF8String:appNameUtf8.c_str()];
-  if (!target || [target length] == 0) return nil;
+  std::string normalizedTarget = NormalizeApplicationName(appNameUtf8);
+  if (normalizedTarget.empty()) return nil;
 
   NSArray<NSRunningApplication*>* running = [[NSWorkspace sharedWorkspace] runningApplications];
   if (!running || [running count] == 0) return nil;
@@ -367,11 +395,17 @@ static NSRunningApplication* FindRunningApplicationByName(const std::string& app
     if (!app) continue;
     NSString* n = [app localizedName];
     if (!n) continue;
-    if ([n caseInsensitiveCompare:target] == NSOrderedSame) {
+    std::string normalizedRunning = NormalizeApplicationName(std::string([n UTF8String]));
+    if (normalizedRunning == normalizedTarget) {
       return app;
     }
   }
   return nil;
+}
+
+static NSRunningApplication* FindRunningApplicationByPid(pid_t pid) {
+  if (pid <= 0) return nil;
+  return [NSRunningApplication runningApplicationWithProcessIdentifier:pid];
 }
 
 static AXUIElementRef CopyApplicationByName(const std::string& appNameUtf8) {
@@ -379,6 +413,14 @@ static AXUIElementRef CopyApplicationByName(const std::string& appNameUtf8) {
   if (!match) return nullptr;
   pid_t pid = [match processIdentifier];
   if (pid <= 0) return nullptr;
+  AXUIElementRef appRef = AXUIElementCreateApplication(pid);
+  if (!appRef) return nullptr;
+  return appRef;  // retained
+}
+
+static AXUIElementRef CopyApplicationByPid(pid_t pid) {
+  NSRunningApplication* match = FindRunningApplicationByPid(pid);
+  if (!match) return nullptr;
   AXUIElementRef appRef = AXUIElementCreateApplication(pid);
   if (!appRef) return nullptr;
   return appRef;  // retained
@@ -637,6 +679,17 @@ static bool GetRequiredUtf8Property(napi_env env, napi_value obj, const char* ke
   return true;
 }
 
+static bool GetRequiredInt64Property(napi_env env, napi_value obj, const char* key,
+                                     int64_t* out) {
+  bool has = false;
+  napi_has_named_property(env, obj, key, &has);
+  if (!has) return false;
+  napi_value v;
+  napi_get_named_property(env, obj, key, &v);
+  napi_status status = napi_get_value_int64(env, v, out);
+  return status == napi_ok;
+}
+
 static napi_value GetFocusedApplicationName(napi_env env, napi_callback_info info) {
   std::string name = FocusedApplicationName();
   napi_value out;
@@ -660,6 +713,54 @@ static napi_value GetApplicationWindowBounds(napi_env env, napi_callback_info in
   }
 
   AXUIElementRef app = CopyApplicationByName(appName);
+  if (!app) return MakeError(env, "Application process not found");
+  AXUIElementRef win = CopyFocusedWindow(app);
+  CFRelease(app);
+  if (!win) return MakeError(env, "Application has no window");
+
+  CGPoint p = CGPointZero;
+  CGSize s = CGSizeZero;
+  bool okPos = GetAXPoint(win, kAXPositionAttribute, &p);
+  bool okSize = GetAXSize(win, kAXSizeAttribute, &s);
+  CFRelease(win);
+  if (!okPos || !okSize) {
+    return MakeError(env, "Failed to read application window bounds");
+  }
+
+  napi_value out;
+  napi_create_object(env, &out);
+  napi_value xVal;
+  napi_create_double(env, p.x, &xVal);
+  napi_set_named_property(env, out, "x", xVal);
+  napi_value yVal;
+  napi_create_double(env, p.y, &yVal);
+  napi_set_named_property(env, out, "y", yVal);
+  napi_value wVal;
+  napi_create_double(env, s.width, &wVal);
+  napi_set_named_property(env, out, "w", wVal);
+  napi_value hVal;
+  napi_create_double(env, s.height, &hVal);
+  napi_set_named_property(env, out, "h", hVal);
+  return out;
+}
+
+static napi_value GetApplicationWindowBoundsByPid(napi_env env, napi_callback_info info) {
+  if (!AXIsProcessTrusted()) {
+    return MakeError(env, "Accessibility permission is required");
+  }
+
+  size_t argc = 1;
+  napi_value argv[1];
+  napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+  if (argc < 1) return MakeError(env, "Expected {pid}");
+
+  int64_t pidValue = 0;
+  if (!GetRequiredInt64Property(env, argv[0], "pid", &pidValue) || pidValue <= 0 ||
+      pidValue > INT_MAX) {
+    return MakeError(env, "pid is required");
+  }
+
+  AXUIElementRef app = CopyApplicationByPid((pid_t)pidValue);
   if (!app) return MakeError(env, "Application process not found");
   AXUIElementRef win = CopyFocusedWindow(app);
   CFRelease(app);
@@ -797,6 +898,78 @@ static napi_value MoveApplicationWindow(napi_env env, napi_callback_info info) {
   }
 
   AXUIElementRef app = CopyApplicationByName(appName);
+  if (!app) return MakeError(env, "Application process not found");
+  AXUIElementRef win = CopyFocusedWindow(app);
+  CFRelease(app);
+  if (!win) return MakeError(env, "Application has no window");
+
+  if (IsAXAttrSettable(win, kAXFullScreenAttrCompat)) {
+    SetAXBool(win, kAXFullScreenAttrCompat, false);
+  }
+  if (IsAXAttrSettable(win, kAXZoomedAttrCompat)) {
+    bool zoomed = false;
+    if (GetAXBool(win, kAXZoomedAttrCompat, &zoomed) && zoomed) {
+      SetAXBool(win, kAXZoomedAttrCompat, false);
+    }
+  }
+
+  usleep(15000);
+  CGPoint p = CGPointMake((CGFloat)std::lround(x), (CGFloat)std::lround(y));
+  CGSize s = CGSizeMake((CGFloat)std::lround(std::max(1.0, w)),
+                        (CGFloat)std::lround(std::max(1.0, h)));
+  bool ok = ApplyWindowBoundsPrecise(win, p, s);
+  CFRelease(win);
+
+  napi_value out;
+  napi_get_boolean(env, ok, &out);
+  return out;
+}
+
+static napi_value MoveApplicationWindowByPid(napi_env env, napi_callback_info info) {
+  if (!AXIsProcessTrusted()) {
+    return MakeError(env, "Accessibility permission is required");
+  }
+
+  size_t argc = 1;
+  napi_value argv[1];
+  napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+  if (argc < 1) return MakeError(env, "Expected bounds object with pid");
+
+  int64_t pidValue = 0;
+  if (!GetRequiredInt64Property(env, argv[0], "pid", &pidValue) || pidValue <= 0 ||
+      pidValue > INT_MAX) {
+    return MakeError(env, "pid is required");
+  }
+
+  napi_value xV, yV, wV, hV;
+  bool has = false;
+  napi_has_named_property(env, argv[0], "x", &has);
+  if (!has) return MakeError(env, "bounds.x is required");
+  napi_get_named_property(env, argv[0], "x", &xV);
+  napi_has_named_property(env, argv[0], "y", &has);
+  if (!has) return MakeError(env, "bounds.y is required");
+  napi_get_named_property(env, argv[0], "y", &yV);
+  napi_has_named_property(env, argv[0], "w", &has);
+  if (!has) return MakeError(env, "bounds.w is required");
+  napi_get_named_property(env, argv[0], "w", &wV);
+  napi_has_named_property(env, argv[0], "h", &has);
+  if (!has) return MakeError(env, "bounds.h is required");
+  napi_get_named_property(env, argv[0], "h", &hV);
+
+  double x = 0, y = 0, w = 0, h = 0;
+  napi_get_value_double(env, xV, &x);
+  napi_get_value_double(env, yV, &y);
+  napi_get_value_double(env, wV, &w);
+  napi_get_value_double(env, hV, &h);
+  if (!(w > 0) || !(h > 0)) return MakeError(env, "bounds.w/h must be > 0");
+
+  NSRunningApplication* runningApp = FindRunningApplicationByPid((pid_t)pidValue);
+  if (runningApp) {
+    [runningApp activateWithOptions:NSApplicationActivateIgnoringOtherApps];
+    usleep(20000);
+  }
+
+  AXUIElementRef app = CopyApplicationByPid((pid_t)pidValue);
   if (!app) return MakeError(env, "Application process not found");
   AXUIElementRef win = CopyFocusedWindow(app);
   CFRelease(app);
@@ -1054,6 +1227,11 @@ static napi_value Init(napi_env env, napi_value exports) {
   napi_create_function(env, "getApplicationWindowBounds", NAPI_AUTO_LENGTH,
                        GetApplicationWindowBounds, nullptr, &getAppBoundsFn);
   napi_set_named_property(env, exports, "getApplicationWindowBounds", getAppBoundsFn);
+  napi_value getAppBoundsPidFn;
+  napi_create_function(env, "getApplicationWindowBoundsByPid", NAPI_AUTO_LENGTH,
+                       GetApplicationWindowBoundsByPid, nullptr, &getAppBoundsPidFn);
+  napi_set_named_property(env, exports, "getApplicationWindowBoundsByPid",
+                          getAppBoundsPidFn);
   napi_value moveFn;
   napi_create_function(env, "moveFocusedWindow", NAPI_AUTO_LENGTH, MoveFocusedWindow,
                        nullptr, &moveFn);
@@ -1062,6 +1240,10 @@ static napi_value Init(napi_env env, napi_value exports) {
   napi_create_function(env, "moveApplicationWindow", NAPI_AUTO_LENGTH,
                        MoveApplicationWindow, nullptr, &moveAppFn);
   napi_set_named_property(env, exports, "moveApplicationWindow", moveAppFn);
+  napi_value moveAppPidFn;
+  napi_create_function(env, "moveApplicationWindowByPid", NAPI_AUTO_LENGTH,
+                       MoveApplicationWindowByPid, nullptr, &moveAppPidFn);
+  napi_set_named_property(env, exports, "moveApplicationWindowByPid", moveAppPidFn);
   napi_value moveMaxFn;
   napi_create_function(env, "moveFocusedWindowAndMaximize", NAPI_AUTO_LENGTH,
                        MoveFocusedWindowAndMaximize, nullptr, &moveMaxFn);

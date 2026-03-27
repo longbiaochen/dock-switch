@@ -4,6 +4,9 @@
     "description": "dock-switch",
     "author": "Longbiao CHEN",
     "main": "src/main.js",
+    "bin": {
+        "dock-switch-cli": "bin/dock-switch-cli.js"
+    },
     "dependencies": {
         "bootstrap": "^4.3.1",
         "jquery": "^3.5.0",

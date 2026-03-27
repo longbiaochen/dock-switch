@@ -3,7 +3,10 @@ const fs = require("fs");
 const net = require("net");
 const os = require("os");
 const path = require("path");
-const { placeProcessWindowByPlacement } = require("./window-control");
+const {
+    placePidWindowByPlacement,
+    placeProcessWindowByPlacement
+} = require("./window-control");
 
 const CONTROL_DIR = path.join(os.homedir(), "Library", "Application Support", "dock-switch");
 const CONTROL_SOCKET_PATH = path.join(CONTROL_DIR, "control.sock");
@@ -64,6 +67,40 @@ async function placeApplicationWindow(command, deps) {
     return { ok: false, error: `Failed to place window for ${appName}` };
 }
 
+async function placePidWindow(command, deps) {
+    const pid = Number(command.pid);
+    const placement = String(command.placement || "").trim();
+    if (!Number.isFinite(pid) || pid <= 0) {
+        return { ok: false, error: "pid is required" };
+    }
+    if (!placement) {
+        return { ok: false, error: "placement is required" };
+    }
+    if (!deps.ensurePermissions()) {
+        return { ok: false, error: "Accessibility permission is required" };
+    }
+
+    const deadline = Date.now() + 1600;
+    do {
+        try {
+            const ok = placePidWindowByPlacement(
+                Math.round(pid),
+                deps.dockQuery,
+                deps.electronScreen,
+                placement
+            );
+            if (ok) {
+                return { ok: true };
+            }
+        } catch (e) {
+            // retry until deadline
+        }
+        await delay(60);
+    } while (Date.now() < deadline);
+
+    return { ok: false, error: `Failed to place window for pid ${Math.round(pid)}` };
+}
+
 async function moveApplicationWindow(command, deps) {
     const appName = String(command.appName || "").trim();
     const x = Number(command.x);
@@ -107,6 +144,45 @@ async function moveApplicationWindow(command, deps) {
     return { ok: false, error: `Failed to move window for ${appName}` };
 }
 
+async function movePidWindow(command, deps) {
+    const pid = Number(command.pid);
+    const x = Number(command.x);
+    const y = Number(command.y);
+    const w = Number(command.w);
+    const h = Number(command.h);
+
+    if (!Number.isFinite(pid) || pid <= 0) {
+        return { ok: false, error: "pid is required" };
+    }
+    if (![x, y, w, h].every(Number.isFinite) || w <= 0 || h <= 0) {
+        return { ok: false, error: "valid x/y/w/h are required" };
+    }
+    if (!deps.ensurePermissions()) {
+        return { ok: false, error: "Accessibility permission is required" };
+    }
+
+    const deadline = Date.now() + 1600;
+    do {
+        try {
+            const ok = deps.dockQuery.moveApplicationWindowByPid({
+                pid: Math.round(pid),
+                x: Math.round(x),
+                y: Math.round(y),
+                w: Math.round(w),
+                h: Math.round(h)
+            });
+            if (ok) {
+                return { ok: true };
+            }
+        } catch (e) {
+            // retry until deadline
+        }
+        await delay(60);
+    } while (Date.now() < deadline);
+
+    return { ok: false, error: `Failed to move window for pid ${Math.round(pid)}` };
+}
+
 function getDisplaysSnapshot(deps) {
     return deps.electronScreen.getAllDisplays().map(display => ({
         id: display.id,
@@ -142,8 +218,12 @@ function setupControlServer(deps) {
                         const command = JSON.parse(raw);
                         if (command.command === "place-app") {
                             response = await placeApplicationWindow(command, deps);
+                        } else if (command.command === "place-pid") {
+                            response = await placePidWindow(command, deps);
                         } else if (command.command === "move-app") {
                             response = await moveApplicationWindow(command, deps);
+                        } else if (command.command === "move-pid") {
+                            response = await movePidWindow(command, deps);
                         } else if (command.command === "debug-displays") {
                             response = { ok: true, displays: getDisplaysSnapshot(deps) };
                         } else {
