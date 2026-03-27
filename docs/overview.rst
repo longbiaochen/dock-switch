@@ -24,6 +24,8 @@ Architecture
 - ``src/main.js``:
   Electron main process, tray setup, global shortcut registration, IPC, and dock-query integration.
 - ``src/index.js``:
-  Renderer process for key handling, rendering mapped items, and AppleScript-based window placement.
+  Renderer process for key handling, rendering mapped items, and native dock-switch placement triggers.
 - ``native/dock-query``:
   Native Node addon that reads live Dock metadata directly in-process.
+- ``bin/dock-switch-cli.js``:
+  Canonical automation CLI for display inspection, AX-based app/pid movement, and Chrome-profile targeting for Playwright-managed windows.

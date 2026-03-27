@@ -16,8 +16,7 @@ var ARROW_KEY_ACTIONS = Object.freeze({
     "\\": "fill",
     "Backslash": "fill"
 });
-var DOCK_ITEMS = [],
-    DISPLAY_ITEMS = [];
+var DOCK_ITEMS = [];
 const DOCK_QUERY_MODULE_PATH = path.join(
     __dirname,
     "..",
@@ -38,10 +37,16 @@ try {
 var WINDOW_STATE_CACHE = {};
 
 function normalizeAppName(name) {
-    return (name || "")
+    var normalized = (name || "")
         .trim()
         .replace(/\.app$/i, "")
         .toLowerCase();
+
+    if (normalized === "chrome") {
+        return "google chrome";
+    }
+
+    return normalized;
 }
 
 function setSavedWindowState(appName, bounds) {
@@ -75,66 +80,6 @@ function getSavedWindowState(appName) {
     }
 
     return s;
-}
-
-function findExternalDisplay() {
-    if (!Array.isArray(DISPLAY_ITEMS) || DISPLAY_ITEMS.length === 0) return null;
-
-    // Prefer explicit external monitor on macOS
-    var external = DISPLAY_ITEMS.find(d => d && d.internal === false);
-    if (external) return external;
-
-    // Fallback: pick the display with the largest x (usually the external monitor on the right)
-    return DISPLAY_ITEMS
-        .filter(d => d && d.bounds)
-        .sort((a, b) => (b.bounds.x || 0) - (a.bounds.x || 0))[0] || null;
-}
-
-function applyWindowPlacement(item) {
-    if (!item) return;
-    var placement = item.placement || "";
-
-    if (placement !== "external_right_half") return;
-
-    var external = getExternalDisplay() || findExternalDisplay();
-    if (!external) {
-        // No external monitor: fill built-in display work area.
-        var internal = getInternalDisplay();
-        var internalArea = internal && (internal.workArea || internal.bounds);
-        if (!internalArea) return;
-        try {
-            moveFrontmostWindowToBounds({
-                x: internalArea.x,
-                y: internalArea.y,
-                w: internalArea.width,
-                h: internalArea.height
-            }, { async: true, timeoutMs: 1200 });
-            setSavedWindowState(item.name || "", {
-                x: internalArea.x,
-                y: internalArea.y,
-                w: internalArea.width,
-                h: internalArea.height
-            });
-        } catch (e) {
-            // Ignore windows that cannot be moved/resized.
-        }
-        return;
-    }
-
-    var b = external.workArea || external.bounds;
-    if (!b) return;
-    var halfW = Math.floor(b.width / 2);
-    var x = Math.floor(b.x + halfW);
-    var y = Math.floor(b.y);
-    var w = Math.floor(b.width - halfW);
-    var h = Math.floor(b.height);
-
-    try {
-        moveFrontmostWindowToBounds({ x: x, y: y, w: w, h: h }, { async: true, timeoutMs: 1200 });
-        setSavedWindowState(item.name || "", { x: x, y: y, w: w, h: h });
-    } catch (e) {
-        // Ignore windows that cannot be moved/resized.
-    }
 }
 
 function saveFrontmostWindowState() {
@@ -175,38 +120,6 @@ function restoreWindowState(item) {
     }
 }
 
-function moveFrontmostWindowToBounds(bounds, options) {
-    if (dockQuery && typeof dockQuery.moveFocusedWindow === "function") {
-        try {
-            var ok = dockQuery.moveFocusedWindow({
-                x: Math.round(bounds.x),
-                y: Math.round(bounds.y),
-                w: Math.round(bounds.w),
-                h: Math.round(bounds.h)
-            });
-            if (options && options.async) return !!ok;
-            return !!ok;
-        } catch (e) {
-            return false;
-        }
-    }
-    return false;
-}
-
-function getExternalDisplay() {
-    if (!Array.isArray(DISPLAY_ITEMS) || DISPLAY_ITEMS.length === 0) return null;
-    var external = DISPLAY_ITEMS.find(d => d && d.internal === false);
-    if (external) return external;
-    return null;
-}
-
-function getInternalDisplay() {
-    if (!Array.isArray(DISPLAY_ITEMS) || DISPLAY_ITEMS.length === 0) return null;
-    var internal = DISPLAY_ITEMS.find(d => d && d.internal === true);
-    if (internal) return internal;
-    return DISPLAY_ITEMS[0] || null;
-}
-
 function getArrowAction(key, code) {
     if (ARROW_KEY_ACTIONS[key] !== undefined) return ARROW_KEY_ACTIONS[key];
     if (ARROW_KEY_ACTIONS[code] !== undefined) return ARROW_KEY_ACTIONS[code];
@@ -236,14 +149,17 @@ $(function() {
 
             saveFrontmostWindowState();
             // new Notification(item.name, { body: key });
-            child_process.execFile("open", ["-a", item.name], () => {});
-            setTimeout(() => {
-                if (item.placement) {
-                    applyWindowPlacement(item);
-                } else {
+            if (item.placement) {
+                electron.ipcRenderer.send("launch-app-with-placement", {
+                    name: item.name,
+                    placement: item.placement
+                });
+            } else {
+                child_process.execFile("open", ["-a", item.name], () => {});
+                setTimeout(() => {
                     restoreWindowState(item);
-                }
-            }, 120);
+                }, 120);
+            }
         }
     });
 
@@ -277,10 +193,7 @@ $(function() {
         }
     });
 
-    electron.ipcRenderer.on("update-display", (event, display_items) => {
-        // Display metadata is kept for future UI logic and parity with main-process updates.
-        DISPLAY_ITEMS = display_items;
-    });
+    electron.ipcRenderer.on("update-display", () => {});
 
 
 });

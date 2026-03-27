@@ -30,3 +30,21 @@ Notes
 - `\` tiles to full size on the current display work area.
 - Screen direction codes used by keyboard movement are: `0=external`, `1=internal`, `2=full`, `3=left`, `4=right`.
 - If ``placement`` is set, placement behavior takes precedence over remembered bounds.
+
+CLI
+---
+
+``dock-switch-cli`` is the canonical command-line interface for Codex and other automation.
+
+Examples:
+
+- ``dock-switch-cli displays``
+- ``dock-switch-cli place --app "Terminal" --placement external_right_half``
+- ``dock-switch-cli place --pid 12345 --placement external_right_half``
+- ``dock-switch-cli move --app "Terminal" --x 0 --y 25 --w 1512 --h 875``
+- ``dock-switch-cli move --pid 12345 --x 0 --y 25 --w 1512 --h 875``
+- ``dock-switch-cli get-chrome-window --profile-dir /tmp/playwright_chromiumdev_profile-XXXXXX``
+- ``dock-switch-cli move-chrome-window --profile-dir /tmp/playwright_chromiumdev_profile-XXXXXX --x 713 --y -1410 --w 1280 --h 1410``
+
+Use ``--pid`` when you need to target one managed window from a multi-window app such as Google Chrome.
+Use the Chrome profile commands for Playwright-managed Google Chrome windows, because the reported Playwright session pid is not the native Chrome window owner.

@@ -1,7 +1,12 @@
 const electron = require("electron");
+const child_process = require("child_process");
 const fs = require("fs");
 const path = require("path");
-const { placeFocusedWindowByAction, placeProcessWindowByAction } = require("./window-control");
+const {
+    placeFocusedWindowByAction,
+    placeProcessWindowByAction,
+    placeProcessWindowByPlacement
+} = require("./window-control");
 const { setupControlServer } = require("./control-server");
 var dock_items = [], display_items = [];
 const dock_query_module_path = path.join(
@@ -22,6 +27,8 @@ var dock_tracking_active = false;
 var dock_query_inflight = false;
 var overlay_open_t0 = 0;
 const arrow_control_apply_delay_ms = 90;
+const app_launch_place_retry_delay_ms = 60;
+const app_launch_place_timeout_ms = 1600;
 var control_server_handle = null;
 
 // Keep the app out of the Dock; interaction is via tray + global shortcut.
@@ -106,6 +113,10 @@ electron.app.on("ready", () => {
 
     electron.ipcMain.on("arrow-window-control", (event, action) => {
         run_arrow_window_control(action);
+    });
+
+    electron.ipcMain.on("launch-app-with-placement", (event, item) => {
+        launch_app_with_placement(item);
     });
 
     dock_items = read_dock_cache();
@@ -209,6 +220,39 @@ function run_arrow_window_control(action) {
             // Ignore windows that cannot be moved/resized.
         }
     }, arrow_control_apply_delay_ms);
+}
+
+function launch_app_with_placement(item) {
+    if (!item || !item.name || !item.placement) {
+        return;
+    }
+
+    child_process.execFile("open", ["-a", String(item.name)], () => {});
+    var deadline = Date.now() + app_launch_place_timeout_ms;
+    var tryPlace = () => {
+        if (!dock_query) {
+            return;
+        }
+        try {
+            var ok = placeProcessWindowByPlacement(
+                String(item.name),
+                dock_query,
+                electron.screen,
+                String(item.placement)
+            );
+            if (ok) {
+                return;
+            }
+        } catch (e) {
+            // retry until deadline
+        }
+
+        if (Date.now() < deadline) {
+            setTimeout(tryPlace, app_launch_place_retry_delay_ms);
+        }
+    };
+
+    setTimeout(tryPlace, app_launch_place_retry_delay_ms);
 }
 
 function focused_process_name() {

@@ -37,7 +37,7 @@ You can set browser windows to always land on the **right half of the external m
 .. code-block:: json
 
    {
-     "name": "Chrome",
+     "name": "Google Chrome",
      "key": "G",
      "screen": "4",
      "placement": "external_right_half"
@@ -53,3 +53,4 @@ Notes
 
 - If no external display is detected, placement is skipped.
 - You can map any convenient key to ``F20`` with Karabiner-Elements.
+- For Playwright-managed Chrome, use the CLI Chrome profile commands instead of generic app-name placement.
