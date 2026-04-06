@@ -14,7 +14,7 @@
             "name": "Google Chrome",
             "key": "G",
             "screen": "4",
-            "placement": "external_right_half"
+            "placement": "internal_fill"
         },
         {
             "name": "Codex",
@@ -35,7 +35,8 @@
         {
             "name": "X",
             "key": "X",
-            "screen": "3"
+            "screen": "3",
+            "placement": "external_right_half"
         },
         {
             "name": "Mail",
@@ -83,7 +84,7 @@
             "screen": "4"
         },
         {
-            "name": "Terminal",
+            "name": "ChatGPT",
             "key": "TAB",
             "icon": "⇥",
             "screen": "4"

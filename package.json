@@ -1,6 +1,6 @@
 {
     "name": "dock-switch",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "dock-switch",
     "author": "Longbiao CHEN",
     "main": "src/main.js",
@@ -18,7 +18,7 @@
     "scripts": {
         "build:addon": "node-gyp rebuild --directory native/dock-query --target=16.2.8 --dist-url=https://electronjs.org/headers",
         "go": "yarn build:addon; killall -9 dock-switch; electron .",
-        "dist": "yarn build:addon && electron-builder build && /usr/libexec/PlistBuddy -c 'Delete :NSAppleEventsUsageDescription' dist/mac-arm64/dock-switch.app/Contents/Info.plist >/dev/null 2>&1 || true; /usr/libexec/PlistBuddy -c 'Add :NSAppleEventsUsageDescription string dock-switch needs automation permission to focus and place application windows.' dist/mac-arm64/dock-switch.app/Contents/Info.plist && killall -9 dock-switch || true; rm -rf /Applications/dock-switch.app && cp -rf dist/mac-arm64/dock-switch.app /Applications/ && /usr/libexec/PlistBuddy -c 'Delete :NSAppleEventsUsageDescription' /Applications/dock-switch.app/Contents/Info.plist >/dev/null 2>&1 || true; /usr/libexec/PlistBuddy -c 'Add :NSAppleEventsUsageDescription string dock-switch needs automation permission to focus and place application windows.' /Applications/dock-switch.app/Contents/Info.plist && open -a dock-switch.app",
+        "dist": "yarn build:addon && electron-builder build && /usr/libexec/PlistBuddy -c 'Delete :NSAppleEventsUsageDescription' dist/mac-arm64/dock-switch.app/Contents/Info.plist >/dev/null 2>&1 || true; /usr/libexec/PlistBuddy -c 'Add :NSAppleEventsUsageDescription string dock-switch needs automation permission to focus and place application windows.' dist/mac-arm64/dock-switch.app/Contents/Info.plist && killall -9 dock-switch || true; rm -rf /Applications/dock-switch.app && cp -rf dist/mac-arm64/dock-switch.app /Applications/ && /usr/libexec/PlistBuddy -c 'Delete :NSAppleEventsUsageDescription' /Applications/dock-switch.app/Contents/Info.plist >/dev/null 2>&1 || true; /usr/libexec/PlistBuddy -c 'Add :NSAppleEventsUsageDescription string dock-switch needs automation permission to focus and place application windows.' /Applications/dock-switch.app/Contents/Info.plist && open /Applications/dock-switch.app",
         "dist:signed": "yarn build:addon && CSC_NAME='Developer ID Application' electron-builder --mac dir"
     },
     "license": "MIT",

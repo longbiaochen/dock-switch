@@ -335,7 +335,10 @@ static napi_value GetDisplays(napi_env env, napi_callback_info info) {
     napi_create_double(env, screen.backingScaleFactor, &scaleVal);
     napi_set_named_property(env, item, "scaleFactor", scaleVal);
 
-    NSString* name = screen.localizedName ?: @"";
+    NSString* name = @"";
+    if (@available(macOS 10.15, *)) {
+      name = screen.localizedName ?: @"";
+    }
     napi_value labelVal;
     napi_create_string_utf8(env, name.UTF8String, NAPI_AUTO_LENGTH, &labelVal);
     napi_set_named_property(env, item, "label", labelVal);

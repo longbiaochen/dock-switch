@@ -185,6 +185,18 @@ function resolveBoundsForPlacement(placement, displays, primaryDisplay) {
         };
     }
 
+    if (placement === "internal_fill") {
+        var internalDisplay = getInternalDisplay(displays, primaryDisplay) || primaryDisplay || displays[0];
+        var internalDisplayArea = getDisplayArea(internalDisplay);
+        if (!internalDisplayArea) return null;
+        return {
+            x: internalDisplayArea.x,
+            y: internalDisplayArea.y,
+            w: internalDisplayArea.width,
+            h: internalDisplayArea.height
+        };
+    }
+
     return null;
 }
 
