@@ -12,7 +12,7 @@
         },
         {
             "name": "Google Chrome",
-            "key": "G",
+            "key": "B",
             "screen": "4",
             "placement": "internal_fill"
         },
@@ -37,6 +37,11 @@
             "key": "X",
             "screen": "3",
             "placement": "external_right_half"
+        },
+        {
+            "name": "GitHub",
+            "key": "G",
+            "screen": "3"
         },
         {
             "name": "Mail",
