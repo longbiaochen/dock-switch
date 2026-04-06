@@ -20,10 +20,10 @@ Reference
    development
    configuration
 
-Browser fixed placement (external monitor right half)
------------------------------------------------------
+Browser fixed placement
+-----------------------
 
-You can set browser windows to always land on the **right half of the external monitor** when launched from dock-switch:
+You can set browser windows to always land on a specific display region when launched from dock-switch:
 
 .. code-block:: json
 
@@ -40,17 +40,19 @@ You can set browser windows to always land on the **right half of the external m
      "name": "Google Chrome",
      "key": "G",
      "screen": "4",
-     "placement": "external_right_half"
+     "placement": "internal_fill"
    }
 
 Current placement support:
 
 - ``external_right_half``
-- app names supported by built-in placement: ``Safari``, ``Chrome`` / ``Google Chrome``
+- ``internal_fill``
+- app names supported by built-in placement: ``Safari``, ``X``, ``Chrome`` / ``Google Chrome``
 
 Notes
 -----
 
-- If no external display is detected, placement is skipped.
+- ``internal_fill`` maximizes to the internal display work area.
+- If no external display is detected, ``external_right_half`` falls back to the internal display work area.
 - You can map any convenient key to ``F20`` with Karabiner-Elements.
 - For Playwright-managed Chrome, use the CLI Chrome profile commands instead of generic app-name placement.

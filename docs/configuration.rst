@@ -17,13 +17,14 @@ The top-level key is ``dock_items``, each containing:
 - ``key``: keyboard key used to trigger app focus/launch
 - ``screen``: legacy field retained for backward compatibility (not used by the current node-only runtime path)
 - ``remember_window_state`` (optional): defaults to ``true``; when enabled, dock-switch restores last known window bounds for that app (in-memory for current app session)
-- ``placement`` (optional): explicit placement policy (for example ``external_right_half``)
+- ``placement`` (optional): explicit placement policy (for example ``external_right_half`` or ``internal_fill``)
 
 Notes
 -----
 
 - App names are matched exactly against Dock item names.
 - Key matching in the renderer is case-insensitive (`event.key.toUpperCase()`).
+- In the current default config, ``Tab`` is mapped to ``ChatGPT`` inside the launcher.
 - `ArrowLeft` / `ArrowRight` tile the current display left/right half.
 - `ArrowUp` moves the frontmost window to the external display work area.
 - `ArrowDown` moves the frontmost window to the internal display work area, and maximizes it there when it is already on the internal display.
@@ -48,3 +49,4 @@ Examples:
 
 Use ``--pid`` when you need to target one managed window from a multi-window app such as Google Chrome.
 Use the Chrome profile commands for Playwright-managed Google Chrome windows, because the reported Playwright session pid is not the native Chrome window owner.
+If the dock-switch control socket is unavailable, the CLI launches ``/Applications/dock-switch.app`` and retries automatically.

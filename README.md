@@ -6,6 +6,7 @@ Quickly switch among applications in the macOS Dock with one global hotkey.
 
 ## How It Works
 - Press `F20` to open the floating launcher UI.
+- In the current default config, `F20` then `Tab` launches or focuses `ChatGPT`.
 - Press the shown key for an app to focus it.
 - Press an arrow key to tile the frontmost window on its current display:
   - `←` left half
@@ -15,7 +16,7 @@ Quickly switch among applications in the macOS Dock with one global hotkey.
 - Press `\` to enter macOS native fullscreen (same as the green window button).
 - The UI closes automatically after a selection.
 
-## Browser Fixed Placement (External Monitor Right Half)
+## Browser Fixed Placement
 This project supports per-app window placement through `src/config.json`.
 
 Example:
@@ -34,19 +35,21 @@ Example:
   "name": "Google Chrome",
   "key": "G",
   "screen": "4",
-  "placement": "external_right_half"
+  "placement": "internal_fill"
 }
 ```
 
-When triggered from dock-switch, configured browser windows are moved to the external display half.
-If no external display is available, they are maximized on the built-in display.
+When triggered from dock-switch, Safari lands on the right half of the external display.
+The `X` web app also lands on the right half of the external display.
+Google Chrome is maximized on the internal display work area.
+If no external display is available, `external_right_half` falls back to the internal display work area.
 
 ## Remember Last Window Size/Position
 By default, dock-switch remembers the last known window bounds (x/y/width/height) for each app and restores them when that app is reopened from dock-switch.
 
 - Window state is kept in memory for the current app session (no disk persistence).
 - This includes maximized-like window sizes because the actual bounds are restored.
-- Apps with explicit `placement` (for example `external_right_half`) keep that placement behavior.
+- Apps with explicit `placement` (for example `external_right_half` or `internal_fill`) keep that placement behavior.
 
 To disable restore for a specific app, add:
 
@@ -113,6 +116,8 @@ App key/display mapping is stored in `src/config.json` under `dock_items`.
 
 ## Permissions and First Run
 - Map a key to `F20` (for example with [Karabiner-Elements](https://github.com/pqrs-org/Karabiner-Elements)).
+- A direct hotkey can call the CLI without opening the launcher. Example: `F3 -> dock-switch-cli place --app "Terminal" --placement external_right_half`.
+- Keep the installed app in macOS `Open at Login` so the global shortcut and control socket are available after login.
 - On first use, dock-switch prompts for required macOS permissions:
   - Accessibility (control UI elements / Dock metadata)
 - If previously denied, re-enable in Privacy & Security:
