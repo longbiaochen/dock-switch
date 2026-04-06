@@ -13,7 +13,7 @@
         "popper.js": "^1.15.0"
     },
     "devDependencies": {
-        "electron": "^35.7.5"
+        "electron": "^39.8.5"
     },
     "scripts": {
         "build:addon": "node-gyp rebuild --directory native/dock-query --target=16.2.8 --dist-url=https://electronjs.org/headers",
