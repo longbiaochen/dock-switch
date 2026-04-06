@@ -33,15 +33,24 @@ Example:
 ```json
 {
   "name": "Google Chrome",
-  "key": "G",
+  "key": "B",
   "screen": "4",
   "placement": "internal_fill"
+}
+```
+
+```json
+{
+  "name": "GitHub",
+  "key": "G",
+  "screen": "3"
 }
 ```
 
 When triggered from dock-switch, Safari lands on the right half of the external display.
 The `X` web app also lands on the right half of the external display.
 Google Chrome is maximized on the internal display work area.
+GitHub Web App is available on `G` in the current default config.
 If no external display is available, `external_right_half` falls back to the internal display work area.
 
 ## Remember Last Window Size/Position
