@@ -8,6 +8,7 @@ These instructions apply to all Codex threads in this repository.
 - Always install and test the built app.
 - Always build and distribute to `/Applications`.
 - Keep repo docs aligned with the currently installed `/Applications/dock-switch.app` behavior.
+- This repository is user-maintained; when publishing changes, commit directly to `main` unless the user explicitly asks for a separate branch or PR workflow.
 
 ## macOS Window Control Policy
 
