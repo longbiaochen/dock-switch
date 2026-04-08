@@ -14,7 +14,9 @@ Core Flow
 2. In the current default config, ``Tab`` inside the launcher targets ``ChatGPT``.
 3. The main process calls the native ``dock-query`` addon to fetch Dock app metadata.
 4. The renderer builds a compact key map UI.
-5. Key presses launch/focus apps; ``ArrowLeft``/``ArrowRight`` tile left/right
+5. Key presses launch/focus apps; items with explicit placement or ``kind: "web_app"``
+   use the placement path, while other apps restore remembered bounds.
+   ``ArrowLeft``/``ArrowRight`` tile left/right
    half on the current display, ``ArrowUp`` moves to the external display,
    ``ArrowDown`` moves to or maximizes on the internal display, and ``\``
    fills current display work area.
