@@ -1,10 +1,12 @@
 const electron = require("electron");
 const child_process = require("child_process");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const {
     placeFocusedWindowByAction,
     placeProcessWindowByAction,
+    placePidWindowByPlacement,
     placeProcessWindowByPlacement
 } = require("./window-control");
 const { setupControlServer } = require("./control-server");
@@ -227,13 +229,26 @@ function launch_app_with_placement(item) {
         return;
     }
 
-    child_process.execFile("open", ["-a", String(item.name)], () => {});
+    open_item_target(item);
     var deadline = Date.now() + app_launch_place_timeout_ms;
     var tryPlace = () => {
         if (!dock_query) {
             return;
         }
         try {
+            var chromeAppPid = find_chrome_app_process_pid(item.app_url);
+            if (Number.isFinite(chromeAppPid) && chromeAppPid > 0) {
+                var pidOk = placePidWindowByPlacement(
+                    chromeAppPid,
+                    dock_query,
+                    electron.screen,
+                    String(item.placement)
+                );
+                if (pidOk) {
+                    return;
+                }
+            }
+
             var ok = placeProcessWindowByPlacement(
                 String(item.name),
                 dock_query,
@@ -253,6 +268,77 @@ function launch_app_with_placement(item) {
     };
 
     setTimeout(tryPlace, app_launch_place_retry_delay_ms);
+}
+
+function open_item_target(item) {
+    if (!item) {
+        return;
+    }
+
+    var openPath = String(item.open_path || "").trim();
+    if (openPath) {
+        var expandedPath = expand_user_path(openPath);
+        child_process.execFile("open", [expandedPath], () => {});
+        return;
+    }
+
+    child_process.execFile("open", ["-a", String(item.name)], () => {});
+}
+
+function expand_user_path(inputPath) {
+    if (!inputPath) return "";
+    if (inputPath === "~") return os.homedir();
+    if (inputPath.startsWith("~/")) {
+        return path.join(os.homedir(), inputPath.slice(2));
+    }
+    return inputPath;
+}
+
+function escape_regex(text) {
+    return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function find_chrome_app_process_pid(appUrl) {
+    var targetUrl = String(appUrl || "").trim();
+    if (!targetUrl) {
+        return null;
+    }
+
+    try {
+        var result = child_process.spawnSync(
+            "ps",
+            ["ax", "-o", "pid=,command="],
+            { encoding: "utf8" }
+        );
+        if (result.status !== 0) {
+            return null;
+        }
+
+        var urlPattern = new RegExp(`--app=${escape_regex(targetUrl)}(?:\\s|$)`);
+        var chromePattern = /\/Applications\/Google Chrome\.app\/Contents\/MacOS\/Google Chrome/;
+        var candidates = String(result.stdout || "")
+            .split("\n")
+            .map(line => line.trim())
+            .filter(Boolean)
+            .map(line => {
+                var match = line.match(/^(\d+)\s+(.*)$/);
+                if (!match) return null;
+                return {
+                    pid: Number(match[1]),
+                    command: match[2]
+                };
+            })
+            .filter(Boolean)
+            .filter(entry => chromePattern.test(entry.command))
+            .filter(entry => !/--type=/.test(entry.command))
+            .filter(entry => !/crashpad_handler/.test(entry.command))
+            .filter(entry => urlPattern.test(entry.command))
+            .sort((a, b) => b.pid - a.pid);
+
+        return candidates.length > 0 ? candidates[0].pid : null;
+    } catch (e) {
+        return null;
+    }
 }
 
 function focused_process_name() {

@@ -36,12 +36,18 @@
             "name": "X",
             "key": "X",
             "screen": "3",
-            "placement": "external_right_half"
+            "kind": "web_app",
+            "open_path": "~/Applications/Chrome Apps.localized/X.app",
+            "app_url": "https://x.com/?utm_source=homescreen&utm_medium=shortcut"
         },
         {
             "name": "GitHub",
             "key": "G",
-            "screen": "3"
+            "screen": "3",
+            "kind": "web_app",
+            "placement": "external_left_half",
+            "open_path": "~/Applications/Chrome Apps.localized/GitHub.app",
+            "app_url": "https://github.com/repos?q=owner%3A%40me+sort%3Aupdated"
         },
         {
             "name": "Mail",

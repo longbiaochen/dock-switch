@@ -160,29 +160,48 @@ function resolveBoundsForAction(action, displays, primaryDisplay, currentDisplay
 function resolveBoundsForPlacement(placement, displays, primaryDisplay) {
     if (!Array.isArray(displays) || displays.length === 0) return null;
 
+    function leftHalfBounds(display) {
+        var area = getDisplayArea(display);
+        if (!area) return null;
+        var halfW = Math.floor(area.width / 2);
+        return {
+            x: area.x,
+            y: area.y,
+            w: halfW,
+            h: area.height
+        };
+    }
+
+    function rightHalfBounds(display) {
+        var area = getDisplayArea(display);
+        if (!area) return null;
+        var halfW = Math.floor(area.width / 2);
+        return {
+            x: area.x + halfW,
+            y: area.y,
+            w: area.width - halfW,
+            h: area.height
+        };
+    }
+
+    if (placement === "external_left_half") {
+        var externalLeft = getExternalDisplay(displays, primaryDisplay, null);
+        if (externalLeft) {
+            return leftHalfBounds(externalLeft);
+        }
+
+        var internalLeft = getInternalDisplay(displays, primaryDisplay) || primaryDisplay || displays[0];
+        return leftHalfBounds(internalLeft);
+    }
+
     if (placement === "external_right_half") {
         var external = getExternalDisplay(displays, primaryDisplay, null);
         if (external) {
-            var externalArea = getDisplayArea(external);
-            if (!externalArea) return null;
-            var externalHalfW = Math.floor(externalArea.width / 2);
-            return {
-                x: externalArea.x + externalHalfW,
-                y: externalArea.y,
-                w: externalArea.width - externalHalfW,
-                h: externalArea.height
-            };
+            return rightHalfBounds(external);
         }
 
         var internal = getInternalDisplay(displays, primaryDisplay) || primaryDisplay || displays[0];
-        var internalArea = getDisplayArea(internal);
-        if (!internalArea) return null;
-        return {
-            x: internalArea.x,
-            y: internalArea.y,
-            w: internalArea.width,
-            h: internalArea.height
-        };
+        return rightHalfBounds(internal);
     }
 
     if (placement === "internal_fill") {

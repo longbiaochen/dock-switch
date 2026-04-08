@@ -120,6 +120,13 @@ function restoreWindowState(item) {
     }
 }
 
+function getItemPlacement(item) {
+    if (!item) return "";
+    if (item.placement) return String(item.placement);
+    if (item.kind === "web_app") return "external_right_half";
+    return "";
+}
+
 function getArrowAction(key, code) {
     if (ARROW_KEY_ACTIONS[key] !== undefined) return ARROW_KEY_ACTIONS[key];
     if (ARROW_KEY_ACTIONS[code] !== undefined) return ARROW_KEY_ACTIONS[code];
@@ -149,10 +156,13 @@ $(function() {
 
             saveFrontmostWindowState();
             // new Notification(item.name, { body: key });
-            if (item.placement) {
+            var placement = getItemPlacement(item);
+            if (placement) {
                 electron.ipcRenderer.send("launch-app-with-placement", {
                     name: item.name,
-                    placement: item.placement
+                    placement: placement,
+                    open_path: item.open_path,
+                    app_url: item.app_url
                 });
             } else {
                 child_process.execFile("open", ["-a", item.name], () => {});

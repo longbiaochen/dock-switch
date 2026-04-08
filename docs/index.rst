@@ -48,20 +48,26 @@ You can set browser windows to always land on a specific display region when lau
    {
      "name": "GitHub",
      "key": "G",
-     "screen": "3"
+     "screen": "3",
+     "kind": "web_app",
+     "placement": "external_left_half",
+     "open_path": "~/Applications/Chrome Apps.localized/GitHub.app",
+     "app_url": "https://github.com/repos?q=owner%3A%40me+sort%3Aupdated"
    }
 
 Current placement support:
 
+- ``external_left_half``
 - ``external_right_half``
 - ``internal_fill``
-- app names supported by built-in placement: ``Safari``, ``X``, ``Chrome`` / ``Google Chrome``
+- item kind supported by built-in placement default: ``web_app``
 
 Notes
 -----
 
 - ``internal_fill`` maximizes to the internal display work area.
-- If no external display is detected, ``external_right_half`` falls back to the internal display work area.
-- In the current default config, ``G`` is mapped to the ``GitHub`` Chrome web app.
+- If no external display is detected, ``external_left_half`` falls back to the left half of the internal display work area.
+- If no external display is detected, ``external_right_half`` falls back to the right half of the internal display work area.
+- In the current default config, ``G`` is mapped to the ``GitHub`` web app on the left half, while ``X`` uses the built-in right-half default.
 - You can map any convenient key to ``F20`` with Karabiner-Elements.
 - For Playwright-managed Chrome, use the CLI Chrome profile commands instead of generic app-name placement.

@@ -43,15 +43,22 @@ Example:
 {
   "name": "GitHub",
   "key": "G",
-  "screen": "3"
+  "screen": "3",
+  "kind": "web_app",
+  "placement": "external_left_half",
+  "open_path": "~/Applications/Chrome Apps.localized/GitHub.app",
+  "app_url": "https://github.com/repos?q=owner%3A%40me+sort%3Aupdated"
 }
 ```
 
 When triggered from dock-switch, Safari lands on the right half of the external display.
-The `X` web app also lands on the right half of the external display.
+Web apps with `kind: "web_app"` use the same placement by default.
+The `X` web app lands on the right half of the external display.
+The `GitHub` web app lands on the left half of the external display.
 Google Chrome is maximized on the internal display work area.
 GitHub Web App is available on `G` in the current default config.
-If no external display is available, `external_right_half` falls back to the internal display work area.
+If no external display is available, `external_right_half` falls back to the right half of the internal display work area.
+If no external display is available, `external_left_half` falls back to the left half of the internal display work area.
 
 ## Remember Last Window Size/Position
 By default, dock-switch remembers the last known window bounds (x/y/width/height) for each app and restores them when that app is reopened from dock-switch.
@@ -59,6 +66,9 @@ By default, dock-switch remembers the last known window bounds (x/y/width/height
 - Window state is kept in memory for the current app session (no disk persistence).
 - This includes maximized-like window sizes because the actual bounds are restored.
 - Apps with explicit `placement` (for example `external_right_half` or `internal_fill`) keep that placement behavior.
+- Apps with `kind: "web_app"` default to `external_right_half` unless `placement` overrides it.
+- `open_path` can pin a launcher item to an exact app bundle, which is useful for Chrome web app shims stored under `~/Applications/Chrome Apps.localized`.
+- `app_url` lets dock-switch identify a Chrome `--app=...` window by pid when Accessibility sees only `Google Chrome`.
 
 To disable restore for a specific app, add:
 
