@@ -6,13 +6,17 @@ Quickly switch among applications in the macOS Dock with one global hotkey.
 
 ## How It Works
 - Press `F20` to open the floating launcher UI.
-- In the current default config, `F20` then `Tab` launches or focuses `ChatGPT`.
 - Press the shown key for an app to focus it.
 - Press an arrow key to tile the frontmost window on its current display:
   - `←` left half
   - `→` right half
   - `↑` external display
   - `↓` internal display, or maximize on the internal display when already there
+- Press `Tab` to focus or create a `Codex` window on the external display, move the mouse to that display center, and ask Codex to focus its composer with `Escape`.
+- Press `Shift` to focus or create a `Codex` window on the internal display, move the mouse to that display center, and ask Codex to focus its composer with `Escape`.
+- Press left `Command` to focus or create a `Codex` window on the current left side display (`H279` on this Mac), falling back to the external display when that side display is offline, move the mouse to that display center, and ask Codex to focus its composer with `Escape`.
+- If the target display already has a `Codex` window, dock-switch reuses the most relevant existing window there (`focused` > `main` > first usable standard window).
+- If the target display has no `Codex` window, dock-switch triggers `Codex > File > New Window`, waits for the new standard window to appear, then moves it to the target display and fills that display's work area.
 - Press `\` to enter macOS native fullscreen (same as the green window button).
 - The UI closes automatically after a selection.
 
@@ -26,7 +30,7 @@ Example:
   "name": "Safari",
   "key": "S",
   "screen": "3",
-  "placement": "external_right_half"
+  "placement": "external_left_half"
 }
 ```
 
@@ -35,7 +39,7 @@ Example:
   "name": "Google Chrome",
   "key": "B",
   "screen": "4",
-  "placement": "internal_fill"
+  "placement": "external_right_half"
 }
 ```
 
@@ -45,18 +49,21 @@ Example:
   "key": "G",
   "screen": "3",
   "kind": "web_app",
-  "placement": "external_left_half",
+  "placement": "internal_fill",
   "open_path": "~/Applications/Chrome Apps.localized/GitHub.app",
-  "app_url": "https://github.com/repos?q=owner%3A%40me+sort%3Aupdated"
+  "app_url": "https://github.com/"
 }
 ```
 
-When triggered from dock-switch, Safari lands on the right half of the external display.
+When triggered from dock-switch, Safari lands on the left half of the external display.
 Web apps with `kind: "web_app"` use the same placement by default.
-The `X` web app lands on the right half of the external display.
-The `GitHub` web app lands on the left half of the external display.
-Google Chrome is maximized on the internal display work area.
+The `X` web app is maximized on the internal display work area.
+The `GitHub` web app is maximized on the internal display work area.
+Google Chrome lands on the right half of the external display.
+The `X` and `GitHub` web app bundles can target the signed-in Google Chrome `Default` profile.
 GitHub Web App is available on `G` in the current default config.
+ChatGPT is intentionally hidden from dock-switch and has no dock-switch hotkey.
+Codex is intentionally excluded from the ordinary HUD app list; use `Tab` / `Shift` / left `Command` for its per-display launcher path.
 If no external display is available, `external_right_half` falls back to the right half of the internal display work area.
 If no external display is available, `external_left_half` falls back to the left half of the internal display work area.
 

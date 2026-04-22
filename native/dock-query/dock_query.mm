@@ -514,6 +514,33 @@ static AXUIElementRef CopyFocusedWindow(AXUIElementRef app) {
   return CopyFirstStandardWindow(app);
 }
 
+static AXUIElementRef CopyUsableWindowByWindowIndex(AXUIElementRef app, int64_t targetWindowIndex) {
+  if (!app || targetWindowIndex < 0) return nullptr;
+
+  CFTypeRef wins = CopyAXAttr(app, kAXWindowsAttribute);
+  if (!wins) return nullptr;
+
+  AXUIElementRef out = nullptr;
+  if (CFGetTypeID(wins) == CFArrayGetTypeID()) {
+    CFArrayRef arr = (CFArrayRef)wins;
+    CFIndex n = CFArrayGetCount(arr);
+    for (CFIndex i = 0; i < n; ++i) {
+      if ((int64_t)i != targetWindowIndex) continue;
+      CFTypeRef item = CFArrayGetValueAtIndex(arr, i);
+      if (!item || CFGetTypeID(item) != AXUIElementGetTypeID()) break;
+      AXUIElementRef win = (AXUIElementRef)item;
+      if (IsStandardWindow(win) && IsUsableWindowForMoveResize(win)) {
+        out = win;
+        CFRetain(out);
+      }
+      break;
+    }
+  }
+
+  CFRelease(wins);
+  return out;
+}
+
 static std::vector<AXUIElementRef> GetAXChildren(AXUIElementRef element) {
   std::vector<AXUIElementRef> out;
   CFTypeRef value = CopyAXAttr(element, kAXChildrenAttribute);
@@ -562,6 +589,134 @@ static napi_value MakeError(napi_env env, const char* msg) {
   napi_value v;
   napi_get_undefined(env, &v);
   return v;
+}
+
+static napi_value GetMousePosition(napi_env env, napi_callback_info info) {
+  CGEventRef event = CGEventCreate(nullptr);
+  if (!event) return MakeError(env, "Failed to read mouse position");
+
+  CGPoint point = CGEventGetLocation(event);
+  CFRelease(event);
+
+  napi_value out;
+  napi_create_object(env, &out);
+  napi_value xVal, yVal;
+  napi_create_double(env, point.x, &xVal);
+  napi_create_double(env, point.y, &yVal);
+  napi_set_named_property(env, out, "x", xVal);
+  napi_set_named_property(env, out, "y", yVal);
+  return out;
+}
+
+static napi_value MoveMouse(napi_env env, napi_callback_info info) {
+  size_t argc = 1;
+  napi_value argv[1];
+  napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+  if (argc < 1) return MakeError(env, "Expected {x, y}");
+
+  bool has = false;
+  napi_value xV, yV;
+  napi_has_named_property(env, argv[0], "x", &has);
+  if (!has) return MakeError(env, "x is required");
+  napi_get_named_property(env, argv[0], "x", &xV);
+  napi_has_named_property(env, argv[0], "y", &has);
+  if (!has) return MakeError(env, "y is required");
+  napi_get_named_property(env, argv[0], "y", &yV);
+
+  double x = 0, y = 0;
+  napi_get_value_double(env, xV, &x);
+  napi_get_value_double(env, yV, &y);
+
+  CGPoint point = CGPointMake((CGFloat)std::lround(x), (CGFloat)std::lround(y));
+  CGError err = CGWarpMouseCursorPosition(point);
+  if (err == kCGErrorSuccess) {
+    CGAssociateMouseAndMouseCursorPosition(true);
+  }
+
+  napi_value out;
+  napi_get_boolean(env, err == kCGErrorSuccess, &out);
+  return out;
+}
+
+static napi_value ClickMouse(napi_env env, napi_callback_info info) {
+  size_t argc = 1;
+  napi_value argv[1];
+  napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+  if (argc < 1) return MakeError(env, "Expected {x, y}");
+
+  bool has = false;
+  napi_value xV, yV;
+  napi_has_named_property(env, argv[0], "x", &has);
+  if (!has) return MakeError(env, "x is required");
+  napi_get_named_property(env, argv[0], "x", &xV);
+  napi_has_named_property(env, argv[0], "y", &has);
+  if (!has) return MakeError(env, "y is required");
+  napi_get_named_property(env, argv[0], "y", &yV);
+
+  double x = 0, y = 0;
+  napi_get_value_double(env, xV, &x);
+  napi_get_value_double(env, yV, &y);
+
+  CGPoint point = CGPointMake((CGFloat)std::lround(x), (CGFloat)std::lround(y));
+  CGError moveErr = CGWarpMouseCursorPosition(point);
+  if (moveErr == kCGErrorSuccess) {
+    CGAssociateMouseAndMouseCursorPosition(true);
+  }
+  usleep(20000);
+
+  CGEventRef down = CGEventCreateMouseEvent(nullptr, kCGEventLeftMouseDown, point,
+                                            kCGMouseButtonLeft);
+  CGEventRef up = CGEventCreateMouseEvent(nullptr, kCGEventLeftMouseUp, point,
+                                          kCGMouseButtonLeft);
+  if (!down || !up) {
+    if (down) CFRelease(down);
+    if (up) CFRelease(up);
+    return MakeError(env, "Failed to create mouse click event");
+  }
+
+  CGEventPost(kCGHIDEventTap, down);
+  CGEventPost(kCGHIDEventTap, up);
+  CFRelease(down);
+  CFRelease(up);
+
+  napi_value out;
+  napi_get_boolean(env, true, &out);
+  return out;
+}
+
+static napi_value PressKeyCode(napi_env env, napi_callback_info info) {
+  size_t argc = 1;
+  napi_value argv[1];
+  napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+  if (argc < 1) return MakeError(env, "Expected {keyCode}");
+
+  bool has = false;
+  napi_value keyCodeV;
+  napi_has_named_property(env, argv[0], "keyCode", &has);
+  if (!has) return MakeError(env, "keyCode is required");
+  napi_get_named_property(env, argv[0], "keyCode", &keyCodeV);
+
+  double keyCode = 0;
+  napi_get_value_double(env, keyCodeV, &keyCode);
+  CGKeyCode code = (CGKeyCode)std::lround(keyCode);
+
+  CGEventRef down = CGEventCreateKeyboardEvent(nullptr, code, true);
+  CGEventRef up = CGEventCreateKeyboardEvent(nullptr, code, false);
+  if (!down || !up) {
+    if (down) CFRelease(down);
+    if (up) CFRelease(up);
+    return MakeError(env, "Failed to create keyboard event");
+  }
+
+  CGEventPost(kCGHIDEventTap, down);
+  usleep(20000);
+  CGEventPost(kCGHIDEventTap, up);
+  CFRelease(down);
+  CFRelease(up);
+
+  napi_value out;
+  napi_get_boolean(env, true, &out);
+  return out;
 }
 
 static napi_value GetDockItems(napi_env env, napi_callback_info info) {
@@ -693,10 +848,108 @@ static bool GetRequiredInt64Property(napi_env env, napi_value obj, const char* k
   return status == napi_ok;
 }
 
+static napi_value MakeWindowSnapshotObject(napi_env env, pid_t pid, int64_t windowIndex,
+                                           AXUIElementRef win, AXUIElementRef focusedWin,
+                                           AXUIElementRef mainWin) {
+  CGPoint p = CGPointZero;
+  CGSize s = CGSizeZero;
+  if (!GetAXPoint(win, kAXPositionAttribute, &p) || !GetAXSize(win, kAXSizeAttribute, &s)) {
+    return nullptr;
+  }
+
+  napi_value out;
+  napi_create_object(env, &out);
+
+  napi_value pidVal;
+  napi_create_int64(env, pid, &pidVal);
+  napi_set_named_property(env, out, "pid", pidVal);
+
+  napi_value indexVal;
+  napi_create_int64(env, windowIndex, &indexVal);
+  napi_set_named_property(env, out, "windowIndex", indexVal);
+
+  napi_value xVal;
+  napi_create_double(env, p.x, &xVal);
+  napi_set_named_property(env, out, "x", xVal);
+  napi_value yVal;
+  napi_create_double(env, p.y, &yVal);
+  napi_set_named_property(env, out, "y", yVal);
+  napi_value wVal;
+  napi_create_double(env, s.width, &wVal);
+  napi_set_named_property(env, out, "w", wVal);
+  napi_value hVal;
+  napi_create_double(env, s.height, &hVal);
+  napi_set_named_property(env, out, "h", hVal);
+
+  bool isFocused = focusedWin && CFEqual(win, focusedWin);
+  napi_value focusedVal;
+  napi_get_boolean(env, isFocused, &focusedVal);
+  napi_set_named_property(env, out, "focused", focusedVal);
+
+  bool isMain = mainWin && CFEqual(win, mainWin);
+  napi_value mainVal;
+  napi_get_boolean(env, isMain, &mainVal);
+  napi_set_named_property(env, out, "main", mainVal);
+
+  return out;
+}
+
 static napi_value GetFocusedApplicationName(napi_env env, napi_callback_info info) {
   std::string name = FocusedApplicationName();
   napi_value out;
   napi_create_string_utf8(env, name.c_str(), NAPI_AUTO_LENGTH, &out);
+  return out;
+}
+
+static napi_value GetApplicationWindows(napi_env env, napi_callback_info info) {
+  if (!AXIsProcessTrusted()) {
+    return MakeError(env, "Accessibility permission is required");
+  }
+
+  size_t argc = 1;
+  napi_value argv[1];
+  napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+  if (argc < 1) return MakeError(env, "Expected {name}");
+
+  std::string appName;
+  if (!GetRequiredUtf8Property(env, argv[0], "name", &appName) || appName.empty()) {
+    return MakeError(env, "name is required");
+  }
+
+  NSRunningApplication* runningApp = FindRunningApplicationByName(appName);
+  if (!runningApp) return MakeError(env, "Application process not found");
+  pid_t pid = [runningApp processIdentifier];
+  if (pid <= 0) return MakeError(env, "Application process not found");
+
+  AXUIElementRef app = CopyApplicationByPid(pid);
+  if (!app) return MakeError(env, "Application process not found");
+
+  AXUIElementRef focusedWin = CopyUsableWindowFromAppAttribute(app, kAXFocusedWindowAttribute);
+  AXUIElementRef mainWin = CopyUsableWindowFromAppAttribute(app, kAXMainWindowAttribute);
+  CFTypeRef wins = CopyAXAttr(app, kAXWindowsAttribute);
+
+  napi_value out;
+  napi_create_array(env, &out);
+  uint32_t outIndex = 0;
+
+  if (wins && CFGetTypeID(wins) == CFArrayGetTypeID()) {
+    CFArrayRef arr = (CFArrayRef)wins;
+    CFIndex n = CFArrayGetCount(arr);
+    for (CFIndex i = 0; i < n; ++i) {
+      CFTypeRef item = CFArrayGetValueAtIndex(arr, i);
+      if (!item || CFGetTypeID(item) != AXUIElementGetTypeID()) continue;
+      AXUIElementRef win = (AXUIElementRef)item;
+      if (!IsStandardWindow(win) || !IsUsableWindowForMoveResize(win)) continue;
+      napi_value itemObj = MakeWindowSnapshotObject(env, pid, (int64_t)i, win, focusedWin, mainWin);
+      if (!itemObj) continue;
+      napi_set_element(env, out, outIndex++, itemObj);
+    }
+  }
+
+  if (wins) CFRelease(wins);
+  if (focusedWin) CFRelease(focusedWin);
+  if (mainWin) CFRelease(mainWin);
+  CFRelease(app);
   return out;
 }
 
@@ -1000,6 +1253,133 @@ static napi_value MoveApplicationWindowByPid(napi_env env, napi_callback_info in
   return out;
 }
 
+static napi_value FocusApplicationWindowByPid(napi_env env, napi_callback_info info) {
+  if (!AXIsProcessTrusted()) {
+    return MakeError(env, "Accessibility permission is required");
+  }
+
+  size_t argc = 1;
+  napi_value argv[1];
+  napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+  if (argc < 1) return MakeError(env, "Expected {pid, windowIndex}");
+
+  int64_t pidValue = 0;
+  if (!GetRequiredInt64Property(env, argv[0], "pid", &pidValue) || pidValue <= 0 ||
+      pidValue > INT_MAX) {
+    return MakeError(env, "pid is required");
+  }
+  int64_t windowIndex = 0;
+  if (!GetRequiredInt64Property(env, argv[0], "windowIndex", &windowIndex) ||
+      windowIndex < 0) {
+    return MakeError(env, "windowIndex is required");
+  }
+
+  NSRunningApplication* runningApp = FindRunningApplicationByPid((pid_t)pidValue);
+  if (runningApp) {
+    [runningApp activateWithOptions:NSApplicationActivateIgnoringOtherApps];
+    usleep(20000);
+  }
+
+  AXUIElementRef app = CopyApplicationByPid((pid_t)pidValue);
+  if (!app) return MakeError(env, "Application process not found");
+  AXUIElementRef win = CopyUsableWindowByWindowIndex(app, windowIndex);
+  CFRelease(app);
+  if (!win) return MakeError(env, "Application window not found");
+
+  bool ok = false;
+  if (IsAXAttrSettable(win, kAXMainAttribute)) {
+    ok = SetAXBool(win, kAXMainAttribute, true) || ok;
+  }
+  if (IsAXAttrSettable(win, kAXFocusedAttribute)) {
+    ok = SetAXBool(win, kAXFocusedAttribute, true) || ok;
+  }
+  AXError raiseErr = AXUIElementPerformAction(win, kAXRaiseAction);
+  ok = (raiseErr == kAXErrorSuccess) || ok;
+
+  CFRelease(win);
+
+  napi_value out;
+  napi_get_boolean(env, ok, &out);
+  return out;
+}
+
+static napi_value MoveApplicationWindowByPidAndIndex(napi_env env, napi_callback_info info) {
+  if (!AXIsProcessTrusted()) {
+    return MakeError(env, "Accessibility permission is required");
+  }
+
+  size_t argc = 1;
+  napi_value argv[1];
+  napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+  if (argc < 1) return MakeError(env, "Expected bounds object with pid and windowIndex");
+
+  int64_t pidValue = 0;
+  if (!GetRequiredInt64Property(env, argv[0], "pid", &pidValue) || pidValue <= 0 ||
+      pidValue > INT_MAX) {
+    return MakeError(env, "pid is required");
+  }
+  int64_t windowIndex = 0;
+  if (!GetRequiredInt64Property(env, argv[0], "windowIndex", &windowIndex) ||
+      windowIndex < 0) {
+    return MakeError(env, "windowIndex is required");
+  }
+
+  napi_value xV, yV, wV, hV;
+  bool has = false;
+  napi_has_named_property(env, argv[0], "x", &has);
+  if (!has) return MakeError(env, "bounds.x is required");
+  napi_get_named_property(env, argv[0], "x", &xV);
+  napi_has_named_property(env, argv[0], "y", &has);
+  if (!has) return MakeError(env, "bounds.y is required");
+  napi_get_named_property(env, argv[0], "y", &yV);
+  napi_has_named_property(env, argv[0], "w", &has);
+  if (!has) return MakeError(env, "bounds.w is required");
+  napi_get_named_property(env, argv[0], "w", &wV);
+  napi_has_named_property(env, argv[0], "h", &has);
+  if (!has) return MakeError(env, "bounds.h is required");
+  napi_get_named_property(env, argv[0], "h", &hV);
+
+  double x = 0, y = 0, w = 0, h = 0;
+  napi_get_value_double(env, xV, &x);
+  napi_get_value_double(env, yV, &y);
+  napi_get_value_double(env, wV, &w);
+  napi_get_value_double(env, hV, &h);
+  if (!(w > 0) || !(h > 0)) return MakeError(env, "bounds.w/h must be > 0");
+
+  NSRunningApplication* runningApp = FindRunningApplicationByPid((pid_t)pidValue);
+  if (runningApp) {
+    [runningApp activateWithOptions:NSApplicationActivateIgnoringOtherApps];
+    usleep(20000);
+  }
+
+  AXUIElementRef app = CopyApplicationByPid((pid_t)pidValue);
+  if (!app) return MakeError(env, "Application process not found");
+  AXUIElementRef win = CopyUsableWindowByWindowIndex(app, windowIndex);
+  CFRelease(app);
+  if (!win) return MakeError(env, "Application window not found");
+
+  if (IsAXAttrSettable(win, kAXFullScreenAttrCompat)) {
+    SetAXBool(win, kAXFullScreenAttrCompat, false);
+  }
+  if (IsAXAttrSettable(win, kAXZoomedAttrCompat)) {
+    bool zoomed = false;
+    if (GetAXBool(win, kAXZoomedAttrCompat, &zoomed) && zoomed) {
+      SetAXBool(win, kAXZoomedAttrCompat, false);
+    }
+  }
+
+  usleep(15000);
+  CGPoint p = CGPointMake((CGFloat)std::lround(x), (CGFloat)std::lround(y));
+  CGSize s = CGSizeMake((CGFloat)std::lround(std::max(1.0, w)),
+                        (CGFloat)std::lround(std::max(1.0, h)));
+  bool ok = ApplyWindowBoundsPrecise(win, p, s);
+  CFRelease(win);
+
+  napi_value out;
+  napi_get_boolean(env, ok, &out);
+  return out;
+}
+
 static napi_value MoveFocusedWindowAndMaximize(napi_env env, napi_callback_info info) {
   if (!AXIsProcessTrusted()) {
     return MakeError(env, "Accessibility permission is required");
@@ -1222,10 +1602,18 @@ static napi_value Init(napi_env env, napi_value exports) {
   napi_create_function(env, "getFocusedWindowBounds", NAPI_AUTO_LENGTH,
                        GetFocusedWindowBounds, nullptr, &getBoundsFn);
   napi_set_named_property(env, exports, "getFocusedWindowBounds", getBoundsFn);
+  napi_value getMouseFn;
+  napi_create_function(env, "getMousePosition", NAPI_AUTO_LENGTH,
+                       GetMousePosition, nullptr, &getMouseFn);
+  napi_set_named_property(env, exports, "getMousePosition", getMouseFn);
   napi_value getFocusedAppFn;
   napi_create_function(env, "getFocusedApplicationName", NAPI_AUTO_LENGTH,
                        GetFocusedApplicationName, nullptr, &getFocusedAppFn);
   napi_set_named_property(env, exports, "getFocusedApplicationName", getFocusedAppFn);
+  napi_value getAppWindowsFn;
+  napi_create_function(env, "getApplicationWindows", NAPI_AUTO_LENGTH,
+                       GetApplicationWindows, nullptr, &getAppWindowsFn);
+  napi_set_named_property(env, exports, "getApplicationWindows", getAppWindowsFn);
   napi_value getAppBoundsFn;
   napi_create_function(env, "getApplicationWindowBounds", NAPI_AUTO_LENGTH,
                        GetApplicationWindowBounds, nullptr, &getAppBoundsFn);
@@ -1239,6 +1627,18 @@ static napi_value Init(napi_env env, napi_value exports) {
   napi_create_function(env, "moveFocusedWindow", NAPI_AUTO_LENGTH, MoveFocusedWindow,
                        nullptr, &moveFn);
   napi_set_named_property(env, exports, "moveFocusedWindow", moveFn);
+  napi_value moveMouseFn;
+  napi_create_function(env, "moveMouse", NAPI_AUTO_LENGTH, MoveMouse,
+                       nullptr, &moveMouseFn);
+  napi_set_named_property(env, exports, "moveMouse", moveMouseFn);
+  napi_value clickMouseFn;
+  napi_create_function(env, "clickMouse", NAPI_AUTO_LENGTH, ClickMouse,
+                       nullptr, &clickMouseFn);
+  napi_set_named_property(env, exports, "clickMouse", clickMouseFn);
+  napi_value pressKeyCodeFn;
+  napi_create_function(env, "pressKeyCode", NAPI_AUTO_LENGTH, PressKeyCode,
+                       nullptr, &pressKeyCodeFn);
+  napi_set_named_property(env, exports, "pressKeyCode", pressKeyCodeFn);
   napi_value moveAppFn;
   napi_create_function(env, "moveApplicationWindow", NAPI_AUTO_LENGTH,
                        MoveApplicationWindow, nullptr, &moveAppFn);
@@ -1247,6 +1647,15 @@ static napi_value Init(napi_env env, napi_value exports) {
   napi_create_function(env, "moveApplicationWindowByPid", NAPI_AUTO_LENGTH,
                        MoveApplicationWindowByPid, nullptr, &moveAppPidFn);
   napi_set_named_property(env, exports, "moveApplicationWindowByPid", moveAppPidFn);
+  napi_value focusAppWindowPidFn;
+  napi_create_function(env, "focusApplicationWindowByPid", NAPI_AUTO_LENGTH,
+                       FocusApplicationWindowByPid, nullptr, &focusAppWindowPidFn);
+  napi_set_named_property(env, exports, "focusApplicationWindowByPid", focusAppWindowPidFn);
+  napi_value moveAppPidIndexFn;
+  napi_create_function(env, "moveApplicationWindowByPidAndIndex", NAPI_AUTO_LENGTH,
+                       MoveApplicationWindowByPidAndIndex, nullptr, &moveAppPidIndexFn);
+  napi_set_named_property(env, exports, "moveApplicationWindowByPidAndIndex",
+                          moveAppPidIndexFn);
   napi_value moveMaxFn;
   napi_create_function(env, "moveFocusedWindowAndMaximize", NAPI_AUTO_LENGTH,
                        MoveFocusedWindowAndMaximize, nullptr, &moveMaxFn);

@@ -20,6 +20,22 @@ function getDisplayPixelArea(display) {
     return Math.max(0, area.width) * Math.max(0, area.height);
 }
 
+function isDisplayLabel(display, pattern) {
+    return !!(display &&
+        typeof display.label === "string" &&
+        pattern.test(display.label.trim()));
+}
+
+function isSideDisplay(display) {
+    return isDisplayLabel(display, /^H279$/i) ||
+        isDisplayLabel(display, /(^|\s)h279(\s|$)/i);
+}
+
+function isExternalCodexDisplay(display) {
+    return isDisplayLabel(display, /^DELL U3219Q$/i) ||
+        isDisplayLabel(display, /(^|\s)dell\s+u3219q(\s|$)/i);
+}
+
 function isCurrentDisplayInternal(currentDisplay, primaryDisplay) {
     if (!currentDisplay) return false;
     if (currentDisplay.internal === true) return true;
@@ -33,11 +49,14 @@ function isCurrentDisplayInternal(currentDisplay, primaryDisplay) {
 function getExternalDisplay(displays, primaryDisplay, currentDisplay) {
     if (!Array.isArray(displays) || displays.length === 0) return null;
 
-    if (currentDisplay && currentDisplay.internal === false) {
+    var namedExternal = displays.find(isExternalCodexDisplay);
+    if (namedExternal) return namedExternal;
+
+    if (currentDisplay && currentDisplay.internal === false && !isSideDisplay(currentDisplay)) {
         return currentDisplay;
     }
 
-    var explicitExternal = displays.find(d => d && d.internal === false);
+    var explicitExternal = displays.find(d => d && d.internal === false && !isSideDisplay(d));
     if (explicitExternal) return explicitExternal;
 
     if (currentDisplay && Number.isFinite(currentDisplay.id)) {
@@ -48,7 +67,7 @@ function getExternalDisplay(displays, primaryDisplay, currentDisplay) {
     if (displays.length > 1) {
         var internalGuess = getInternalDisplay(displays, primaryDisplay);
         var externalGuess = displays
-            .filter(d => d && d !== internalGuess)
+            .filter(d => d && d !== internalGuess && !isSideDisplay(d))
             .sort((a, b) => getDisplayPixelArea(b) - getDisplayPixelArea(a))[0];
         if (externalGuess) return externalGuess;
     }
@@ -72,6 +91,26 @@ function getInternalDisplay(displays, primaryDisplay) {
         if (smallest) return smallest;
     }
     return primaryDisplay || displays[0] || null;
+}
+
+function getSideDisplay(displays) {
+    if (!Array.isArray(displays) || displays.length === 0) return null;
+
+    var exactLabel = displays.find(display =>
+        display &&
+        typeof display.label === "string" &&
+        display.label.trim() === "H279"
+    );
+    if (exactLabel) return exactLabel;
+
+    var labelMatch = displays.find(display =>
+        display &&
+        typeof display.label === "string" &&
+        /(^|\s)h279(\s|$)/i.test(display.label)
+    );
+    if (labelMatch) return labelMatch;
+
+    return null;
 }
 
 function getDisplayForRect(displays, rect) {
@@ -216,7 +255,53 @@ function resolveBoundsForPlacement(placement, displays, primaryDisplay) {
         };
     }
 
+    if (placement === "external_fill") {
+        var externalDisplay = getExternalDisplay(displays, primaryDisplay, null);
+        var externalDisplayArea = getDisplayArea(externalDisplay);
+        if (!externalDisplayArea) return null;
+        return {
+            x: externalDisplayArea.x,
+            y: externalDisplayArea.y,
+            w: externalDisplayArea.width,
+            h: externalDisplayArea.height
+        };
+    }
+
+    if (placement === "side_fill") {
+        var sideDisplay = getSideDisplay(displays);
+        var sideTarget = sideDisplay || getExternalDisplay(displays, primaryDisplay, null);
+        var sideArea = getDisplayArea(sideTarget);
+        if (!sideArea) return null;
+        return {
+            x: sideArea.x,
+            y: sideArea.y,
+            w: sideArea.width,
+            h: sideArea.height
+        };
+    }
+
     return null;
+}
+
+function placeFocusedWindowByPlacement(dockQuery, electronScreen, placement) {
+    if (!dockQuery || !placement) return false;
+    if (typeof dockQuery.moveFocusedWindow !== "function") {
+        return false;
+    }
+
+    var displays = getAvailableDisplays(dockQuery, electronScreen);
+    if (!Array.isArray(displays) || displays.length === 0) return false;
+    var primary = getPrimaryDisplay(dockQuery, electronScreen, displays);
+    var target = resolveBoundsForPlacement(placement, displays, primary);
+    if (!target || target.w <= 0 || target.h <= 0) return false;
+
+    var payload = {
+        x: Math.round(target.x),
+        y: Math.round(target.y),
+        w: Math.round(target.w),
+        h: Math.round(target.h)
+    };
+    return !!dockQuery.moveFocusedWindow(payload);
 }
 
 function placeFocusedWindowByAction(dockQuery, electronScreen, action) {
@@ -338,6 +423,7 @@ module.exports = {
     getDisplayForRect,
     resolveBoundsForAction,
     resolveBoundsForPlacement,
+    placeFocusedWindowByPlacement,
     placeFocusedWindowByAction,
     placeProcessWindowByAction,
     placeProcessWindowByPlacement,

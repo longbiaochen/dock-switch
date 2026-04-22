@@ -8,19 +8,13 @@
             "name": "Safari",
             "key": "S",
             "screen": "3",
-            "placement": "external_right_half"
+            "placement": "external_left_half"
         },
         {
             "name": "Google Chrome",
             "key": "B",
             "screen": "4",
-            "placement": "internal_fill"
-        },
-        {
-            "name": "Codex",
-            "key": "SHIFT",
-            "icon": "⇧",
-            "screen": "3"
+            "placement": "external_right_half"
         },
         {
             "name": "微信",
@@ -37,6 +31,7 @@
             "key": "X",
             "screen": "3",
             "kind": "web_app",
+            "placement": "internal_fill",
             "open_path": "~/Applications/Chrome Apps.localized/X.app",
             "app_url": "https://x.com/?utm_source=homescreen&utm_medium=shortcut"
         },
@@ -45,7 +40,7 @@
             "key": "G",
             "screen": "3",
             "kind": "web_app",
-            "placement": "external_left_half",
+            "placement": "internal_fill",
             "open_path": "~/Applications/Chrome Apps.localized/GitHub.app",
             "app_url": "https://github.com/repos?q=owner%3A%40me+sort%3Aupdated"
         },
@@ -92,18 +87,6 @@
         {
             "name": "Sublime Text",
             "key": "T",
-            "screen": "4"
-        },
-        {
-            "name": "ChatGPT",
-            "key": "TAB",
-            "icon": "⇥",
-            "screen": "4"
-        },
-        {
-            "name": "System Settings",
-            "key": "META",
-            "icon": "⌘",
             "screen": "4"
         },
         {

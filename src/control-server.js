@@ -10,6 +10,7 @@ const {
 
 const CONTROL_DIR = path.join(os.homedir(), "Library", "Application Support", "dock-switch");
 const CONTROL_SOCKET_PATH = path.join(CONTROL_DIR, "control.sock");
+const inflightCommands = new Map();
 
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -17,6 +18,27 @@ function delay(ms) {
 
 function ensureControlDirectory() {
     fs.mkdirSync(CONTROL_DIR, { recursive: true });
+}
+
+function runSingleFlight(key, work) {
+    if (!key) {
+        return work();
+    }
+    const existing = inflightCommands.get(key);
+    if (existing) {
+        return existing;
+    }
+
+    const promise = Promise.resolve()
+        .then(work)
+        .finally(() => {
+            if (inflightCommands.get(key) === promise) {
+                inflightCommands.delete(key);
+            }
+        });
+
+    inflightCommands.set(key, promise);
+    return promise;
 }
 
 function removeStaleSocket() {
@@ -42,29 +64,31 @@ async function placeApplicationWindow(command, deps) {
         return { ok: false, error: "Accessibility permission is required" };
     }
 
-    await new Promise(resolve => {
-        childProcess.execFile("open", ["-a", appName], () => resolve());
-    });
+    return runSingleFlight(`place-app:${appName}:${placement}`, async () => {
+        await new Promise(resolve => {
+            childProcess.execFile("open", ["-a", appName], () => resolve());
+        });
 
-    const deadline = Date.now() + 1600;
-    do {
-        try {
-            const ok = placeProcessWindowByPlacement(
-                appName,
-                deps.dockQuery,
-                deps.electronScreen,
-                placement
-            );
-            if (ok) {
-                return { ok: true };
+        const deadline = Date.now() + 1600;
+        do {
+            try {
+                const ok = placeProcessWindowByPlacement(
+                    appName,
+                    deps.dockQuery,
+                    deps.electronScreen,
+                    placement
+                );
+                if (ok) {
+                    return { ok: true };
+                }
+            } catch (e) {
+                // retry until deadline
             }
-        } catch (e) {
-            // retry until deadline
-        }
-        await delay(60);
-    } while (Date.now() < deadline);
+            await delay(60);
+        } while (Date.now() < deadline);
 
-    return { ok: false, error: `Failed to place window for ${appName}` };
+        return { ok: false, error: `Failed to place window for ${appName}` };
+    });
 }
 
 async function placePidWindow(command, deps) {
@@ -80,25 +104,27 @@ async function placePidWindow(command, deps) {
         return { ok: false, error: "Accessibility permission is required" };
     }
 
-    const deadline = Date.now() + 1600;
-    do {
-        try {
-            const ok = placePidWindowByPlacement(
-                Math.round(pid),
-                deps.dockQuery,
-                deps.electronScreen,
-                placement
-            );
-            if (ok) {
-                return { ok: true };
+    return runSingleFlight(`place-pid:${Math.round(pid)}:${placement}`, async () => {
+        const deadline = Date.now() + 1600;
+        do {
+            try {
+                const ok = placePidWindowByPlacement(
+                    Math.round(pid),
+                    deps.dockQuery,
+                    deps.electronScreen,
+                    placement
+                );
+                if (ok) {
+                    return { ok: true };
+                }
+            } catch (e) {
+                // retry until deadline
             }
-        } catch (e) {
-            // retry until deadline
-        }
-        await delay(60);
-    } while (Date.now() < deadline);
+            await delay(60);
+        } while (Date.now() < deadline);
 
-    return { ok: false, error: `Failed to place window for pid ${Math.round(pid)}` };
+        return { ok: false, error: `Failed to place window for pid ${Math.round(pid)}` };
+    });
 }
 
 async function moveApplicationWindow(command, deps) {
@@ -118,30 +144,32 @@ async function moveApplicationWindow(command, deps) {
         return { ok: false, error: "Accessibility permission is required" };
     }
 
-    await new Promise(resolve => {
-        childProcess.execFile("open", ["-a", appName], () => resolve());
-    });
+    return runSingleFlight(`move-app:${appName}:${Math.round(x)}:${Math.round(y)}:${Math.round(w)}:${Math.round(h)}`, async () => {
+        await new Promise(resolve => {
+            childProcess.execFile("open", ["-a", appName], () => resolve());
+        });
 
-    const deadline = Date.now() + 1600;
-    do {
-        try {
-            const ok = deps.dockQuery.moveApplicationWindow({
-                name: appName,
-                x: Math.round(x),
-                y: Math.round(y),
-                w: Math.round(w),
-                h: Math.round(h)
-            });
-            if (ok) {
-                return { ok: true };
+        const deadline = Date.now() + 1600;
+        do {
+            try {
+                const ok = deps.dockQuery.moveApplicationWindow({
+                    name: appName,
+                    x: Math.round(x),
+                    y: Math.round(y),
+                    w: Math.round(w),
+                    h: Math.round(h)
+                });
+                if (ok) {
+                    return { ok: true };
+                }
+            } catch (e) {
+                // retry until deadline
             }
-        } catch (e) {
-            // retry until deadline
-        }
-        await delay(60);
-    } while (Date.now() < deadline);
+            await delay(60);
+        } while (Date.now() < deadline);
 
-    return { ok: false, error: `Failed to move window for ${appName}` };
+        return { ok: false, error: `Failed to move window for ${appName}` };
+    });
 }
 
 async function movePidWindow(command, deps) {
@@ -161,26 +189,28 @@ async function movePidWindow(command, deps) {
         return { ok: false, error: "Accessibility permission is required" };
     }
 
-    const deadline = Date.now() + 1600;
-    do {
-        try {
-            const ok = deps.dockQuery.moveApplicationWindowByPid({
-                pid: Math.round(pid),
-                x: Math.round(x),
-                y: Math.round(y),
-                w: Math.round(w),
-                h: Math.round(h)
-            });
-            if (ok) {
-                return { ok: true };
+    return runSingleFlight(`move-pid:${Math.round(pid)}:${Math.round(x)}:${Math.round(y)}:${Math.round(w)}:${Math.round(h)}`, async () => {
+        const deadline = Date.now() + 1600;
+        do {
+            try {
+                const ok = deps.dockQuery.moveApplicationWindowByPid({
+                    pid: Math.round(pid),
+                    x: Math.round(x),
+                    y: Math.round(y),
+                    w: Math.round(w),
+                    h: Math.round(h)
+                });
+                if (ok) {
+                    return { ok: true };
+                }
+            } catch (e) {
+                // retry until deadline
             }
-        } catch (e) {
-            // retry until deadline
-        }
-        await delay(60);
-    } while (Date.now() < deadline);
+            await delay(60);
+        } while (Date.now() < deadline);
 
-    return { ok: false, error: `Failed to move window for pid ${Math.round(pid)}` };
+        return { ok: false, error: `Failed to move window for pid ${Math.round(pid)}` };
+    });
 }
 
 function getDisplaysSnapshot(deps) {
@@ -194,14 +224,48 @@ function getDisplaysSnapshot(deps) {
     }));
 }
 
+function replyAndClose(socket, state, response) {
+    if (state.responded) {
+        return;
+    }
+    state.responded = true;
+
+    if (state.closed || socket.destroyed || socket.writableEnded) {
+        return;
+    }
+
+    socket.write(JSON.stringify(response) + "\n", () => {
+        if (!socket.destroyed) {
+            socket.end();
+        }
+    });
+}
+
 function setupControlServer(deps) {
     ensureControlDirectory();
     removeStaleSocket();
 
     const server = net.createServer(socket => {
         let buffer = "";
+        const state = {
+            closed: false,
+            responded: false
+        };
+
+        socket.on("close", () => {
+            state.closed = true;
+        });
+
+        // Hotkey launchers and short-lived CLI wrappers can disconnect before the
+        // placement work finishes. Treat broken pipes as expected, not fatal.
+        socket.on("error", () => {
+            state.closed = true;
+        });
 
         socket.on("data", chunk => {
+            if (state.responded) {
+                return;
+            }
             buffer += chunk.toString("utf8");
             let newlineIndex = buffer.indexOf("\n");
             while (newlineIndex !== -1) {
@@ -233,11 +297,7 @@ function setupControlServer(deps) {
                         response = { ok: false, error: e.message || String(e) };
                     }
 
-                    try {
-                        socket.write(JSON.stringify(response) + "\n");
-                    } finally {
-                        socket.end();
-                    }
+                    replyAndClose(socket, state, response);
                 })();
 
                 newlineIndex = -1;
