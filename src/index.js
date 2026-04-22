@@ -4,6 +4,16 @@ var $ = require("jquery");
 var bootstrap = require("bootstrap");
 const child_process = require("child_process");
 const path = require("path");
+const { normalizeLauncherKey } = require("./launcher-key");
+const {
+    buildLauncherItems,
+    normalizeAppName
+} = require("./launcher-items");
+const {
+    isReservedLauncherShortcut,
+    resolveCodexDisplayShortcut,
+    resolveWindowPlacementShortcut
+} = require("./launcher-shortcuts");
 
 var CONFIG = require(`${__dirname}/config.json`);
 // Renderer-side templates for buttons and app launch command.
@@ -35,19 +45,6 @@ try {
 
 // In-memory only window state cache (per app, current app session).
 var WINDOW_STATE_CACHE = {};
-
-function normalizeAppName(name) {
-    var normalized = (name || "")
-        .trim()
-        .replace(/\.app$/i, "")
-        .toLowerCase();
-
-    if (normalized === "chrome") {
-        return "google chrome";
-    }
-
-    return normalized;
-}
 
 function setSavedWindowState(appName, bounds) {
     if (!appName || !bounds) return;
@@ -142,14 +139,29 @@ function handleArrowWindowControl(key, code) {
 
 $(function() {
     $(document).on("keydown", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
         if (getArrowAction(e.key, e.code) !== undefined) {
             handleArrowWindowControl(e.key, e.code);
         } else {
+            var normalizedKey = normalizeLauncherKey(e.key, e.code);
             // Hide first so launcher feels instant after key selection.
             electron.ipcRenderer.invoke('hide-window');
+            var codexDisplayTarget = resolveCodexDisplayShortcut(normalizedKey);
+            if (codexDisplayTarget) {
+                electron.ipcRenderer.send("focus-codex-on-display", codexDisplayTarget);
+                return;
+            }
+            if (isReservedLauncherShortcut(normalizedKey)) {
+                return;
+            }
+            var windowPlacement = resolveWindowPlacementShortcut(normalizedKey);
+            if (windowPlacement) {
+                electron.ipcRenderer.send("place-focused-window", windowPlacement);
+                return;
+            }
             // App-key path: open/focus app, then restore configured placement/window state.
-            var key = e.key.toUpperCase();
-            var item = DOCK_ITEMS.find(item => item.key == key);
+            var item = DOCK_ITEMS.find(item => item.key == normalizedKey);
             if (item == undefined) {
                 return;
             }
@@ -176,29 +188,13 @@ $(function() {
     electron.ipcRenderer.on("update-ui", (event, dock_items) => {
         $("#container").html("");
         DOCK_ITEMS = [];
-        var k = 1;
-        var visible_items = (dock_items || []).filter(item =>
-            item &&
-            item.name &&
-            item.name !== "Trash" &&
-            item.name !== "Downloads" &&
-            item.pos &&
-            Number.isFinite(item.pos.x)
-        ).sort((a, b) => a.pos.x - b.pos.x);
+        var launcherItems = buildLauncherItems(dock_items, CONFIG.dock_items);
+        var visible_items = launcherItems.map(entry => entry.dockItem);
         var base_x = visible_items.length > 0 ? visible_items[0].pos.x : 0;
-        for (var i = 0; i < visible_items.length; i++) {
-            // Reuse configured key mapping when available; otherwise assign fallback keys.
-            var dockName = normalizeAppName(visible_items[i].name);
-            var item = CONFIG.dock_items.find(item => normalizeAppName(item.name) == dockName);
-            if (item == undefined) {
-                item = {
-                    name: visible_items[i].name,
-                    key: k++,
-                    screen: ""
-                }
-            }
+        for (var i = 0; i < launcherItems.length; i++) {
+            var item = launcherItems[i].item;
             DOCK_ITEMS.push(item);
-            var left = Math.max(0, Math.round(visible_items[i].pos.x - base_x));
+            var left = Math.max(0, Math.round(launcherItems[i].dockItem.pos.x - base_x));
             $("#container").append(util.format(ITEM_TPL, left, item.icon || item.key));
         }
     });
