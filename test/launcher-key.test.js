@@ -25,11 +25,11 @@ test("normalizeLauncherKey maps digit codes to stable numeric keys", () => {
     assert.equal(normalizeLauncherKey("", "Digit3"), "3");
 });
 
-test("resolveCodexDisplayShortcut maps Tab Shift Left Command to external internal side-left displays", () => {
+test("resolveCodexDisplayShortcut maps symbolic Codex display keys", () => {
     assert.equal(resolveCodexDisplayShortcut("TAB"), "external");
     assert.equal(resolveCodexDisplayShortcut("SHIFT"), "internal");
     assert.equal(resolveCodexDisplayShortcut("COMMAND_LEFT"), "side_left");
-    assert.equal(resolveCodexDisplayShortcut("COMMAND_RIGHT"), "");
+    assert.equal(resolveCodexDisplayShortcut("COMMAND_RIGHT"), "side_right");
     assert.equal(resolveCodexDisplayShortcut("SPACE"), "");
 });
 
