@@ -8,7 +8,10 @@ const {
     placeFocusedWindowByAction,
     placeProcessWindowByAction,
     placePidWindowByPlacement,
-    placeProcessWindowByPlacement
+    placeProcessWindowByPlacement,
+    moveMouseToApplicationDisplay,
+    moveMouseToBoundsDisplayCenter,
+    resolveBoundsForPlacement
 } = require("./window-control");
 const { setupControlServer } = require("./control-server");
 var dock_items = [], display_items = [];
@@ -124,6 +127,10 @@ electron.app.on("ready", () => {
 
     electron.ipcMain.on("place-focused-window", (event, placement) => {
         place_focused_window(String(placement || ""));
+    });
+
+    electron.ipcMain.on("move-mouse-to-app-display", (event, appName) => {
+        move_mouse_to_application_display(String(appName || ""));
     });
 
     dock_items = read_dock_cache();
@@ -250,6 +257,7 @@ function launch_app_with_placement(item) {
                     String(item.placement)
                 );
                 if (pidOk) {
+                    move_mouse_to_placement_display(String(item.placement));
                     return;
                 }
             }
@@ -261,6 +269,7 @@ function launch_app_with_placement(item) {
                 String(item.placement)
             );
             if (ok) {
+                move_mouse_to_placement_display(String(item.placement));
                 return;
             }
         } catch (e) {
@@ -273,6 +282,44 @@ function launch_app_with_placement(item) {
     };
 
     setTimeout(tryPlace, app_launch_place_retry_delay_ms);
+}
+
+function move_mouse_to_application_display(appName) {
+    if (!appName) {
+        return;
+    }
+    var deadline = Date.now() + app_launch_place_timeout_ms;
+    var tryMove = () => {
+        try {
+            if (moveMouseToApplicationDisplay(appName, dock_query, electron.screen)) {
+                return;
+            }
+        } catch (e) {
+            // retry until deadline
+        }
+
+        if (Date.now() < deadline) {
+            setTimeout(tryMove, app_launch_place_retry_delay_ms);
+        }
+    };
+
+    setTimeout(tryMove, app_launch_place_retry_delay_ms);
+}
+
+function move_mouse_to_placement_display(placement) {
+    if (!placement || !dock_query) {
+        return;
+    }
+    try {
+        var displays = electron.screen.getAllDisplays();
+        var primary = electron.screen.getPrimaryDisplay();
+        var target = resolveBoundsForPlacement(placement, displays, primary);
+        if (target) {
+            moveMouseToBoundsDisplayCenter(dock_query, electron.screen, target);
+        }
+    } catch (e) {
+        // best effort
+    }
 }
 
 function place_focused_window(placement) {

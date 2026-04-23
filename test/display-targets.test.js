@@ -1,7 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { getDisplayForTarget } = require("../src/display-targets");
+const {
+    getDisplayForTarget,
+    resolveDisplayCenterPoint
+} = require("../src/display-targets");
 
 function makeDisplay({ id, label, internal, x, y, width, height, workArea }) {
     return {
@@ -175,4 +178,22 @@ test("getDisplayForTarget maps the current four-display layout", () => {
     assert.equal(getDisplayForTarget("external", displays, displays[0]), displays[3]);
     assert.equal(getDisplayForTarget("side_left", displays, displays[0]), displays[1]);
     assert.equal(getDisplayForTarget("side_right", displays, displays[0]), displays[2]);
+});
+
+test("resolveDisplayCenterPoint uses the display work area center", () => {
+    const display = makeDisplay({
+        id: 3,
+        label: "Mi Monitor (2)",
+        internal: false,
+        x: 2036,
+        y: -1080,
+        width: 1920,
+        height: 1080,
+        workArea: { x: 2036, y: -1050, width: 1920, height: 1050 }
+    });
+
+    assert.deepEqual(resolveDisplayCenterPoint(display), {
+        x: 2996,
+        y: -525
+    });
 });

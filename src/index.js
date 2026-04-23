@@ -136,6 +136,7 @@ function openAndRestoreItem(item) {
     child_process.execFile("open", ["-a", item.name], () => {});
     setTimeout(() => {
         restoreWindowState(item);
+        electron.ipcRenderer.send("move-mouse-to-app-display", item.name);
     }, 120);
 }
 

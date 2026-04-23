@@ -2,6 +2,8 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const {
+    moveMouseToApplicationDisplay,
+    placeFocusedWindowByAction,
     resolveBoundsForAction,
     resolveBoundsForPlacement
 } = require("../src/window-control");
@@ -296,4 +298,141 @@ test("resolveBoundsForPlacement supports side-left compatibility and side-right 
         w: 1920,
         h: 1050
     });
+});
+
+test("placeFocusedWindowByAction centers the mouse on arrow target displays", () => {
+    const displays = [
+        makeDisplay({
+            id: 1,
+            label: "Built-in Retina Display",
+            internal: true,
+            x: 0,
+            y: 0,
+            width: 1512,
+            height: 982,
+            workArea: { x: 0, y: 33, width: 1512, height: 875 }
+        }),
+        makeDisplay({
+            id: 2,
+            label: "Mi Monitor (1)",
+            internal: false,
+            x: -2444,
+            y: -1080,
+            width: 1920,
+            height: 1080,
+            workArea: { x: -2444, y: -1050, width: 1920, height: 1050 }
+        }),
+        makeDisplay({
+            id: 3,
+            label: "Mi Monitor (2)",
+            internal: false,
+            x: 2036,
+            y: -1080,
+            width: 1920,
+            height: 1080,
+            workArea: { x: 2036, y: -1050, width: 1920, height: 1050 }
+        }),
+        makeDisplay({
+            id: 5,
+            label: "DELL U3219Q",
+            internal: false,
+            x: -524,
+            y: -1440,
+            width: 2560,
+            height: 1440,
+            workArea: { x: -524, y: -1410, width: 2560, height: 1410 }
+        })
+    ];
+    const moves = [];
+    const mouseMoves = [];
+    const dockQuery = {
+        getFocusedWindowBounds: () => ({ x: 10, y: 40, w: 500, h: 400 }),
+        moveFocusedWindow: payload => {
+            moves.push(payload);
+            return true;
+        },
+        moveMouse: payload => {
+            mouseMoves.push(payload);
+            return true;
+        }
+    };
+    const electronScreen = {
+        getAllDisplays: () => displays,
+        getPrimaryDisplay: () => displays[0]
+    };
+
+    assert.equal(placeFocusedWindowByAction(dockQuery, electronScreen, "right"), true);
+    assert.deepEqual(moves[0], { x: 2036, y: -1050, w: 1920, h: 1050 });
+    assert.deepEqual(mouseMoves[0], { x: 2996, y: -525 });
+});
+
+test("placeFocusedWindowByAction does not center the mouse for bracket tiling", () => {
+    const displays = [
+        makeDisplay({
+            id: 1,
+            label: "Built-in Retina Display",
+            internal: true,
+            x: 0,
+            y: 0,
+            width: 1512,
+            height: 982,
+            workArea: { x: 0, y: 33, width: 1512, height: 875 }
+        })
+    ];
+    const mouseMoves = [];
+    const dockQuery = {
+        getFocusedWindowBounds: () => ({ x: 10, y: 40, w: 500, h: 400 }),
+        moveFocusedWindow: () => true,
+        moveMouse: payload => {
+            mouseMoves.push(payload);
+            return true;
+        }
+    };
+    const electronScreen = {
+        getAllDisplays: () => displays,
+        getPrimaryDisplay: () => displays[0]
+    };
+
+    assert.equal(placeFocusedWindowByAction(dockQuery, electronScreen, "current_left"), true);
+    assert.deepEqual(mouseMoves, []);
+});
+
+test("moveMouseToApplicationDisplay centers on the app window display", () => {
+    const displays = [
+        makeDisplay({
+            id: 1,
+            label: "Built-in Retina Display",
+            internal: true,
+            x: 0,
+            y: 0,
+            width: 1512,
+            height: 982,
+            workArea: { x: 0, y: 33, width: 1512, height: 875 }
+        }),
+        makeDisplay({
+            id: 5,
+            label: "DELL U3219Q",
+            internal: false,
+            x: -524,
+            y: -1440,
+            width: 2560,
+            height: 1440,
+            workArea: { x: -524, y: -1410, width: 2560, height: 1410 }
+        })
+    ];
+    const mouseMoves = [];
+    const dockQuery = {
+        getApplicationWindowBounds: () => ({ x: -400, y: -1200, w: 1200, h: 800 }),
+        moveMouse: payload => {
+            mouseMoves.push(payload);
+            return true;
+        }
+    };
+    const electronScreen = {
+        getAllDisplays: () => displays,
+        getPrimaryDisplay: () => displays[0]
+    };
+
+    assert.equal(moveMouseToApplicationDisplay("Codex", dockQuery, electronScreen), true);
+    assert.deepEqual(mouseMoves[0], { x: 756, y: -705 });
 });
