@@ -15,7 +15,7 @@ function isDisplayLabel(display, pattern) {
         pattern.test(display.label.trim()));
 }
 
-function isSideDisplay(display) {
+function isLegacySideDisplay(display) {
     return isDisplayLabel(display, /^H279$/i) ||
         isDisplayLabel(display, /(^|\s)h279(\s|$)/i);
 }
@@ -38,17 +38,40 @@ function getInternalDisplay(displays, primaryDisplay) {
     return primaryDisplay || displays[0] || null;
 }
 
+function displaySortX(display) {
+    var bounds = display && display.bounds;
+    if (!bounds || !Number.isFinite(bounds.x)) return Number.POSITIVE_INFINITY;
+    return bounds.x;
+}
+
+function sameDisplay(a, b) {
+    if (!a || !b) return false;
+    if (Number.isFinite(a.id) && Number.isFinite(b.id)) {
+        return a.id === b.id;
+    }
+    return a === b;
+}
+
+function getSideCandidates(displays) {
+    if (!Array.isArray(displays)) return [];
+    return displays.filter(display =>
+        display &&
+        display.internal !== true &&
+        !isExternalCodexDisplay(display)
+    );
+}
+
 function getExternalDisplay(displays, primaryDisplay, currentDisplay) {
     if (!Array.isArray(displays) || displays.length === 0) return null;
 
     var namedExternal = displays.find(isExternalCodexDisplay);
     if (namedExternal) return namedExternal;
 
-    if (currentDisplay && currentDisplay.internal === false && !isSideDisplay(currentDisplay)) {
+    if (currentDisplay && currentDisplay.internal === false && !isLegacySideDisplay(currentDisplay)) {
         return currentDisplay;
     }
 
-    var explicitExternal = displays.find(d => d && d.internal === false && !isSideDisplay(d));
+    var explicitExternal = displays.find(d => d && d.internal === false && !isLegacySideDisplay(d));
     if (explicitExternal) return explicitExternal;
 
     if (currentDisplay && Number.isFinite(currentDisplay.id)) {
@@ -59,7 +82,7 @@ function getExternalDisplay(displays, primaryDisplay, currentDisplay) {
     if (displays.length > 1) {
         var internalGuess = getInternalDisplay(displays, primaryDisplay);
         var externalGuess = displays
-            .filter(d => d && d !== internalGuess && !isSideDisplay(d))
+            .filter(d => d && d !== internalGuess && !isLegacySideDisplay(d))
             .sort((a, b) => getDisplayPixelArea(b) - getDisplayPixelArea(a))[0];
         if (externalGuess) return externalGuess;
     }
@@ -72,7 +95,7 @@ function getExternalDisplay(displays, primaryDisplay, currentDisplay) {
     return displays.length > 1 ? displays[1] : null;
 }
 
-function getSideDisplay(displays) {
+function getSideLeftDisplay(displays) {
     if (!Array.isArray(displays) || displays.length === 0) return null;
 
     var exactLabel = displays.find(display =>
@@ -89,7 +112,20 @@ function getSideDisplay(displays) {
     );
     if (labelMatch) return labelMatch;
 
-    return null;
+    return getSideCandidates(displays)
+        .slice()
+        .sort((a, b) => displaySortX(a) - displaySortX(b))[0] || null;
+}
+
+function getSideRightDisplay(displays) {
+    if (!Array.isArray(displays) || displays.length === 0) return null;
+    return getSideCandidates(displays)
+        .slice()
+        .sort((a, b) => displaySortX(b) - displaySortX(a))[0] || null;
+}
+
+function getSideDisplay(displays) {
+    return getSideLeftDisplay(displays);
 }
 
 function normalizeDisplayTarget(target) {
@@ -97,19 +133,46 @@ function normalizeDisplayTarget(target) {
     return String(target || "");
 }
 
-function resolveMouseTargetPoint(target, displays, primaryDisplay) {
+function getDisplayForTarget(target, displays, primaryDisplay) {
     if (!Array.isArray(displays) || displays.length === 0) return null;
 
     var normalizedTarget = normalizeDisplayTarget(target);
-    var display = null;
     if (normalizedTarget === "internal") {
-        display = getInternalDisplay(displays, primaryDisplay) || primaryDisplay || displays[0];
-    } else if (normalizedTarget === "external") {
-        display = getExternalDisplay(displays, primaryDisplay, null);
-    } else if (normalizedTarget === "side_left") {
-        display = getSideDisplay(displays) || getExternalDisplay(displays, primaryDisplay, null);
+        return getInternalDisplay(displays, primaryDisplay) || primaryDisplay || displays[0];
+    }
+    if (normalizedTarget === "external") {
+        return getExternalDisplay(displays, primaryDisplay, null);
+    }
+    if (normalizedTarget === "side_left") {
+        return getSideLeftDisplay(displays) || getExternalDisplay(displays, primaryDisplay, null);
+    }
+    if (normalizedTarget === "side_right") {
+        return getSideRightDisplay(displays) || getExternalDisplay(displays, primaryDisplay, null);
     }
 
+    return null;
+}
+
+function getDisplayTargetName(display, displays, primaryDisplay) {
+    if (!display) return "";
+    if (display.internal === true) return "internal";
+
+    var external = getExternalDisplay(displays, primaryDisplay, null);
+    if (sameDisplay(display, external)) return "external";
+
+    var sideLeft = getSideLeftDisplay(displays);
+    if (sameDisplay(display, sideLeft)) return "side_left";
+
+    var sideRight = getSideRightDisplay(displays);
+    if (sameDisplay(display, sideRight)) return "side_right";
+
+    return "external";
+}
+
+function resolveMouseTargetPoint(target, displays, primaryDisplay) {
+    if (!Array.isArray(displays) || displays.length === 0) return null;
+
+    var display = getDisplayForTarget(target, displays, primaryDisplay);
     var area = getDisplayArea(display);
     if (!area) return null;
     return {
@@ -123,7 +186,11 @@ module.exports = {
     getDisplayPixelArea,
     getInternalDisplay,
     getExternalDisplay,
+    getSideLeftDisplay,
+    getSideRightDisplay,
     getSideDisplay,
+    getDisplayForTarget,
+    getDisplayTargetName,
     normalizeDisplayTarget,
     resolveMouseTargetPoint
 };

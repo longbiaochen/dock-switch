@@ -7,14 +7,15 @@ Quickly switch among applications in the macOS Dock with one global hotkey.
 ## How It Works
 - Press `F20` to open the floating launcher UI.
 - Press the shown key for an app to focus it.
-- Press an arrow key to tile the frontmost window on its current display:
-  - `←` left half
-  - `→` right half
-  - `↑` external display
-  - `↓` internal display, or maximize on the internal display when already there
+- Press an arrow key to fill the frontmost window on a physical display:
+  - `←` left side display (`Mi Monitor (1)` on this Mac)
+  - `→` right side display (`Mi Monitor (2)` on this Mac)
+  - `↑` external Codex display (`DELL U3219Q` on this Mac)
+  - `↓` internal display (`Built-in Retina Display` on this Mac)
 - Press `Tab` to focus or create a `Codex` window on the external display, move the mouse to that display center, and ask Codex to focus its composer with `Escape`.
 - Press `Shift` to focus or create a `Codex` window on the internal display, move the mouse to that display center, and ask Codex to focus its composer with `Escape`.
-- Press left `Command` to focus or create a `Codex` window on the current left side display (`H279` on this Mac), falling back to the external display when that side display is offline, move the mouse to that display center, and ask Codex to focus its composer with `Escape`.
+- Press left `Command` to focus or create a `Codex` window on the left side display, move the mouse to that display center, and ask Codex to focus its composer with `Escape`.
+- Press right `Command` to focus or create a `Codex` window on the right side display, move the mouse to that display center, and ask Codex to focus its composer with `Escape`.
 - If the target display already has a `Codex` window, dock-switch reuses the most relevant existing window there (`focused` > `main` > first usable standard window).
 - If the target display has no `Codex` window, dock-switch triggers `Codex > File > New Window`, waits for the new standard window to appear, then moves it to the target display and fills that display's work area.
 - Press `\` to enter macOS native fullscreen (same as the green window button).
@@ -63,7 +64,7 @@ Google Chrome lands on the right half of the external display.
 The `X` and `GitHub` web app bundles can target the signed-in Google Chrome `Default` profile.
 GitHub Web App is available on `G` in the current default config.
 ChatGPT is intentionally hidden from dock-switch and has no dock-switch hotkey.
-Codex is intentionally excluded from the ordinary HUD app list; use `Tab` / `Shift` / left `Command` for its per-display launcher path.
+Codex is intentionally excluded from the ordinary HUD app list; use `Tab` / `Shift` / left `Command` / right `Command` for its per-display launcher path.
 If no external display is available, `external_right_half` falls back to the right half of the internal display work area.
 If no external display is available, `external_left_half` falls back to the left half of the internal display work area.
 

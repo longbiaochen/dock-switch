@@ -1,7 +1,8 @@
 var CODEX_DISPLAY_SHORTCUTS = Object.freeze({
     TAB: "external",
     SHIFT: "internal",
-    COMMAND_LEFT: "side_left"
+    COMMAND_LEFT: "side_left",
+    COMMAND_RIGHT: "side_right"
 });
 var RESERVED_LAUNCHER_SHORTCUTS = Object.freeze({
     TAB: true,

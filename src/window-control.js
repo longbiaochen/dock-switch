@@ -1,7 +1,9 @@
-function getDisplayArea(display) {
-    if (!display) return null;
-    return display.workArea || display.bounds || null;
-}
+const {
+    getDisplayArea,
+    getDisplayForTarget,
+    getExternalDisplay,
+    getInternalDisplay
+} = require("./display-targets");
 
 function getAvailableDisplays(dockQuery, electronScreen) {
     // AX window bounds align with Electron's screen coordinates on macOS.
@@ -12,105 +14,6 @@ function getAvailableDisplays(dockQuery, electronScreen) {
 
 function getPrimaryDisplay(dockQuery, electronScreen, displays) {
     return electronScreen.getPrimaryDisplay();
-}
-
-function getDisplayPixelArea(display) {
-    var area = getDisplayArea(display);
-    if (!area) return 0;
-    return Math.max(0, area.width) * Math.max(0, area.height);
-}
-
-function isDisplayLabel(display, pattern) {
-    return !!(display &&
-        typeof display.label === "string" &&
-        pattern.test(display.label.trim()));
-}
-
-function isSideDisplay(display) {
-    return isDisplayLabel(display, /^H279$/i) ||
-        isDisplayLabel(display, /(^|\s)h279(\s|$)/i);
-}
-
-function isExternalCodexDisplay(display) {
-    return isDisplayLabel(display, /^DELL U3219Q$/i) ||
-        isDisplayLabel(display, /(^|\s)dell\s+u3219q(\s|$)/i);
-}
-
-function isCurrentDisplayInternal(currentDisplay, primaryDisplay) {
-    if (!currentDisplay) return false;
-    if (currentDisplay.internal === true) return true;
-    if (currentDisplay.internal === false) return false;
-    return !!(primaryDisplay &&
-        Number.isFinite(primaryDisplay.id) &&
-        Number.isFinite(currentDisplay.id) &&
-        primaryDisplay.id === currentDisplay.id);
-}
-
-function getExternalDisplay(displays, primaryDisplay, currentDisplay) {
-    if (!Array.isArray(displays) || displays.length === 0) return null;
-
-    var namedExternal = displays.find(isExternalCodexDisplay);
-    if (namedExternal) return namedExternal;
-
-    if (currentDisplay && currentDisplay.internal === false && !isSideDisplay(currentDisplay)) {
-        return currentDisplay;
-    }
-
-    var explicitExternal = displays.find(d => d && d.internal === false && !isSideDisplay(d));
-    if (explicitExternal) return explicitExternal;
-
-    if (currentDisplay && Number.isFinite(currentDisplay.id)) {
-        var nonCurrent = displays.find(d => d && Number.isFinite(d.id) && d.id !== currentDisplay.id);
-        if (nonCurrent) return nonCurrent;
-    }
-
-    if (displays.length > 1) {
-        var internalGuess = getInternalDisplay(displays, primaryDisplay);
-        var externalGuess = displays
-            .filter(d => d && d !== internalGuess && !isSideDisplay(d))
-            .sort((a, b) => getDisplayPixelArea(b) - getDisplayPixelArea(a))[0];
-        if (externalGuess) return externalGuess;
-    }
-
-    if (primaryDisplay && Number.isFinite(primaryDisplay.id)) {
-        var nonPrimary = displays.find(d => d && Number.isFinite(d.id) && d.id !== primaryDisplay.id);
-        if (nonPrimary) return nonPrimary;
-    }
-
-    return displays.length > 1 ? displays[1] : null;
-}
-
-function getInternalDisplay(displays, primaryDisplay) {
-    if (!Array.isArray(displays)) return primaryDisplay || null;
-    var explicitInternal = displays.find(d => d && d.internal === true);
-    if (explicitInternal) return explicitInternal;
-    if (displays.length > 1) {
-        var smallest = displays
-            .filter(Boolean)
-            .sort((a, b) => getDisplayPixelArea(a) - getDisplayPixelArea(b))[0];
-        if (smallest) return smallest;
-    }
-    return primaryDisplay || displays[0] || null;
-}
-
-function getSideDisplay(displays) {
-    if (!Array.isArray(displays) || displays.length === 0) return null;
-
-    var exactLabel = displays.find(display =>
-        display &&
-        typeof display.label === "string" &&
-        display.label.trim() === "H279"
-    );
-    if (exactLabel) return exactLabel;
-
-    var labelMatch = displays.find(display =>
-        display &&
-        typeof display.label === "string" &&
-        /(^|\s)h279(\s|$)/i.test(display.label)
-    );
-    if (labelMatch) return labelMatch;
-
-    return null;
 }
 
 function getDisplayForRect(displays, rect) {
@@ -148,49 +51,32 @@ function getDisplayForRect(displays, rect) {
     return best;
 }
 
-function resolveBoundsForAction(action, displays, primaryDisplay, currentDisplay) {
-    var currentArea = getDisplayArea(currentDisplay);
-    if (!currentArea) return null;
-    var external = getExternalDisplay(displays, primaryDisplay, currentDisplay);
+function boundsForDisplay(display) {
+    var area = getDisplayArea(display);
+    if (!area) return null;
+    return { x: area.x, y: area.y, w: area.width, h: area.height };
+}
 
-    if (action === "left") {
-        var leftBase = currentArea;
-        var wLeft = Math.floor(leftBase.width / 2);
-        return { x: leftBase.x, y: leftBase.y, w: wLeft, h: leftBase.height };
-    }
-    if (action === "right") {
-        var rightBase = currentArea;
-        var wRight = Math.floor(rightBase.width / 2);
-        return {
-            x: rightBase.x + wRight,
-            y: rightBase.y,
-            w: rightBase.width - wRight,
-            h: rightBase.height
-        };
-    }
+function resolveBoundsForAction(action, displays, primaryDisplay, currentDisplay) {
     if (action === "fill") {
         var b = currentDisplay && currentDisplay.bounds;
         if (b) {
             return { x: b.x, y: b.y, w: b.width, h: b.height };
         }
+        var currentArea = getDisplayArea(currentDisplay);
+        if (!currentArea) return null;
         return { x: currentArea.x, y: currentArea.y, w: currentArea.width, h: currentArea.height };
     }
-    if (action === "up" || action === "down") {
-        var internal = getInternalDisplay(displays, primaryDisplay) || currentDisplay;
-        var currentIsInternal = isCurrentDisplayInternal(currentDisplay, primaryDisplay);
-        var targetDisplay = currentDisplay;
-        if (action === "up") {
-            if (currentIsInternal && external) {
-                targetDisplay = external;
-            } else {
-                targetDisplay = currentDisplay;
-            }
-        } else {
-            targetDisplay = internal || currentDisplay;
-        }
-        var targetArea = getDisplayArea(targetDisplay);
-        if (!targetArea) return null;
-        return { x: targetArea.x, y: targetArea.y, w: targetArea.width, h: targetArea.height };
+
+    var actionTargets = {
+        up: "external",
+        down: "internal",
+        left: "side_left",
+        right: "side_right"
+    };
+    var targetName = actionTargets[action];
+    if (targetName) {
+        return boundsForDisplay(getDisplayForTarget(targetName, displays, primaryDisplay));
     }
 
     return null;
@@ -244,40 +130,19 @@ function resolveBoundsForPlacement(placement, displays, primaryDisplay) {
     }
 
     if (placement === "internal_fill") {
-        var internalDisplay = getInternalDisplay(displays, primaryDisplay) || primaryDisplay || displays[0];
-        var internalDisplayArea = getDisplayArea(internalDisplay);
-        if (!internalDisplayArea) return null;
-        return {
-            x: internalDisplayArea.x,
-            y: internalDisplayArea.y,
-            w: internalDisplayArea.width,
-            h: internalDisplayArea.height
-        };
+        return boundsForDisplay(getDisplayForTarget("internal", displays, primaryDisplay));
     }
 
     if (placement === "external_fill") {
-        var externalDisplay = getExternalDisplay(displays, primaryDisplay, null);
-        var externalDisplayArea = getDisplayArea(externalDisplay);
-        if (!externalDisplayArea) return null;
-        return {
-            x: externalDisplayArea.x,
-            y: externalDisplayArea.y,
-            w: externalDisplayArea.width,
-            h: externalDisplayArea.height
-        };
+        return boundsForDisplay(getDisplayForTarget("external", displays, primaryDisplay));
     }
 
-    if (placement === "side_fill") {
-        var sideDisplay = getSideDisplay(displays);
-        var sideTarget = sideDisplay || getExternalDisplay(displays, primaryDisplay, null);
-        var sideArea = getDisplayArea(sideTarget);
-        if (!sideArea) return null;
-        return {
-            x: sideArea.x,
-            y: sideArea.y,
-            w: sideArea.width,
-            h: sideArea.height
-        };
+    if (placement === "side_fill" || placement === "side_left_fill") {
+        return boundsForDisplay(getDisplayForTarget("side_left", displays, primaryDisplay));
+    }
+
+    if (placement === "side_right_fill") {
+        return boundsForDisplay(getDisplayForTarget("side_right", displays, primaryDisplay));
     }
 
     return null;

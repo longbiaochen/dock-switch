@@ -1,11 +1,17 @@
 const { getDisplayForRect } = require("./window-control");
-const { getSideDisplay, normalizeDisplayTarget } = require("./display-targets");
+const {
+    getDisplayTargetName,
+    getSideLeftDisplay,
+    getSideRightDisplay,
+    normalizeDisplayTarget
+} = require("./display-targets");
 
 function resolveCodexPlacementForDisplayTarget(target) {
     var normalizedTarget = normalizeDisplayTarget(target);
     if (normalizedTarget === "internal") return "internal_fill";
     if (normalizedTarget === "external") return "external_fill";
-    if (normalizedTarget === "side_left") return "side_fill";
+    if (normalizedTarget === "side_left") return "side_left_fill";
+    if (normalizedTarget === "side_right") return "side_right_fill";
     return "";
 }
 
@@ -14,19 +20,15 @@ function classifyWindowDisplayTarget(windowInfo, displays, primaryDisplay) {
     var display = getDisplayForRect(displays, windowInfo);
     if (!display) return "";
 
-    if (display.internal === true) {
-        return "internal";
-    }
-    if (display.label === "H279" || /(^|\s)h279(\s|$)/i.test(String(display.label || ""))) {
-        return "side_left";
-    }
-
-    return "external";
+    return getDisplayTargetName(display, displays, primaryDisplay);
 }
 
 function chooseCodexWindowForDisplay(windows, target, displays, primaryDisplay) {
     var effectiveTarget = normalizeDisplayTarget(target);
-    if (effectiveTarget === "side_left" && !getSideDisplay(displays)) {
+    if (effectiveTarget === "side_left" && !getSideLeftDisplay(displays)) {
+        effectiveTarget = "external";
+    }
+    if (effectiveTarget === "side_right" && !getSideRightDisplay(displays)) {
         effectiveTarget = "external";
     }
 

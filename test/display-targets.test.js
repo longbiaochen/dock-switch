@@ -141,3 +141,53 @@ test("resolveMouseTargetPoint returns the side display center and falls back to 
         { x: -1539, y: -525 }
     );
 });
+
+test("resolveMouseTargetPoint maps the current four-display layout", () => {
+    const displays = [
+        makeDisplay({
+            id: 1,
+            label: "Built-in Retina Display",
+            internal: true,
+            x: 0,
+            y: 0,
+            width: 1512,
+            height: 982,
+            workArea: { x: 0, y: 33, width: 1512, height: 875 }
+        }),
+        makeDisplay({
+            id: 2,
+            label: "Mi Monitor (1)",
+            internal: false,
+            x: -2444,
+            y: -1080,
+            width: 1920,
+            height: 1080,
+            workArea: { x: -2444, y: -1050, width: 1920, height: 1050 }
+        }),
+        makeDisplay({
+            id: 3,
+            label: "Mi Monitor (2)",
+            internal: false,
+            x: 2036,
+            y: -1080,
+            width: 1920,
+            height: 1080,
+            workArea: { x: 2036, y: -1050, width: 1920, height: 1050 }
+        }),
+        makeDisplay({
+            id: 5,
+            label: "DELL U3219Q",
+            internal: false,
+            x: -524,
+            y: -1440,
+            width: 2560,
+            height: 1440,
+            workArea: { x: -524, y: -1410, width: 2560, height: 1410 }
+        })
+    ];
+
+    assert.deepEqual(resolveMouseTargetPoint("internal", displays, displays[0]), { x: 756, y: 470 });
+    assert.deepEqual(resolveMouseTargetPoint("external", displays, displays[0]), { x: 756, y: -705 });
+    assert.deepEqual(resolveMouseTargetPoint("side_left", displays, displays[0]), { x: -1484, y: -525 });
+    assert.deepEqual(resolveMouseTargetPoint("side_right", displays, displays[0]), { x: 2996, y: -525 });
+});
