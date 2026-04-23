@@ -23,6 +23,12 @@ var ARROW_KEY_ACTIONS = Object.freeze({
     ArrowDown: "down",
     ArrowLeft: "left",
     ArrowRight: "right",
+    "[": "current_left",
+    "【": "current_left",
+    "BracketLeft": "current_left",
+    "]": "current_right",
+    "】": "current_right",
+    "BracketRight": "current_right",
     "\\": "fill",
     "Backslash": "fill"
 });

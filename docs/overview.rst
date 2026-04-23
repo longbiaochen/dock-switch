@@ -18,9 +18,9 @@ Core Flow
    use the placement path, while other apps restore remembered bounds.
    ``ArrowLeft``/``ArrowRight`` move to the left/right side-display work areas,
    ``ArrowUp`` moves to the external display, ``ArrowDown`` moves to the internal
-   display, and ``Tab``/``Shift``/left ``Command``/right ``Command`` focus or
-   create ``Codex`` windows on external/internal/left-side/right-side displays,
-   move the mouse to the target display
+   display, ``【``/``】`` tile the current display left/right half, and
+   ``Tab``/``Shift``/left ``Command``/right ``Command`` focus or create ``Codex``
+   windows on external/internal/left-side/right-side displays, move the mouse to the target display
    center, and ask Codex to focus its composer with ``Escape``. ``Codex`` is excluded
    from the ordinary HUD item list, while numeric keys remain available for normal
    launcher selection.
