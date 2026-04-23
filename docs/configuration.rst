@@ -36,6 +36,7 @@ Notes
 - `ArrowRight` moves the frontmost window to the right side-display work area.
 - `ArrowUp` moves the frontmost window to the external display work area.
 - `ArrowDown` moves the frontmost window to the internal display work area.
+- `【` / `】` tile the frontmost window to the left or right half of its current display.
 - `1` / `2` / `3` are available again for ordinary launcher item selection when those keys are assigned or used as fallback numbers.
 - When the target display already has a ``Codex`` window, dock-switch reuses the most relevant existing window there in the order ``focused > main > first usable``.
 - When the target display has no ``Codex`` window, dock-switch triggers ``Codex > File > New Window`` and then fills the target display work area only if it can identify the newly created window; it does not move an old window from another display as a substitute.

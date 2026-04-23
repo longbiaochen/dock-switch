@@ -12,6 +12,8 @@ Quickly switch among applications in the macOS Dock with one global hotkey.
   - `→` right side display (`Mi Monitor (2)` on this Mac)
   - `↑` external Codex display (`DELL U3219Q` on this Mac)
   - `↓` internal display (`Built-in Retina Display` on this Mac)
+- Press `【` to tile the frontmost window to the left half of its current display.
+- Press `】` to tile the frontmost window to the right half of its current display.
 - Press `Tab` to focus or create a `Codex` window on the external display, move the mouse to that display center, and ask Codex to focus its composer with `Escape`.
 - Press `Shift` to focus or create a `Codex` window on the internal display, move the mouse to that display center, and ask Codex to focus its composer with `Escape`.
 - Press left `Command` to focus or create a `Codex` window on the left side display, move the mouse to that display center, and ask Codex to focus its composer with `Escape`.

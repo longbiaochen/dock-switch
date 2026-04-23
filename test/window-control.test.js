@@ -196,6 +196,44 @@ test("resolveBoundsForAction routes arrows to physical displays in the current f
     });
 });
 
+test("resolveBoundsForAction tiles the current display with bracket actions", () => {
+    const displays = [
+        makeDisplay({
+            id: 1,
+            label: "Built-in Retina Display",
+            internal: true,
+            x: 0,
+            y: 0,
+            width: 1512,
+            height: 982,
+            workArea: { x: 0, y: 33, width: 1512, height: 875 }
+        }),
+        makeDisplay({
+            id: 5,
+            label: "DELL U3219Q",
+            internal: false,
+            x: -524,
+            y: -1440,
+            width: 2560,
+            height: 1440,
+            workArea: { x: -524, y: -1410, width: 2560, height: 1410 }
+        })
+    ];
+
+    assert.deepEqual(resolveBoundsForAction("current_left", displays, displays[0], displays[1]), {
+        x: -524,
+        y: -1410,
+        w: 1280,
+        h: 1410
+    });
+    assert.deepEqual(resolveBoundsForAction("current_right", displays, displays[0], displays[1]), {
+        x: 756,
+        y: -1410,
+        w: 1280,
+        h: 1410
+    });
+});
+
 test("resolveBoundsForPlacement supports side-left compatibility and side-right fill", () => {
     const displays = [
         makeDisplay({

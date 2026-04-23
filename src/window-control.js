@@ -58,12 +58,30 @@ function boundsForDisplay(display) {
 }
 
 function resolveBoundsForAction(action, displays, primaryDisplay, currentDisplay) {
+    var currentArea = getDisplayArea(currentDisplay);
+
+    if (action === "current_left") {
+        if (!currentArea) return null;
+        var leftW = Math.floor(currentArea.width / 2);
+        return { x: currentArea.x, y: currentArea.y, w: leftW, h: currentArea.height };
+    }
+
+    if (action === "current_right") {
+        if (!currentArea) return null;
+        var rightW = Math.floor(currentArea.width / 2);
+        return {
+            x: currentArea.x + rightW,
+            y: currentArea.y,
+            w: currentArea.width - rightW,
+            h: currentArea.height
+        };
+    }
+
     if (action === "fill") {
         var b = currentDisplay && currentDisplay.bounds;
         if (b) {
             return { x: b.x, y: b.y, w: b.width, h: b.height };
         }
-        var currentArea = getDisplayArea(currentDisplay);
         if (!currentArea) return null;
         return { x: currentArea.x, y: currentArea.y, w: currentArea.width, h: currentArea.height };
     }
