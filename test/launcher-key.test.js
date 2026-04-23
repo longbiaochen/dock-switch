@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const { normalizeLauncherKey } = require("../src/launcher-key");
 const {
     isReservedLauncherShortcut,
-    resolveCodexDisplayShortcut,
+    resolveAppShortcut,
     resolveWindowPlacementShortcut
 } = require("../src/launcher-shortcuts");
 
@@ -25,18 +25,18 @@ test("normalizeLauncherKey maps digit codes to stable numeric keys", () => {
     assert.equal(normalizeLauncherKey("", "Digit3"), "3");
 });
 
-test("resolveCodexDisplayShortcut maps symbolic Codex display keys", () => {
-    assert.equal(resolveCodexDisplayShortcut("TAB"), "external");
-    assert.equal(resolveCodexDisplayShortcut("SHIFT"), "internal");
-    assert.equal(resolveCodexDisplayShortcut("COMMAND_LEFT"), "side_left");
-    assert.equal(resolveCodexDisplayShortcut("COMMAND_RIGHT"), "side_right");
-    assert.equal(resolveCodexDisplayShortcut("SPACE"), "");
+test("resolveAppShortcut maps symbolic app keys", () => {
+    assert.equal(resolveAppShortcut("TAB"), "ChatGPT");
+    assert.equal(resolveAppShortcut("SHIFT"), "Codex");
+    assert.equal(resolveAppShortcut("COMMAND_LEFT"), "System Settings");
+    assert.equal(resolveAppShortcut("COMMAND_RIGHT"), "");
+    assert.equal(resolveAppShortcut("SPACE"), "");
 });
 
-test("resolveCodexDisplayShortcut does not consume numeric launcher fallback keys", () => {
-    assert.equal(resolveCodexDisplayShortcut("1"), "");
-    assert.equal(resolveCodexDisplayShortcut("2"), "");
-    assert.equal(resolveCodexDisplayShortcut("3"), "");
+test("resolveAppShortcut does not consume numeric launcher fallback keys", () => {
+    assert.equal(resolveAppShortcut("1"), "");
+    assert.equal(resolveAppShortcut("2"), "");
+    assert.equal(resolveAppShortcut("3"), "");
 });
 
 test("resolveWindowPlacementShortcut no longer consumes SPACE", () => {

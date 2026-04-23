@@ -8,15 +8,8 @@ const {
     placeFocusedWindowByAction,
     placeProcessWindowByAction,
     placePidWindowByPlacement,
-    placeProcessWindowByPlacement,
-    resolveBoundsForPlacement
+    placeProcessWindowByPlacement
 } = require("./window-control");
-const {
-    chooseCodexWindowForDisplay,
-    chooseCreatedCodexWindow,
-    resolveCodexPlacementForDisplayTarget
-} = require("./codex-display-launcher");
-const { resolveMouseTargetPoint } = require("./display-targets");
 const { setupControlServer } = require("./control-server");
 var dock_items = [], display_items = [];
 const dock_query_module_path = path.join(
@@ -39,15 +32,7 @@ var overlay_open_t0 = 0;
 const arrow_control_apply_delay_ms = 90;
 const app_launch_place_retry_delay_ms = 60;
 const app_launch_place_timeout_ms = 1600;
-const codex_new_window_timeout_ms = 5000;
-const codex_new_window_poll_ms = 120;
-const codex_input_focus_delay_ms = 1400;
-const codex_input_focus_after_mouse_delay_ms = 180;
-const codex_input_focus_retry_delay_ms = 650;
 var control_server_handle = null;
-var codex_focus_queue = Promise.resolve();
-const CODEX_APP_NAME = "Codex";
-const CODEX_APP_BUNDLE_ID = "com.openai.codex";
 
 // Keep the app out of the Dock; interaction is via tray + global shortcut.
 electron.app.dock.hide();
@@ -139,10 +124,6 @@ electron.app.on("ready", () => {
 
     electron.ipcMain.on("place-focused-window", (event, placement) => {
         place_focused_window(String(placement || ""));
-    });
-
-    electron.ipcMain.on("focus-codex-on-display", (event, target) => {
-        focus_codex_on_display(String(target || ""));
     });
 
     dock_items = read_dock_cache();
@@ -308,254 +289,6 @@ function place_focused_window(placement) {
             // Ignore windows that cannot be moved/resized.
         }
     }, arrow_control_apply_delay_ms);
-}
-
-function focus_codex_on_display(target) {
-    if (!target) {
-        return;
-    }
-    stop_dock_tracking();
-    electron.app.hide();
-    setTimeout(() => {
-        codex_focus_queue = codex_focus_queue
-            .catch(() => {})
-            .then(() => focus_codex_on_display_impl(target))
-            .catch(() => {
-                // Ignore Codex orchestration failures.
-            });
-    }, arrow_control_apply_delay_ms);
-}
-
-async function focus_codex_on_display_impl(target) {
-    var displays = electron.screen.getAllDisplays();
-    var primary = electron.screen.getPrimaryDisplay();
-    var windows = get_application_windows(CODEX_APP_NAME);
-    var existing = chooseCodexWindowForDisplay(windows, target, displays, primary);
-    if (existing) {
-        var existingPlacement = resolveCodexPlacementForDisplayTarget(target);
-        var existingBounds = resolveBoundsForPlacement(existingPlacement, displays, primary);
-        focus_application_window(existing);
-        if (existingBounds) {
-            move_application_window(existing, existingBounds);
-            existing = Object.assign({}, existing, existingBounds);
-        }
-        schedule_mouse_and_input_focus(target);
-        return;
-    }
-
-    var created = await create_codex_window(target);
-    if (!created) {
-        return;
-    }
-
-    displays = electron.screen.getAllDisplays();
-    primary = electron.screen.getPrimaryDisplay();
-    var placement = resolveCodexPlacementForDisplayTarget(target);
-    var bounds = resolveBoundsForPlacement(placement, displays, primary);
-    focus_application_window(created);
-    if (bounds) {
-        move_application_window(created, bounds);
-        created = Object.assign({}, created, bounds);
-    }
-    schedule_mouse_and_input_focus(target);
-}
-
-function get_application_windows(appName) {
-    if (!dock_query || typeof dock_query.getApplicationWindows !== "function") {
-        return [];
-    }
-    try {
-        var windows = dock_query.getApplicationWindows({ name: String(appName) });
-        return Array.isArray(windows) ? windows : [];
-    } catch (e) {
-        return [];
-    }
-}
-
-function focus_application_window(windowInfo) {
-    if (!windowInfo || !dock_query ||
-        typeof dock_query.focusApplicationWindowByPid !== "function") {
-        return false;
-    }
-    try {
-        return !!dock_query.focusApplicationWindowByPid({
-            pid: Number(windowInfo.pid),
-            windowIndex: Number(windowInfo.windowIndex)
-        });
-    } catch (e) {
-        return false;
-    }
-}
-
-function move_application_window(windowInfo, bounds) {
-    if (!windowInfo || !bounds || !dock_query ||
-        typeof dock_query.moveApplicationWindowByPidAndIndex !== "function") {
-        return false;
-    }
-    try {
-        return !!dock_query.moveApplicationWindowByPidAndIndex({
-            pid: Number(windowInfo.pid),
-            windowIndex: Number(windowInfo.windowIndex),
-            x: Math.round(bounds.x),
-            y: Math.round(bounds.y),
-            w: Math.round(bounds.w),
-            h: Math.round(bounds.h)
-        });
-    } catch (e) {
-        return false;
-    }
-}
-
-function move_mouse_to_display_center(target) {
-    if (!dock_query || typeof dock_query.moveMouse !== "function") {
-        return false;
-    }
-    try {
-        var point = resolveMouseTargetPoint(
-            target,
-            electron.screen.getAllDisplays(),
-            electron.screen.getPrimaryDisplay()
-        );
-        if (!point) {
-            return false;
-        }
-        return !!dock_query.moveMouse({
-            x: Math.round(point.x),
-            y: Math.round(point.y)
-        });
-    } catch (e) {
-        return false;
-    }
-}
-
-function schedule_mouse_and_input_focus(target) {
-    setTimeout(() => {
-        move_mouse_to_display_center(target);
-    }, codex_input_focus_delay_ms);
-    setTimeout(() => {
-        focus_codex_window_on_display(target);
-        focus_codex_composer_with_escape();
-    }, codex_input_focus_delay_ms + codex_input_focus_after_mouse_delay_ms);
-    setTimeout(() => {
-        focus_codex_window_on_display(target);
-        focus_codex_composer_with_escape();
-    }, codex_input_focus_delay_ms + codex_input_focus_after_mouse_delay_ms + codex_input_focus_retry_delay_ms);
-}
-
-function focus_codex_window_on_display(target) {
-    var windows = get_application_windows(CODEX_APP_NAME);
-    var existing = chooseCodexWindowForDisplay(
-        windows,
-        target,
-        electron.screen.getAllDisplays(),
-        electron.screen.getPrimaryDisplay()
-    );
-    if (!existing) return false;
-    return focus_application_window(existing);
-}
-
-function focus_codex_composer_with_escape() {
-    if (dock_query && typeof dock_query.pressKeyCode === "function") {
-        try {
-            return !!dock_query.pressKeyCode({ keyCode: 53 });
-        } catch (e) {
-            // Fall through to AppleScript on older native builds.
-        }
-    }
-
-    var script = [
-        `tell application id "${CODEX_APP_BUNDLE_ID}" to activate`,
-        "tell application \"System Events\"",
-        "key code 53",
-        "end tell"
-    ];
-    var args = script.flatMap(line => ["-e", line]);
-    child_process.execFile("osascript", args, () => {});
-}
-
-async function create_codex_window(target) {
-    var beforeWindows = get_application_windows(CODEX_APP_NAME);
-    if (beforeWindows.length === 0) {
-        if (!launch_codex_app()) {
-            return null;
-        }
-    } else {
-        var triggered = await trigger_codex_new_window();
-        if (!triggered) {
-            await sleep(codex_new_window_poll_ms);
-            triggered = await trigger_codex_new_window();
-        }
-        if (!triggered) {
-            return null;
-        }
-    }
-
-    var afterWindows = await wait_for_codex_window(beforeWindows);
-    if (afterWindows.length === 0) {
-        return null;
-    }
-    return chooseCreatedCodexWindow(
-        beforeWindows,
-        afterWindows,
-        target,
-        electron.screen.getAllDisplays(),
-        electron.screen.getPrimaryDisplay()
-    );
-}
-
-function launch_codex_app() {
-    try {
-        child_process.execFileSync("open", ["-b", CODEX_APP_BUNDLE_ID], {
-            stdio: "ignore"
-        });
-        return true;
-    } catch (e) {
-        return false;
-    }
-}
-
-function trigger_codex_new_window() {
-    return new Promise(resolve => {
-        var script = [
-            `tell application id "${CODEX_APP_BUNDLE_ID}" to activate`,
-            "tell application \"System Events\"",
-            `tell process "${CODEX_APP_NAME}"`,
-            "click menu item \"New Window\" of menu 1 of menu bar item \"File\" of menu bar 1",
-            "end tell",
-            "end tell"
-        ];
-        var args = script.flatMap(line => ["-e", line]);
-        child_process.execFile("osascript", args, error => {
-            resolve(!error);
-        });
-    });
-}
-
-function wait_for_codex_window(beforeWindows) {
-    return new Promise(resolve => {
-        var deadline = Date.now() + codex_new_window_timeout_ms;
-        function poll() {
-            var current = get_application_windows(CODEX_APP_NAME);
-            if (current.length > beforeWindows.length) {
-                resolve(current);
-                return;
-            }
-            if (beforeWindows.length === 0 && current.length > 0) {
-                resolve(current);
-                return;
-            }
-            if (Date.now() >= deadline) {
-                resolve(current);
-                return;
-            }
-            setTimeout(poll, codex_new_window_poll_ms);
-        }
-        poll();
-    });
-}
-
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 function open_item_target(item) {

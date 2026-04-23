@@ -29,17 +29,14 @@ Notes
 - Key matching in the renderer is case-insensitive, with symbolic support for launcher keys such as ``Tab``, ``Shift``, left ``Command``, right ``Command``, and ``Space``.
 - In the current default config, ``S`` is mapped to Safari on ``external_left_half`` and ``B`` is mapped to Google Chrome on ``external_right_half``.
 - In the current default config, both ``X`` and ``G`` are mapped to web apps that use ``internal_fill``.
-- In the current launcher behavior, ``Tab`` focuses or creates ``Codex`` on the external display, ``Shift`` focuses or creates ``Codex`` on the internal display, left ``Command`` targets the left side display, and right ``Command`` targets the right side display; each action also moves the mouse to the target display center and asks Codex to focus its composer with ``Escape`` instead of clicking the input box.
-- ``Codex`` is intentionally excluded from the ordinary launcher HUD, so these symbolic keys cannot fall through to a stale generic app-placement entry.
-- ``ChatGPT`` is intentionally excluded from the launcher HUD and does not receive a fallback numeric key.
+- In the current launcher behavior, ``Shift`` opens ``Codex``, ``Tab`` opens ``ChatGPT``, left ``Command`` opens ``System Settings``, and right ``Command`` is a reserved no-op. App shortcuts restore remembered window bounds when available.
+- ``Codex`` and ``ChatGPT`` are intentionally excluded from the ordinary launcher HUD, so their symbolic keys cannot fall through to a stale generic app-placement entry.
 - `ArrowLeft` moves the frontmost window to the left side-display work area.
 - `ArrowRight` moves the frontmost window to the right side-display work area.
 - `ArrowUp` moves the frontmost window to the external display work area.
 - `ArrowDown` moves the frontmost window to the internal display work area.
 - `【` / `】` tile the frontmost window to the left or right half of its current display.
 - `1` / `2` / `3` are available again for ordinary launcher item selection when those keys are assigned or used as fallback numbers.
-- When the target display already has a ``Codex`` window, dock-switch reuses the most relevant existing window there in the order ``focused > main > first usable``.
-- When the target display has no ``Codex`` window, dock-switch triggers ``Codex > File > New Window`` and then fills the target display work area only if it can identify the newly created window; it does not move an old window from another display as a substitute.
 - `\` tiles to full size on the current display work area.
 - Screen direction codes used by keyboard movement are: `0=external`, `1=internal`, `2=full`, `3=left`, `4=right`.
 - If ``placement`` is set, placement behavior takes precedence over remembered bounds.

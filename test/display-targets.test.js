@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { resolveMouseTargetPoint } = require("../src/display-targets");
+const { getDisplayForTarget } = require("../src/display-targets");
 
 function makeDisplay({ id, label, internal, x, y, width, height, workArea }) {
     return {
@@ -13,7 +13,7 @@ function makeDisplay({ id, label, internal, x, y, width, height, workArea }) {
     };
 }
 
-test("resolveMouseTargetPoint returns the internal display center", () => {
+test("getDisplayForTarget returns the internal display", () => {
     const displays = [
         makeDisplay({
             id: 1,
@@ -47,13 +47,10 @@ test("resolveMouseTargetPoint returns the internal display center", () => {
         })
     ];
 
-    assert.deepEqual(
-        resolveMouseTargetPoint("internal", displays, displays[0]),
-        { x: 756, y: 470 }
-    );
+    assert.equal(getDisplayForTarget("internal", displays, displays[0]), displays[0]);
 });
 
-test("resolveMouseTargetPoint returns the external display center", () => {
+test("getDisplayForTarget returns the named external display", () => {
     const displays = [
         makeDisplay({
             id: 1,
@@ -87,13 +84,10 @@ test("resolveMouseTargetPoint returns the external display center", () => {
         })
     ];
 
-    assert.deepEqual(
-        resolveMouseTargetPoint("external", displays, displays[0]),
-        { x: 701, y: -705 }
-    );
+    assert.equal(getDisplayForTarget("external", displays, displays[0]), displays[2]);
 });
 
-test("resolveMouseTargetPoint returns the side display center and falls back to external", () => {
+test("getDisplayForTarget returns the side display and falls back to external", () => {
     const withSide = [
         makeDisplay({
             id: 1,
@@ -128,21 +122,12 @@ test("resolveMouseTargetPoint returns the side display center and falls back to 
     ];
     const withoutSide = withSide.slice(0, 2);
 
-    assert.deepEqual(
-        resolveMouseTargetPoint("side_left", withSide, withSide[0]),
-        { x: -1539, y: -525 }
-    );
-    assert.deepEqual(
-        resolveMouseTargetPoint("side_left", withoutSide, withoutSide[0]),
-        { x: 701, y: -705 }
-    );
-    assert.deepEqual(
-        resolveMouseTargetPoint("side", withSide, withSide[0]),
-        { x: -1539, y: -525 }
-    );
+    assert.equal(getDisplayForTarget("side_left", withSide, withSide[0]), withSide[2]);
+    assert.equal(getDisplayForTarget("side_left", withoutSide, withoutSide[0]), withoutSide[1]);
+    assert.equal(getDisplayForTarget("side", withSide, withSide[0]), withSide[2]);
 });
 
-test("resolveMouseTargetPoint maps the current four-display layout", () => {
+test("getDisplayForTarget maps the current four-display layout", () => {
     const displays = [
         makeDisplay({
             id: 1,
@@ -186,8 +171,8 @@ test("resolveMouseTargetPoint maps the current four-display layout", () => {
         })
     ];
 
-    assert.deepEqual(resolveMouseTargetPoint("internal", displays, displays[0]), { x: 756, y: 470 });
-    assert.deepEqual(resolveMouseTargetPoint("external", displays, displays[0]), { x: 756, y: -705 });
-    assert.deepEqual(resolveMouseTargetPoint("side_left", displays, displays[0]), { x: -1484, y: -525 });
-    assert.deepEqual(resolveMouseTargetPoint("side_right", displays, displays[0]), { x: 2996, y: -525 });
+    assert.equal(getDisplayForTarget("internal", displays, displays[0]), displays[0]);
+    assert.equal(getDisplayForTarget("external", displays, displays[0]), displays[3]);
+    assert.equal(getDisplayForTarget("side_left", displays, displays[0]), displays[1]);
+    assert.equal(getDisplayForTarget("side_right", displays, displays[0]), displays[2]);
 });

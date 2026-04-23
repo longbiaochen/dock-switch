@@ -1,8 +1,7 @@
-var CODEX_DISPLAY_SHORTCUTS = Object.freeze({
-    TAB: "external",
-    SHIFT: "internal",
-    COMMAND_LEFT: "side_left",
-    COMMAND_RIGHT: "side_right"
+var APP_SHORTCUTS = Object.freeze({
+    TAB: "ChatGPT",
+    SHIFT: "Codex",
+    COMMAND_LEFT: "System Settings"
 });
 var RESERVED_LAUNCHER_SHORTCUTS = Object.freeze({
     TAB: true,
@@ -11,8 +10,8 @@ var RESERVED_LAUNCHER_SHORTCUTS = Object.freeze({
     COMMAND_RIGHT: true
 });
 
-function resolveCodexDisplayShortcut(normalizedKey) {
-    return CODEX_DISPLAY_SHORTCUTS[String(normalizedKey || "")] || "";
+function resolveAppShortcut(normalizedKey) {
+    return APP_SHORTCUTS[String(normalizedKey || "")] || "";
 }
 
 function resolveWindowPlacementShortcut(normalizedKey) {
@@ -24,7 +23,7 @@ function isReservedLauncherShortcut(normalizedKey) {
 }
 
 module.exports = {
-    resolveCodexDisplayShortcut,
+    resolveAppShortcut,
     isReservedLauncherShortcut,
     resolveWindowPlacementShortcut
 };

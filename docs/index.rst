@@ -75,10 +75,9 @@ Notes
 - If no external display is detected, ``external_left_half`` falls back to the left half of the internal display work area.
 - If no external display is detected, ``external_right_half`` falls back to the right half of the internal display work area.
 - In the current default config, ``S`` targets Safari on the left half and ``B`` targets Google Chrome on the right half.
-- In the current launcher behavior, ``Tab``/``Shift``/left ``Command``/right ``Command`` focus or create ``Codex`` windows on external/internal/left-side/right-side displays, move the mouse to the target display center, and ask Codex to focus its composer with ``Escape`` instead of clicking the input box.
+- In the current launcher behavior, ``Shift`` opens ``Codex``, ``Tab`` opens ``ChatGPT``, left ``Command`` opens ``System Settings``, and right ``Command`` is a reserved no-op. App shortcuts restore remembered window bounds when available.
 - In the current launcher behavior, ``【`` and ``】`` tile the frontmost window to the left or right half of its current display.
-- ``Codex`` is intentionally hidden from the ordinary HUD item list; its symbolic keys do not fall through to generic app launch or placement.
-- ``ChatGPT`` is intentionally hidden from the launcher HUD and receives no dock-switch hotkey or fallback numeric key.
+- ``Codex`` and ``ChatGPT`` are intentionally hidden from the ordinary HUD item list; their symbolic keys do not fall through to generic app launch or placement.
 - Numeric keys remain available for ordinary launcher selection and fallback numbering.
 - In the current default config, both ``G`` and ``X`` are mapped to web apps that use ``internal_fill`` on the internal display.
 - You can map any convenient key to ``F20`` with Karabiner-Elements.

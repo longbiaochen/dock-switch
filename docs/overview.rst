@@ -11,17 +11,16 @@ Core Flow
 ---------
 
 1. A global shortcut (`F20`) toggles the launcher window.
-2. In the current default config, ``S`` targets Safari on the left half, ``B`` targets Google Chrome on the right half, ``X`` and ``G`` target internal-fill web apps, and ``Tab`` / ``Shift`` / left ``Command`` / right ``Command`` target Codex on external / internal / left-side / right-side displays.
+2. In the current default config, ``S`` targets Safari on the left half, ``B`` targets Google Chrome on the right half, ``X`` and ``G`` target internal-fill web apps, and symbolic shortcuts target ChatGPT, Codex, and System Settings.
 3. The main process calls the native ``dock-query`` addon to fetch Dock app metadata.
 4. The renderer builds a compact key map UI.
 5. Key presses launch/focus apps; items with explicit placement or ``kind: "web_app"``
    use the placement path, while other apps restore remembered bounds.
    ``ArrowLeft``/``ArrowRight`` move to the left/right side-display work areas,
    ``ArrowUp`` moves to the external display, ``ArrowDown`` moves to the internal
-   display, ``【``/``】`` tile the current display left/right half, and
-   ``Tab``/``Shift``/left ``Command``/right ``Command`` focus or create ``Codex``
-   windows on external/internal/left-side/right-side displays, move the mouse to the target display
-   center, and ask Codex to focus its composer with ``Escape``. ``Codex`` is excluded
+   display, ``【``/``】`` tile the current display left/right half, ``Shift`` opens
+   ``Codex``, ``Tab`` opens ``ChatGPT``, left ``Command`` opens ``System Settings``,
+   and right ``Command`` is a reserved no-op. ``Codex`` and ``ChatGPT`` are excluded
    from the ordinary HUD item list, while numeric keys remain available for normal
    launcher selection.
 
