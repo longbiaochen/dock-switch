@@ -11,7 +11,7 @@ const {
 } = require("./launcher-items");
 const {
     isReservedLauncherShortcut,
-    resolveCodexDisplayShortcut,
+    resolveAppShortcut,
     resolveWindowPlacementShortcut
 } = require("./launcher-shortcuts");
 
@@ -130,6 +130,15 @@ function getItemPlacement(item) {
     return "";
 }
 
+function openAndRestoreItem(item) {
+    if (!item || !item.name) return;
+    saveFrontmostWindowState();
+    child_process.execFile("open", ["-a", item.name], () => {});
+    setTimeout(() => {
+        restoreWindowState(item);
+    }, 120);
+}
+
 function getArrowAction(key, code) {
     if (ARROW_KEY_ACTIONS[key] !== undefined) return ARROW_KEY_ACTIONS[key];
     if (ARROW_KEY_ACTIONS[code] !== undefined) return ARROW_KEY_ACTIONS[code];
@@ -153,9 +162,9 @@ $(function() {
             var normalizedKey = normalizeLauncherKey(e.key, e.code);
             // Hide first so launcher feels instant after key selection.
             electron.ipcRenderer.invoke('hide-window');
-            var codexDisplayTarget = resolveCodexDisplayShortcut(normalizedKey);
-            if (codexDisplayTarget) {
-                electron.ipcRenderer.send("focus-codex-on-display", codexDisplayTarget);
+            var shortcutApp = resolveAppShortcut(normalizedKey);
+            if (shortcutApp) {
+                openAndRestoreItem({ name: shortcutApp });
                 return;
             }
             if (isReservedLauncherShortcut(normalizedKey)) {
@@ -172,10 +181,10 @@ $(function() {
                 return;
             }
 
-            saveFrontmostWindowState();
             // new Notification(item.name, { body: key });
             var placement = getItemPlacement(item);
             if (placement) {
+                saveFrontmostWindowState();
                 electron.ipcRenderer.send("launch-app-with-placement", {
                     name: item.name,
                     placement: placement,
@@ -183,10 +192,7 @@ $(function() {
                     app_url: item.app_url
                 });
             } else {
-                child_process.execFile("open", ["-a", item.name], () => {});
-                setTimeout(() => {
-                    restoreWindowState(item);
-                }, 120);
+                openAndRestoreItem(item);
             }
         }
     });

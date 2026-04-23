@@ -15,7 +15,7 @@ function isDisplayLabel(display, pattern) {
         pattern.test(display.label.trim()));
 }
 
-function isExternalCodexDisplay(display) {
+function isExternalDisplay(display) {
     return isDisplayLabel(display, /^DELL U3219Q$/i) ||
         isDisplayLabel(display, /(^|\s)dell\s+u3219q(\s|$)/i);
 }
@@ -39,27 +39,19 @@ function displaySortX(display) {
     return bounds.x;
 }
 
-function sameDisplay(a, b) {
-    if (!a || !b) return false;
-    if (Number.isFinite(a.id) && Number.isFinite(b.id)) {
-        return a.id === b.id;
-    }
-    return a === b;
-}
-
 function getSideCandidates(displays) {
     if (!Array.isArray(displays)) return [];
     return displays.filter(display =>
         display &&
         display.internal !== true &&
-        !isExternalCodexDisplay(display)
+        !isExternalDisplay(display)
     );
 }
 
 function getExternalDisplay(displays, primaryDisplay, currentDisplay) {
     if (!Array.isArray(displays) || displays.length === 0) return null;
 
-    var namedExternal = displays.find(isExternalCodexDisplay);
+    var namedExternal = displays.find(isExternalDisplay);
     if (namedExternal) return namedExternal;
 
     if (currentDisplay && currentDisplay.internal === false) {
@@ -129,34 +121,6 @@ function getDisplayForTarget(target, displays, primaryDisplay) {
     return null;
 }
 
-function getDisplayTargetName(display, displays, primaryDisplay) {
-    if (!display) return "";
-    if (display.internal === true) return "internal";
-
-    var external = getExternalDisplay(displays, primaryDisplay, null);
-    if (sameDisplay(display, external)) return "external";
-
-    var sideLeft = getSideLeftDisplay(displays);
-    if (sameDisplay(display, sideLeft)) return "side_left";
-
-    var sideRight = getSideRightDisplay(displays);
-    if (sameDisplay(display, sideRight)) return "side_right";
-
-    return "external";
-}
-
-function resolveMouseTargetPoint(target, displays, primaryDisplay) {
-    if (!Array.isArray(displays) || displays.length === 0) return null;
-
-    var display = getDisplayForTarget(target, displays, primaryDisplay);
-    var area = getDisplayArea(display);
-    if (!area) return null;
-    return {
-        x: Math.floor(area.x + area.width / 2),
-        y: Math.floor(area.y + area.height / 2)
-    };
-}
-
 module.exports = {
     getDisplayArea,
     getDisplayPixelArea,
@@ -165,7 +129,5 @@ module.exports = {
     getSideLeftDisplay,
     getSideRightDisplay,
     getDisplayForTarget,
-    getDisplayTargetName,
-    normalizeDisplayTarget,
-    resolveMouseTargetPoint
+    normalizeDisplayTarget
 };

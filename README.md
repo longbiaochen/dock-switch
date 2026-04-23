@@ -10,16 +10,14 @@ Quickly switch among applications in the macOS Dock with one global hotkey.
 - Press an arrow key to fill the frontmost window on a physical display:
   - `←` left side display (`Mi Monitor (1)` on this Mac)
   - `→` right side display (`Mi Monitor (2)` on this Mac)
-  - `↑` external Codex display (`DELL U3219Q` on this Mac)
+  - `↑` external display (`DELL U3219Q` on this Mac)
   - `↓` internal display (`Built-in Retina Display` on this Mac)
 - Press `【` to tile the frontmost window to the left half of its current display.
 - Press `】` to tile the frontmost window to the right half of its current display.
-- Press `Tab` to focus or create a `Codex` window on the external display, move the mouse to that display center, and ask Codex to focus its composer with `Escape`.
-- Press `Shift` to focus or create a `Codex` window on the internal display, move the mouse to that display center, and ask Codex to focus its composer with `Escape`.
-- Press left `Command` to focus or create a `Codex` window on the left side display, move the mouse to that display center, and ask Codex to focus its composer with `Escape`.
-- Press right `Command` to focus or create a `Codex` window on the right side display, move the mouse to that display center, and ask Codex to focus its composer with `Escape`.
-- If the target display already has a `Codex` window, dock-switch reuses the most relevant existing window there (`focused` > `main` > first usable standard window).
-- If the target display has no `Codex` window, dock-switch triggers `Codex > File > New Window`, waits for the new standard window to appear, then moves it to the target display and fills that display's work area.
+- Press `Shift` to focus or open `Codex`, then restore its remembered window bounds when available.
+- Press `Tab` to focus or open `ChatGPT`, then restore its remembered window bounds when available.
+- Press left `Command` to focus or open `System Settings`, then restore its remembered window bounds when available.
+- Press right `Command` for a reserved no-op.
 - Press `\` to enter macOS native fullscreen (same as the green window button).
 - The UI closes automatically after a selection.
 
@@ -65,8 +63,8 @@ The `GitHub` web app is maximized on the internal display work area.
 Google Chrome lands on the right half of the external display.
 The `X` and `GitHub` web app bundles can target the signed-in Google Chrome `Default` profile.
 GitHub Web App is available on `G` in the current default config.
-ChatGPT is intentionally hidden from dock-switch and has no dock-switch hotkey.
-Codex is intentionally excluded from the ordinary HUD app list; use `Tab` / `Shift` / left `Command` / right `Command` for its per-display launcher path.
+ChatGPT and Codex are intentionally excluded from the ordinary HUD app list; use `Tab` for ChatGPT and `Shift` for Codex.
+Left `Command` opens System Settings. Right `Command` is intentionally reserved as a no-op.
 If no external display is available, `external_right_half` falls back to the right half of the internal display work area.
 If no external display is available, `external_left_half` falls back to the left half of the internal display work area.
 
