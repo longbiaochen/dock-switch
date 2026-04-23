@@ -3,6 +3,15 @@ function getDisplayArea(display) {
     return display.workArea || display.bounds || null;
 }
 
+function resolveDisplayCenterPoint(display) {
+    var area = getDisplayArea(display);
+    if (!area) return null;
+    return {
+        x: Math.round(area.x + area.width / 2),
+        y: Math.round(area.y + area.height / 2)
+    };
+}
+
 function getDisplayPixelArea(display) {
     var area = getDisplayArea(display);
     if (!area) return 0;
@@ -123,6 +132,7 @@ function getDisplayForTarget(target, displays, primaryDisplay) {
 
 module.exports = {
     getDisplayArea,
+    resolveDisplayCenterPoint,
     getDisplayPixelArea,
     getInternalDisplay,
     getExternalDisplay,

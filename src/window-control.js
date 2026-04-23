@@ -2,8 +2,16 @@ const {
     getDisplayArea,
     getDisplayForTarget,
     getExternalDisplay,
-    getInternalDisplay
+    getInternalDisplay,
+    resolveDisplayCenterPoint
 } = require("./display-targets");
+
+var MOUSE_CENTER_ACTIONS = Object.freeze({
+    up: true,
+    down: true,
+    left: true,
+    right: true
+});
 
 function getAvailableDisplays(dockQuery, electronScreen) {
     // AX window bounds align with Electron's screen coordinates on macOS.
@@ -55,6 +63,48 @@ function boundsForDisplay(display) {
     var area = getDisplayArea(display);
     if (!area) return null;
     return { x: area.x, y: area.y, w: area.width, h: area.height };
+}
+
+function moveMouseToDisplayCenter(dockQuery, display) {
+    if (!dockQuery || typeof dockQuery.moveMouse !== "function") {
+        return false;
+    }
+    var point = resolveDisplayCenterPoint(display);
+    if (!point) return false;
+    try {
+        return !!dockQuery.moveMouse({
+            x: point.x,
+            y: point.y
+        });
+    } catch (e) {
+        return false;
+    }
+}
+
+function moveMouseToBoundsDisplayCenter(dockQuery, electronScreen, bounds) {
+    if (!bounds) return false;
+    var displays = getAvailableDisplays(dockQuery, electronScreen);
+    if (!Array.isArray(displays) || displays.length === 0) return false;
+    return moveMouseToDisplayCenter(dockQuery, getDisplayForRect(displays, bounds));
+}
+
+function moveMouseToApplicationDisplay(processName, dockQuery, electronScreen) {
+    if (!processName || !dockQuery || typeof dockQuery.getApplicationWindowBounds !== "function") {
+        return false;
+    }
+    try {
+        var rect = dockQuery.getApplicationWindowBounds({ name: String(processName) });
+        if (!rect || ![rect.x, rect.y, rect.w, rect.h].every(Number.isFinite) || rect.w <= 0 || rect.h <= 0) {
+            return false;
+        }
+        return moveMouseToBoundsDisplayCenter(dockQuery, electronScreen, rect);
+    } catch (e) {
+        return false;
+    }
+}
+
+function shouldCenterMouseForAction(action) {
+    return !!MOUSE_CENTER_ACTIONS[String(action || "")];
 }
 
 function resolveBoundsForAction(action, displays, primaryDisplay, currentDisplay) {
@@ -219,7 +269,11 @@ function placeFocusedWindowByAction(dockQuery, electronScreen, action) {
         w: Math.round(target.w),
         h: Math.round(target.h)
     };
-    return !!dockQuery.moveFocusedWindow(payload);
+    var moved = !!dockQuery.moveFocusedWindow(payload);
+    if (moved && shouldCenterMouseForAction(action)) {
+        moveMouseToBoundsDisplayCenter(dockQuery, electronScreen, target);
+    }
+    return moved;
 }
 
 function placeProcessWindowByAction(processName, dockQuery, electronScreen, action) {
@@ -255,7 +309,11 @@ function placeProcessWindowByAction(processName, dockQuery, electronScreen, acti
         w: Math.round(target.w),
         h: Math.round(target.h)
     };
-    return !!dockQuery.moveApplicationWindow(payload);
+    var moved = !!dockQuery.moveApplicationWindow(payload);
+    if (moved && shouldCenterMouseForAction(action)) {
+        moveMouseToBoundsDisplayCenter(dockQuery, electronScreen, target);
+    }
+    return moved;
 }
 
 function placeProcessWindowByPlacement(processName, dockQuery, electronScreen, placement) {
@@ -304,6 +362,9 @@ function placePidWindowByPlacement(processPid, dockQuery, electronScreen, placem
 
 module.exports = {
     getDisplayForRect,
+    moveMouseToApplicationDisplay,
+    moveMouseToBoundsDisplayCenter,
+    moveMouseToDisplayCenter,
     resolveBoundsForAction,
     resolveBoundsForPlacement,
     placeFocusedWindowByPlacement,
