@@ -15,11 +15,6 @@ function isDisplayLabel(display, pattern) {
         pattern.test(display.label.trim()));
 }
 
-function isLegacySideDisplay(display) {
-    return isDisplayLabel(display, /^H279$/i) ||
-        isDisplayLabel(display, /(^|\s)h279(\s|$)/i);
-}
-
 function isExternalCodexDisplay(display) {
     return isDisplayLabel(display, /^DELL U3219Q$/i) ||
         isDisplayLabel(display, /(^|\s)dell\s+u3219q(\s|$)/i);
@@ -67,11 +62,11 @@ function getExternalDisplay(displays, primaryDisplay, currentDisplay) {
     var namedExternal = displays.find(isExternalCodexDisplay);
     if (namedExternal) return namedExternal;
 
-    if (currentDisplay && currentDisplay.internal === false && !isLegacySideDisplay(currentDisplay)) {
+    if (currentDisplay && currentDisplay.internal === false) {
         return currentDisplay;
     }
 
-    var explicitExternal = displays.find(d => d && d.internal === false && !isLegacySideDisplay(d));
+    var explicitExternal = displays.find(d => d && d.internal === false);
     if (explicitExternal) return explicitExternal;
 
     if (currentDisplay && Number.isFinite(currentDisplay.id)) {
@@ -82,7 +77,7 @@ function getExternalDisplay(displays, primaryDisplay, currentDisplay) {
     if (displays.length > 1) {
         var internalGuess = getInternalDisplay(displays, primaryDisplay);
         var externalGuess = displays
-            .filter(d => d && d !== internalGuess && !isLegacySideDisplay(d))
+            .filter(d => d && d !== internalGuess)
             .sort((a, b) => getDisplayPixelArea(b) - getDisplayPixelArea(a))[0];
         if (externalGuess) return externalGuess;
     }
@@ -97,21 +92,6 @@ function getExternalDisplay(displays, primaryDisplay, currentDisplay) {
 
 function getSideLeftDisplay(displays) {
     if (!Array.isArray(displays) || displays.length === 0) return null;
-
-    var exactLabel = displays.find(display =>
-        display &&
-        typeof display.label === "string" &&
-        display.label.trim() === "H279"
-    );
-    if (exactLabel) return exactLabel;
-
-    var labelMatch = displays.find(display =>
-        display &&
-        typeof display.label === "string" &&
-        /(^|\s)h279(\s|$)/i.test(display.label)
-    );
-    if (labelMatch) return labelMatch;
-
     return getSideCandidates(displays)
         .slice()
         .sort((a, b) => displaySortX(a) - displaySortX(b))[0] || null;
@@ -122,10 +102,6 @@ function getSideRightDisplay(displays) {
     return getSideCandidates(displays)
         .slice()
         .sort((a, b) => displaySortX(b) - displaySortX(a))[0] || null;
-}
-
-function getSideDisplay(displays) {
-    return getSideLeftDisplay(displays);
 }
 
 function normalizeDisplayTarget(target) {
@@ -188,7 +164,6 @@ module.exports = {
     getExternalDisplay,
     getSideLeftDisplay,
     getSideRightDisplay,
-    getSideDisplay,
     getDisplayForTarget,
     getDisplayTargetName,
     normalizeDisplayTarget,

@@ -40,7 +40,7 @@ test("resolveBoundsForPlacement uses the side display work area for side_fill", 
         }),
         makeDisplay({
             id: 5,
-            label: "H279",
+            label: "Side Monitor",
             internal: false,
             x: -2499,
             y: -1080,
@@ -100,7 +100,7 @@ test("resolveBoundsForPlacement uses the external display work area for external
         }),
         makeDisplay({
             id: 5,
-            label: "H279",
+            label: "Side Monitor",
             internal: false,
             x: -2499,
             y: -1080,

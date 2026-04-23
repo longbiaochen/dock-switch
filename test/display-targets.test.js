@@ -37,7 +37,7 @@ test("resolveMouseTargetPoint returns the internal display center", () => {
         }),
         makeDisplay({
             id: 5,
-            label: "H279",
+            label: "Side Monitor",
             internal: false,
             x: -2499,
             y: -1080,
@@ -67,7 +67,7 @@ test("resolveMouseTargetPoint returns the external display center", () => {
         }),
         makeDisplay({
             id: 5,
-            label: "H279",
+            label: "Side Monitor",
             internal: false,
             x: -2499,
             y: -1080,
@@ -117,7 +117,7 @@ test("resolveMouseTargetPoint returns the side display center and falls back to 
         }),
         makeDisplay({
             id: 5,
-            label: "H279",
+            label: "Side Monitor",
             internal: false,
             x: -2499,
             y: -1080,
