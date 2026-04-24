@@ -8,6 +8,7 @@ const {
     placeProcessWindowByPlacement
 } = require("./window-control");
 const { selectCodexDisplay } = require("./codex-display-control");
+const { placeComputerUseBrowser } = require("./computer-use-browser-placement");
 
 const CONTROL_DIR = path.join(os.homedir(), "Library", "Application Support", "dock-switch");
 const CONTROL_SOCKET_PATH = path.join(CONTROL_DIR, "control.sock");
@@ -225,6 +226,14 @@ async function selectCodexDisplayWindow(command, deps) {
     ));
 }
 
+async function placeComputerUseBrowserWindow(command, deps) {
+    const anchorApp = String((command && command.anchorApp) || "Codex").trim();
+    const browserApp = String((command && command.browserApp) || "Google Chrome for Testing").trim();
+    return runSingleFlight(`computer-use-browser:${anchorApp}:${browserApp}`, () => (
+        placeComputerUseBrowser(command, deps)
+    ));
+}
+
 function getDisplaysSnapshot(deps) {
     return deps.electronScreen.getAllDisplays().map(display => ({
         id: display.id,
@@ -309,6 +318,8 @@ function setupControlServer(deps) {
                             response = await movePidWindow(command, deps);
                         } else if (command.command === "select-codex-display") {
                             response = await selectCodexDisplayWindow(command, deps);
+                        } else if (command.command === "computer-use-browser") {
+                            response = await placeComputerUseBrowserWindow(command, deps);
                         } else if (command.command === "gokit5-status") {
                             response = getGokit5Status(deps);
                         } else if (command.command === "debug-displays") {
