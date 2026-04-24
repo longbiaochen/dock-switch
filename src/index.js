@@ -123,6 +123,44 @@ function restoreWindowState(item) {
     }
 }
 
+function focusApplicationWindow(appName) {
+    if (!appName || !dockQuery ||
+        typeof dockQuery.getApplicationWindows !== "function" ||
+        typeof dockQuery.focusApplicationWindowByPid !== "function") {
+        return false;
+    }
+
+    try {
+        var windows = dockQuery.getApplicationWindows({ name: String(appName) });
+        if (!Array.isArray(windows) || windows.length === 0) return false;
+        var win = windows.find(w => w && w.focused) ||
+            windows.find(w => w && w.main) ||
+            windows[0];
+        if (!win ||
+            !Number.isFinite(win.pid) ||
+            !Number.isFinite(win.windowIndex)) {
+            return false;
+        }
+        return !!dockQuery.focusApplicationWindowByPid({
+            pid: Math.round(win.pid),
+            windowIndex: Math.round(win.windowIndex)
+        });
+    } catch (e) {
+        return false;
+    }
+}
+
+function focusApplicationWindowSoon(appName) {
+    var deadline = Date.now() + 1600;
+    var tryFocus = () => {
+        if (focusApplicationWindow(appName)) return;
+        if (Date.now() < deadline) {
+            setTimeout(tryFocus, 60);
+        }
+    };
+    setTimeout(tryFocus, 60);
+}
+
 function getItemPlacement(item) {
     if (!item) return "";
     if (item.placement) return String(item.placement);
@@ -136,6 +174,7 @@ function openAndRestoreItem(item) {
     child_process.execFile("open", ["-a", item.name], () => {});
     setTimeout(() => {
         restoreWindowState(item);
+        focusApplicationWindowSoon(item.name);
         electron.ipcRenderer.send("move-mouse-to-app-display", item.name);
     }, 120);
 }
@@ -213,6 +252,11 @@ $(function() {
     });
 
     electron.ipcRenderer.on("update-display", () => {});
+
+    electron.ipcRenderer.on("activate-app-shortcut", (event, appName) => {
+        electron.ipcRenderer.invoke('hide-window');
+        openAndRestoreItem({ name: appName });
+    });
 
 
 });
