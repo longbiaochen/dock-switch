@@ -1,6 +1,15 @@
 # dock-switch
 Quickly switch among applications in the macOS Dock with one global hotkey.
 
+## Release Update: GoKit5 Serial Button Control
+dock-switch can now listen to a connected GoKit5 / Gizwits controller over serial and turn its hardware button events into display-control actions. A flashed controller can send host-button messages to dock-switch so Codex focus, the mouse pointer, and visible cursor feedback can move between the internal, external, and side displays without reaching for the keyboard.
+
+- Serial listening starts automatically when dock-switch launches.
+- The GoKit5 USB serial port is auto-detected and can also be pinned with `GOKIT5_SERIAL_PORT=/dev/cu.usbmodem...`.
+- Physical buttons map to display targets: minus = left side display, voice = external display, green = right side display, plus = internal display.
+- `dock-switch-cli gokit5-status` reports whether the listener is enabled, running, and which port is active.
+- Set `DOCK_SWITCH_GOKIT5=0` to disable the listener.
+
 ## Screenshot
 ![Dock switch UI](help/screenshot-1.jpg)
 
