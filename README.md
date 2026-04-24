@@ -72,11 +72,13 @@ Example:
 When triggered from dock-switch, Safari lands on the left half of the external display.
 Web apps with `kind: "web_app"` use the same placement by default.
 The `X` web app is maximized on the internal display work area.
+The `小红书` web app is maximized on the internal display work area.
 The `GitHub` web app is maximized on the internal display work area.
 Google Chrome lands on the right half of the external display.
-The `X` and `GitHub` web app bundles can target the signed-in Google Chrome `Default` profile.
+The `X`, `小红书`, and `GitHub` web app bundles can target the signed-in Chrome-family profile used by their app shims.
+Xiaohongshu Web App is available on `R` in the current default config.
 GitHub Web App is available on `G` in the current default config.
-ChatGPT and Codex are intentionally excluded from the ordinary HUD app list; use `Tab` for ChatGPT and `Shift` for Codex.
+ChatGPT and Codex render in the HUD as symbolic shortcut labels: `⇥` for `Tab` / ChatGPT and `⇧` for `Shift` / Codex. They remain excluded from ordinary fallback numbering.
 Left `Command` opens System Settings. Right `Command` is intentionally reserved as a no-op.
 If no external display is available, `external_right_half` falls back to the right half of the internal display work area.
 If no external display is available, `external_left_half` falls back to the left half of the internal display work area.

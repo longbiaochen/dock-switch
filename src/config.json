@@ -55,9 +55,13 @@
             "screen": "0"
         },
         {
-            "name": "Reminders",
+            "name": "小红书",
             "key": "R",
-            "screen": "4"
+            "screen": "3",
+            "kind": "web_app",
+            "placement": "internal_fill",
+            "open_path": "~/Applications/Chromium Apps.localized/小红书.app",
+            "app_url": "https://www.xiaohongshu.com/explore?m_source=pwa"
         },
         {
             "name": "Notes",

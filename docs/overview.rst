@@ -11,7 +11,7 @@ Core Flow
 ---------
 
 1. A global shortcut (`F20`) toggles the launcher window.
-2. In the current default config, ``S`` targets Safari on the left half, ``B`` targets Google Chrome on the right half, ``X`` and ``G`` target internal-fill web apps, and symbolic shortcuts target ChatGPT, Codex, and System Settings.
+2. In the current default config, ``S`` targets Safari on the left half, ``B`` targets Google Chrome on the right half, ``X``, ``R``, and ``G`` target internal-fill web apps, and symbolic shortcuts target ChatGPT, Codex, and System Settings.
 3. The main process calls the native ``dock-query`` addon to fetch Dock app metadata.
 4. The renderer builds a compact key map UI.
 5. Key presses launch/focus apps; items with explicit placement or ``kind: "web_app"``
