@@ -7,6 +7,7 @@ const {
     placePidWindowByPlacement,
     placeProcessWindowByPlacement
 } = require("./window-control");
+const { selectCodexDisplay } = require("./codex-display-control");
 
 const CONTROL_DIR = path.join(os.homedir(), "Library", "Application Support", "dock-switch");
 const CONTROL_SOCKET_PATH = path.join(CONTROL_DIR, "control.sock");
@@ -213,6 +214,17 @@ async function movePidWindow(command, deps) {
     });
 }
 
+async function selectCodexDisplayWindow(command, deps) {
+    const target = String(command.target || "").trim();
+    if (!target) {
+        return { ok: false, error: "target is required" };
+    }
+
+    return runSingleFlight(`select-codex-display:${target}`, () => (
+        selectCodexDisplay(command, deps)
+    ));
+}
+
 function getDisplaysSnapshot(deps) {
     return deps.electronScreen.getAllDisplays().map(display => ({
         id: display.id,
@@ -222,6 +234,13 @@ function getDisplaysSnapshot(deps) {
         scaleFactor: display.scaleFactor,
         label: display.label
     }));
+}
+
+function getGokit5Status(deps) {
+    if (deps && typeof deps.getGokit5Status === "function") {
+        return { ok: true, gokit5: deps.getGokit5Status() };
+    }
+    return { ok: true, gokit5: { enabled: false, status: "unavailable" } };
 }
 
 function replyAndClose(socket, state, response) {
@@ -288,6 +307,10 @@ function setupControlServer(deps) {
                             response = await moveApplicationWindow(command, deps);
                         } else if (command.command === "move-pid") {
                             response = await movePidWindow(command, deps);
+                        } else if (command.command === "select-codex-display") {
+                            response = await selectCodexDisplayWindow(command, deps);
+                        } else if (command.command === "gokit5-status") {
+                            response = getGokit5Status(deps);
                         } else if (command.command === "debug-displays") {
                             response = { ok: true, displays: getDisplaysSnapshot(deps) };
                         } else {

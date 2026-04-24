@@ -23,6 +23,11 @@ Core Flow
    and right ``Command`` is a reserved no-op. ``Codex`` and ``ChatGPT`` are excluded
    from the ordinary HUD item list, while numeric keys remain available for normal
    launcher selection.
+6. Display-moving arrows and app activation shortcuts move the pointer to the center
+   of the target display after the window move/focus succeeds.
+7. The optional GoKit5 serial listener maps host-button events from
+   ``longbiaochen/open-embodied`` firmware to Codex display selection without
+   changing ``Codex.app`` itself.
 
 Startup
 -------
@@ -40,4 +45,4 @@ Architecture
 - ``native/dock-query``:
   Native Node addon that reads live Dock metadata directly in-process.
 - ``bin/dock-switch-cli.js``:
-  Canonical automation CLI for display inspection, AX-based app/pid movement, and Chrome-profile targeting for Playwright-managed windows.
+  Canonical automation CLI for display inspection, Codex display selection, AX-based app/pid movement, and Chrome-profile targeting for Playwright-managed windows.

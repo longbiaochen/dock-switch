@@ -13,7 +13,19 @@ const {
     moveMouseToBoundsDisplayCenter,
     resolveBoundsForPlacement
 } = require("./window-control");
+const { normalizeLauncherKey } = require("./launcher-key");
+const {
+    isReservedLauncherShortcut,
+    resolveAppShortcut
+} = require("./launcher-shortcuts");
 const { setupControlServer } = require("./control-server");
+const { selectCodexDisplay } = require("./codex-display-control");
+const { createGokit5SerialListener } = require("./gokit5-serial");
+const {
+    resolveOpenPath,
+    findAppProcessPidByOpenPath,
+    findChromeAppProcessPid
+} = require("./web-app-runtime");
 var dock_items = [], display_items = [];
 const dock_query_module_path = path.join(
     __dirname,
@@ -36,6 +48,15 @@ const arrow_control_apply_delay_ms = 90;
 const app_launch_place_retry_delay_ms = 60;
 const app_launch_place_timeout_ms = 1600;
 var control_server_handle = null;
+var gokit5_serial_handle = null;
+var codex_display_select_inflight = Promise.resolve();
+var mouse_feedback_window = null;
+var mouse_feedback_hide_timer = null;
+var gokit5_status = {
+    enabled: false,
+    status: "not_started",
+    portPath: ""
+};
 
 // Keep the app out of the Dock; interaction is via tray + global shortcut.
 electron.app.dock.hide();
@@ -69,6 +90,7 @@ electron.app.on("ready", () => {
     });
 
     electron.win.loadURL(`file://${__dirname}/index.html`);
+    electron.win.webContents.on("before-input-event", handle_launcher_before_input);
 
     electron.win.on("blur", function() {
         // Hide whenever focus is lost so the launcher behaves like a transient palette.
@@ -134,19 +156,159 @@ electron.app.on("ready", () => {
     });
 
     dock_items = read_dock_cache();
-    control_server_handle = setupControlServer({
+    const controlDeps = {
         dockQuery: dock_query,
         electronScreen: electron.screen,
-        ensurePermissions: ensure_tcc_permissions
-    });
+        ensurePermissions: ensure_tcc_permissions,
+        getGokit5Status: get_gokit5_status,
+        showMouseFeedback: show_mouse_feedback
+    };
+    control_server_handle = setupControlServer(controlDeps);
+    gokit5_serial_handle = setup_gokit5_serial_listener(controlDeps);
 });
 
 electron.app.on("before-quit", () => {
+    if (gokit5_serial_handle && typeof gokit5_serial_handle.stop === "function") {
+        gokit5_serial_handle.stop();
+        gokit5_serial_handle = null;
+    }
     if (control_server_handle && typeof control_server_handle.cleanup === "function") {
         control_server_handle.cleanup();
         control_server_handle = null;
     }
+    if (mouse_feedback_hide_timer) {
+        clearTimeout(mouse_feedback_hide_timer);
+        mouse_feedback_hide_timer = null;
+    }
+    if (mouse_feedback_window && !mouse_feedback_window.isDestroyed()) {
+        mouse_feedback_window.close();
+        mouse_feedback_window = null;
+    }
 });
+
+function mouse_feedback_html() {
+    return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: transparent;
+}
+#ring {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 54px;
+    height: 54px;
+    margin-left: -27px;
+    margin-top: -27px;
+    border: 2px solid rgba(255, 255, 255, 0.92);
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(20, 20, 20, 0.28), 0 0 18px rgba(255, 255, 255, 0.36);
+    opacity: 0;
+    transform: scale(0.72);
+}
+#ring.pulse {
+    animation: pulse 320ms ease-out forwards;
+}
+@keyframes pulse {
+    0% { opacity: 0; transform: scale(0.72); }
+    18% { opacity: 0.92; transform: scale(0.92); }
+    100% { opacity: 0; transform: scale(1.38); }
+}
+</style>
+</head>
+<body>
+<div id="ring"></div>
+<script>
+const { ipcRenderer } = require("electron");
+const ring = document.getElementById("ring");
+ipcRenderer.on("pulse", () => {
+    ring.classList.remove("pulse");
+    void ring.offsetWidth;
+    ring.classList.add("pulse");
+});
+</script>
+</body>
+</html>`;
+}
+
+function get_mouse_feedback_window() {
+    if (mouse_feedback_window && !mouse_feedback_window.isDestroyed()) {
+        return mouse_feedback_window;
+    }
+
+    mouse_feedback_window = new electron.BrowserWindow({
+        show: false,
+        frame: false,
+        transparent: true,
+        resizable: false,
+        movable: false,
+        focusable: false,
+        skipTaskbar: true,
+        alwaysOnTop: true,
+        hasShadow: false,
+        fullscreenable: false,
+        width: 96,
+        height: 96,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false
+        }
+    });
+    mouse_feedback_window.setIgnoreMouseEvents(true);
+    mouse_feedback_window.setAlwaysOnTop(true, "screen-saver");
+    mouse_feedback_window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(mouse_feedback_html())}`);
+    mouse_feedback_window.on("closed", () => {
+        mouse_feedback_window = null;
+    });
+    return mouse_feedback_window;
+}
+
+function schedule_mouse_feedback_hide() {
+    if (mouse_feedback_hide_timer) {
+        clearTimeout(mouse_feedback_hide_timer);
+    }
+    mouse_feedback_hide_timer = setTimeout(() => {
+        mouse_feedback_hide_timer = null;
+        if (mouse_feedback_window && !mouse_feedback_window.isDestroyed()) {
+            mouse_feedback_window.hide();
+        }
+    }, 380);
+}
+
+function show_mouse_feedback(point) {
+    if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) {
+        return false;
+    }
+
+    const size = 96;
+    const win = get_mouse_feedback_window();
+    win.setBounds({
+        x: Math.round(point.x - size / 2),
+        y: Math.round(point.y - size / 2),
+        width: size,
+        height: size
+    }, false);
+    win.showInactive();
+    const send_pulse = () => {
+        if (win && !win.isDestroyed()) {
+            win.webContents.send("pulse");
+            schedule_mouse_feedback_hide();
+        }
+    };
+    if (win.webContents.isLoading()) {
+        win.webContents.once("did-finish-load", send_pulse);
+    } else {
+        send_pulse();
+    }
+    return true;
+}
 
 function query_live_dock_items() {
     var items = dock_query.getDockItems();
@@ -248,7 +410,21 @@ function launch_app_with_placement(item) {
             return;
         }
         try {
-            var chromeAppPid = find_chrome_app_process_pid(item.app_url);
+            var directAppPid = findAppProcessPidByOpenPath(item.open_path);
+            if (Number.isFinite(directAppPid) && directAppPid > 0) {
+                var directPidOk = placePidWindowByPlacement(
+                    directAppPid,
+                    dock_query,
+                    electron.screen,
+                    String(item.placement)
+                );
+                if (directPidOk) {
+                    move_mouse_to_placement_display(String(item.placement));
+                    return;
+                }
+            }
+
+            var chromeAppPid = findChromeAppProcessPid(item.app_url);
             if (Number.isFinite(chromeAppPid) && chromeAppPid > 0) {
                 var pidOk = placePidWindowByPlacement(
                     chromeAppPid,
@@ -338,6 +514,56 @@ function place_focused_window(placement) {
     }, arrow_control_apply_delay_ms);
 }
 
+function setup_gokit5_serial_listener(controlDeps) {
+    if (process.env.DOCK_SWITCH_GOKIT5 === "0") {
+        gokit5_status = {
+            enabled: false,
+            status: "disabled",
+            portPath: ""
+        };
+        return null;
+    }
+
+    gokit5_status = {
+        enabled: true,
+        status: "starting",
+        portPath: ""
+    };
+    var listener = createGokit5SerialListener({
+        onStatus: status => {
+            gokit5_status = Object.assign({
+                enabled: true,
+                updatedAt: new Date().toISOString()
+            }, status || {});
+        },
+        onTarget: (target, event) => {
+            if (!target) return;
+            codex_display_select_inflight = codex_display_select_inflight
+                .catch(() => {})
+                .then(() => selectCodexDisplay({
+                    target,
+                    source: `gokit5:${event && event.button ? event.button : ""}`
+                }, controlDeps))
+                .catch(() => {});
+        }
+    });
+    listener.start();
+    return listener;
+}
+
+function get_gokit5_status() {
+    var status = Object.assign({}, gokit5_status);
+    if (gokit5_serial_handle && typeof gokit5_serial_handle.getPortPath === "function") {
+        status.portPath = gokit5_serial_handle.getPortPath() || status.portPath || "";
+        status.running = typeof gokit5_serial_handle.isRunning === "function"
+            ? gokit5_serial_handle.isRunning()
+            : true;
+    } else {
+        status.running = false;
+    }
+    return status;
+}
+
 function open_item_target(item) {
     if (!item) {
         return;
@@ -345,68 +571,11 @@ function open_item_target(item) {
 
     var openPath = String(item.open_path || "").trim();
     if (openPath) {
-        var expandedPath = expand_user_path(openPath);
-        child_process.execFile("open", [expandedPath], () => {});
+        child_process.execFile("open", [resolveOpenPath(openPath)], () => {});
         return;
     }
 
     child_process.execFile("open", ["-a", String(item.name)], () => {});
-}
-
-function expand_user_path(inputPath) {
-    if (!inputPath) return "";
-    if (inputPath === "~") return os.homedir();
-    if (inputPath.startsWith("~/")) {
-        return path.join(os.homedir(), inputPath.slice(2));
-    }
-    return inputPath;
-}
-
-function escape_regex(text) {
-    return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function find_chrome_app_process_pid(appUrl) {
-    var targetUrl = String(appUrl || "").trim();
-    if (!targetUrl) {
-        return null;
-    }
-
-    try {
-        var result = child_process.spawnSync(
-            "ps",
-            ["ax", "-o", "pid=,command="],
-            { encoding: "utf8" }
-        );
-        if (result.status !== 0) {
-            return null;
-        }
-
-        var urlPattern = new RegExp(`--app=${escape_regex(targetUrl)}(?:\\s|$)`);
-        var chromePattern = /\/Applications\/Google Chrome\.app\/Contents\/MacOS\/Google Chrome/;
-        var candidates = String(result.stdout || "")
-            .split("\n")
-            .map(line => line.trim())
-            .filter(Boolean)
-            .map(line => {
-                var match = line.match(/^(\d+)\s+(.*)$/);
-                if (!match) return null;
-                return {
-                    pid: Number(match[1]),
-                    command: match[2]
-                };
-            })
-            .filter(Boolean)
-            .filter(entry => chromePattern.test(entry.command))
-            .filter(entry => !/--type=/.test(entry.command))
-            .filter(entry => !/crashpad_handler/.test(entry.command))
-            .filter(entry => urlPattern.test(entry.command))
-            .sort((a, b) => b.pid - a.pid);
-
-        return candidates.length > 0 ? candidates[0].pid : null;
-    } catch (e) {
-        return null;
-    }
 }
 
 function focused_process_name() {
@@ -421,6 +590,29 @@ function focused_process_name() {
         // ignore
     }
     return "";
+}
+
+function handle_launcher_before_input(event, input) {
+    if (!electron.win || !electron.win.isVisible() || !input) {
+        return;
+    }
+    if (input.type !== "keyDown" || input.isAutoRepeat) {
+        return;
+    }
+
+    var normalizedKey = normalizeLauncherKey(input.key, input.code);
+    var shortcutApp = resolveAppShortcut(normalizedKey);
+    if (shortcutApp) {
+        event.preventDefault();
+        electron.win.webContents.send("activate-app-shortcut", shortcutApp);
+        return;
+    }
+
+    if (isReservedLauncherShortcut(normalizedKey)) {
+        event.preventDefault();
+        stop_dock_tracking();
+        electron.app.hide();
+    }
 }
 
 function refresh_dock_overlay(force_send) {
