@@ -77,8 +77,8 @@ Notes
 - In the current default config, ``S`` targets Safari on the left half and ``B`` targets Google Chrome on the right half.
 - In the current launcher behavior, ``Shift`` opens ``Codex``, ``Tab`` opens ``ChatGPT``, left ``Command`` opens ``System Settings``, and right ``Command`` is a reserved no-op. App shortcuts restore remembered window bounds when available.
 - In the current launcher behavior, ``【`` and ``】`` tile the frontmost window to the left or right half of its current display.
-- ``Codex`` and ``ChatGPT`` are intentionally hidden from the ordinary HUD item list; their symbolic keys do not fall through to generic app launch or placement.
+- ``Codex`` and ``ChatGPT`` render in the HUD as symbolic shortcut labels: ``⇧`` for ``Shift`` / Codex and ``⇥`` for ``Tab`` / ChatGPT. They remain excluded from ordinary fallback numbering, so their symbolic keys do not fall through to generic app launch or placement.
 - Numeric keys remain available for ordinary launcher selection and fallback numbering.
-- In the current default config, both ``G`` and ``X`` are mapped to web apps that use ``internal_fill`` on the internal display.
+- In the current default config, ``X``, ``R`` / Xiaohongshu, and ``G`` are mapped to web apps that use ``internal_fill`` on the internal display.
 - You can map any convenient key to ``F20`` with Karabiner-Elements.
 - For Playwright-managed Chrome, use the CLI Chrome profile commands instead of generic app-name placement.
