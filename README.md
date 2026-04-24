@@ -1,14 +1,16 @@
 # dock-switch
 Quickly switch among applications in the macOS Dock with one global hotkey.
 
-## Release Update: GoKit5 Serial Button Control
-dock-switch can now listen to a connected GoKit5 / Gizwits controller over serial and turn its hardware button events into display-control actions. A flashed controller can send host-button messages to dock-switch so Codex focus, the mouse pointer, and visible cursor feedback can move between the internal, external, and side displays without reaching for the keyboard.
+<a id="release-record-gokit5-serial-button-control"></a>
 
-- Serial listening starts automatically when dock-switch launches.
-- The GoKit5 USB serial port is auto-detected and can also be pinned with `GOKIT5_SERIAL_PORT=/dev/cu.usbmodem...`.
-- Physical buttons map to display targets: minus = left side display, voice = external display, green = right side display, plus = internal display.
-- `dock-switch-cli gokit5-status` reports whether the listener is enabled, running, and which port is active.
-- Set `DOCK_SWITCH_GOKIT5=0` to disable the listener.
+## 发版更新：GoKit5 串口按键控制
+dock-switch 现在可以通过串口监听连接的 GoKit5 / 机智云控制器，把硬件按键信息转换成屏幕控制动作。刷入匹配固件后，控制器可以向 dock-switch 发送主机按键消息，让 Codex 焦点、鼠标指针和光标反馈在内置屏、外接屏、侧边屏之间切换。
+
+- dock-switch 启动后会自动开始串口监听。
+- GoKit5 USB 串口会自动识别，也可以用 `GOKIT5_SERIAL_PORT=/dev/cu.usbmodem...` 固定端口。
+- 物理按键映射到屏幕目标：minus = 左侧边屏，voice = 外接屏，green = 右侧边屏，plus = 内置屏。
+- `dock-switch-cli gokit5-status` 可以查看监听是否启用、是否运行，以及当前使用的串口。
+- 设置 `DOCK_SWITCH_GOKIT5=0` 可以关闭串口监听。
 
 ## Screenshot
 ![Dock switch UI](help/screenshot-1.jpg)
