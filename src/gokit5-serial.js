@@ -11,7 +11,8 @@ const BUTTON_TO_DISPLAY_TARGET = Object.freeze({
     minus: "side_left",
     voice: "external",
     green: "side_right",
-    plus: "internal"
+    plus: "internal",
+    volume_up: "internal"
 });
 
 function normalizeGokit5ButtonName(button) {

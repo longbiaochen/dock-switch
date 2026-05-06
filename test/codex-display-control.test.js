@@ -74,6 +74,8 @@ test("normalizeCodexDisplayTarget maps physical button names to display targets"
     assert.equal(normalizeCodexDisplayTarget("voice"), "external");
     assert.equal(normalizeCodexDisplayTarget("green"), "side_right");
     assert.equal(normalizeCodexDisplayTarget("plus"), "internal");
+    assert.equal(normalizeCodexDisplayTarget("volume_up"), "internal");
+    assert.equal(normalizeCodexDisplayTarget("volume-up"), "internal");
     assert.equal(placementForDisplayTarget("right"), "side_right_fill");
 });
 

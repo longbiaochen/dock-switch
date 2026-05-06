@@ -49,7 +49,7 @@ Notes
 - ``side_fill`` remains a compatibility alias for ``side_left_fill``.
 - ``side_left_fill`` maximizes to the left side-display work area.
 - ``side_right_fill`` maximizes to the right side-display work area.
-- GoKit5 host-button events select Codex display focus with ``minus`` -> ``side_left``, ``voice`` -> ``external``, ``green`` -> ``side_right``, and ``plus`` -> ``internal``.
+- GoKit5 host-button events select Codex display focus with ``minus`` -> ``side_left``, ``voice`` -> ``external``, ``green`` -> ``side_right``, and ``plus`` / ``volume_up`` -> ``internal``.
 - If no external display is available, ``external_left_half`` falls back to the left half of the internal display work area.
 - If no external display is available, ``external_right_half`` falls back to the right half of the internal display work area.
 

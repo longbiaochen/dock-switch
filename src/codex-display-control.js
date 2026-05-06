@@ -24,6 +24,7 @@ const TARGET_ALIASES = Object.freeze({
     down: "internal",
     bottom: "internal",
     plus: "internal",
+    volume_up: "internal",
     internal: "internal"
 });
 
