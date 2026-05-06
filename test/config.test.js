@@ -17,6 +17,19 @@ test("default config maps Xiaohongshu web app to R", () => {
     });
 });
 
+test("default config maps G to Chrome for Testing and H to GitHub", () => {
+    const chromeForTesting = config.dock_items.find(entry => entry.name === "Google Chrome for Testing");
+    const github = config.dock_items.find(entry => entry.name === "GitHub");
+
+    assert.deepEqual(chromeForTesting, {
+        name: "Google Chrome for Testing",
+        key: "G",
+        screen: "4",
+        placement: "external_right_half"
+    });
+    assert.equal(github.key, "H");
+});
+
 test("default config does not assign duplicate launcher keys", () => {
     const byKey = new Map();
 

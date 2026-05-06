@@ -53,7 +53,7 @@ test("getDisplayForTarget returns the internal display", () => {
     assert.equal(getDisplayForTarget("internal", displays, displays[0]), displays[0]);
 });
 
-test("getDisplayForTarget returns the named external display", () => {
+test("getDisplayForTarget returns the largest external display", () => {
     const displays = [
         makeDisplay({
             id: 1,

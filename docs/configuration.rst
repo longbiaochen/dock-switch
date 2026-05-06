@@ -27,8 +27,8 @@ Notes
 
 - App names are matched exactly against Dock item names.
 - Key matching in the renderer is case-insensitive, with symbolic support for launcher keys such as ``Tab``, ``Shift``, left ``Command``, right ``Command``, and ``Space``.
-- In the current default config, ``S`` is mapped to Safari on ``external_left_half`` and ``B`` is mapped to Google Chrome on ``external_right_half``.
-- In the current default config, ``X``, ``R`` / Xiaohongshu, and ``G`` are mapped to web apps that use ``internal_fill``.
+- In the current default config, ``S`` is mapped to Safari on ``external_left_half``, ``B`` is mapped to Google Chrome on ``external_right_half``, and ``G`` is mapped to Google Chrome for Testing on ``external_right_half``.
+- In the current default config, ``X``, ``R`` / Xiaohongshu, and ``H`` / GitHub are mapped to web apps that use ``internal_fill``.
 - In the current launcher behavior, ``Shift`` opens ``Codex``, ``Tab`` opens ``ChatGPT``, left ``Command`` opens ``System Settings``, and right ``Command`` is a reserved no-op. App shortcuts restore remembered window bounds when available.
 - ``Codex`` and ``ChatGPT`` render in the launcher HUD as symbolic shortcut labels: ``⇧`` for ``Shift`` / Codex and ``⇥`` for ``Tab`` / ChatGPT. They remain excluded from ordinary fallback numbering, so their symbolic keys cannot fall through to a stale generic app-placement entry.
 - `ArrowLeft` moves the frontmost window to the left side-display work area.

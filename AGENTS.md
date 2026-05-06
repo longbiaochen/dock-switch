@@ -1,23 +1,55 @@
-# dock-switch Maintenance Notes
+# Dock-Switch Runbook
 
-- This is a legacy repo retained for explicit maintenance only.
-- Do not treat it as part of the default Codex workflow on this machine unless the user explicitly asks to work in this repo.
+## Repo Scope
 
-## Execution Rules
+- Owner/escalation: repository maintainer for local display/window launcher behavior.
+- This repo owns the installed `/Applications/dock-switch.app`, `dock-switch-cli`, Codex display placement helpers, and GoKit5 serial integration.
+- It is a maintained macOS utility, not the default browser or Codex automation path.
 
-- Always debug and verify the real user interaction path first.
-- CLI verification is supplementary; it does not replace verifying the actual hotkey, launcher, or visible app behavior.
-- Always install and test the built app when changing this repo.
+## Canonical Commands
 
-## Canonical CLI
+- Show live displays: `node bin/dock-switch-cli.js displays`
+- Place by app: `node bin/dock-switch-cli.js place --app <AppName> --placement external_right_half`
+- Place by pid: `node bin/dock-switch-cli.js place --pid <Pid> --placement external_right_half`
+- Move by bounds: `node bin/dock-switch-cli.js move --app <AppName> --x <X> --y <Y> --w <W> --h <H>`
+- Build/package/install: `yarn dist`
+- Tests: `yarn test` or targeted `node --test test/<name>.test.js`
 
-- `dock-switch-cli displays`
-- `dock-switch-cli place --app <AppName> --placement external_right_half`
-- `dock-switch-cli place --pid <Pid> --placement external_right_half`
-- `dock-switch-cli move --app <AppName> --x <X> --y <Y> --w <W> --h <H>`
-- `dock-switch-cli move --pid <Pid> --x <X> --y <Y> --w <W> --h <H>`
+## Routine Operations
 
-## Maintenance Rules
+| Trigger | Command | Expected Result | Failure Recovery |
+| --- | --- | --- | --- |
+| Verify display labels before placement work | `node bin/dock-switch-cli.js displays` | Display labels and bounds are current | Re-map display-target logic from live labels before editing config |
+| Change launcher/window behavior | `node --test test/<name>.test.js` then `yarn dist` | Tests pass and `/Applications/dock-switch.app` is replaced by the new build | Reinstall previous app bundle from backup or revert only the touched source files |
+| Place Computer Use browser beside Codex | `node scripts/place-computer-use-browser.js` | `Google Chrome for Testing` moves to the right half of the focused Codex display | Focus the intended Codex window and rerun; if stale, reset the Computer Use binding |
+
+## Troubleshooting
+
+| Trigger | Command | Expected Result | Failure Recovery |
+| --- | --- | --- | --- |
+| Hotkey does not move the visible window | Exercise the actual hotkey path, then compare with `dock-switch-cli` | Hotkey and CLI choose the same app/window/display | Inspect Karabiner mapping and launcher key routing before changing window-control code |
+| Display placement is wrong | `node bin/dock-switch-cli.js displays` | Bounds match the physical screen layout | Update symbolic target mapping; do not hard-code stale coordinates |
+| Installed app differs from source | Inspect `/Applications/dock-switch.app/Contents/Resources/app/` | Installed files match the intended repo build | Run `yarn dist` again and read back installed files |
+
+## Verification
+
+- CLI checks are supplementary. Completion requires the real hotkey, launcher, or visible app behavior to work.
+- After app changes, run tests, run `yarn dist`, inspect the installed app, and exercise the actual desktop path.
+- For Computer Use placement changes, verify the browser window lands on the intended display/right-half live.
+
+## Release/Deploy
+
+- Default flow is direct maintenance on `main` unless the user asks for another branch.
+- "Ship it" means build/package/install the app, not just patch source.
+- Keep README and docs aligned with the installed app behavior.
+
+## Guardrails
 
 - Prefer `AXUIElement`-based movement over AppleScript for normal window movement.
-- Keep repo docs aligned with the behavior of the currently installed `/Applications/dock-switch.app`.
+- Preserve reserved symbolic Codex display keys and ordinary HUD numeric fallbacks.
+- Do not let agent-controlled standalone windows land on the internal display.
+
+## Known State
+
+- Use `node bin/dock-switch-cli.js displays` as the live display probe.
+- Treat display labels as machine-specific runtime data; do not hard-code a maintainer's monitor names or local paths in public docs.

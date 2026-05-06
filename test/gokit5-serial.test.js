@@ -1,7 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const { EventEmitter } = require("node:events");
 
 const {
+    createGokit5SerialListener,
+    createConfiguredSerialReadStream,
     extractGokit5PortPathsFromIoregText,
     findGokit5SerialPort,
     mapGokit5ButtonToTarget,
@@ -81,4 +84,86 @@ test("findGokit5SerialPort prefers env override and then detected Espressif port
         env: {},
         runCommand: () => ({ status: 0, stdout: ioregText })
     }), "/dev/cu.usbmodem13101");
+});
+
+test("createGokit5SerialListener keeps the serial fd open while applying stty", () => {
+    const events = [];
+    const stream = new EventEmitter();
+    stream.destroy = () => {
+        events.push("destroy");
+    };
+
+    const fsModule = {
+        openSync(path, flags) {
+            events.push(["open", path, flags]);
+            return 53;
+        },
+        closeSync(fd) {
+            events.push(["close", fd]);
+        },
+        createReadStream(path, options) {
+            events.push(["read", path, options.fd, options.autoClose, options.encoding]);
+            return stream;
+        }
+    };
+
+    const listener = createGokit5SerialListener({
+        fs: fsModule,
+        findPort: () => "/dev/cu.usbmodem13101",
+        runCommand(command, args) {
+            events.push(["stty", command, args]);
+            return { status: 0 };
+        }
+    });
+
+    listener.start();
+
+    assert.deepEqual(events.slice(0, 3), [
+        ["open", "/dev/cu.usbmodem13101", "r"],
+        ["stty", "stty", [
+            "-f",
+            "/dev/cu.usbmodem13101",
+            "115200",
+            "raw",
+            "-echo",
+            "-icanon",
+            "min",
+            "1",
+            "time",
+            "0",
+            "clocal",
+            "-hupcl"
+        ]],
+        ["read", null, 53, true, "utf8"]
+    ]);
+
+    listener.stop();
+    assert.equal(events.at(-1), "destroy");
+});
+
+test("createConfiguredSerialReadStream closes the held fd when stty fails", () => {
+    const events = [];
+    const fsModule = {
+        openSync(path, flags) {
+            events.push(["open", path, flags]);
+            return 53;
+        },
+        closeSync(fd) {
+            events.push(["close", fd]);
+        },
+        createReadStream() {
+            events.push(["read"]);
+            throw new Error("read stream should not be created");
+        }
+    };
+
+    assert.throws(() => createConfiguredSerialReadStream("/dev/cu.usbmodem13101", 115200, {
+        fs: fsModule,
+        runCommand(command, args) {
+            events.push(["stty", command, args]);
+            return { status: 1 };
+        }
+    }), /Failed to configure serial port/);
+
+    assert.deepEqual(events.map(event => event[0]), ["open", "stty", "close"]);
 });

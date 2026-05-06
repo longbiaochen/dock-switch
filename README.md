@@ -12,17 +12,18 @@ dock-switch 现在可以通过串口监听连接的 GoKit5 / 机智云控制器�
 - `dock-switch-cli gokit5-status` 可以查看监听是否启用、是否运行，以及当前使用的串口。
 - 设置 `DOCK_SWITCH_GOKIT5=0` 可以关闭串口监听。
 
-## Screenshot
-![Dock switch UI](screenshots omitted)
+## Screenshots
+This repository intentionally does not commit desktop screenshots. Local screenshots
+often expose menu bar state, Dock contents, account badges, and workspace details.
 
 ## How It Works
 - Press `F20` to open the floating launcher UI.
 - Press the shown key for an app to focus it.
 - Press an arrow key to fill the frontmost window on a physical display:
-  - `←` left side display (`Left Side Display` on this Mac)
-  - `→` right side display (`Right Side Display` on this Mac)
-  - `↑` external display (`External Display` on this Mac)
-  - `↓` internal display (`Internal Display` on this Mac)
+  - `←` left side display
+  - `→` right side display
+  - `↑` external display
+  - `↓` internal display
 - Press `【` to tile the frontmost window to the left half of its current display.
 - Press `】` to tile the frontmost window to the right half of its current display.
 - Press `Shift` to focus or open `Codex`, then restore its remembered window bounds when available.
@@ -59,13 +60,22 @@ Example:
 
 ```json
 {
-  "name": "GitHub",
+  "name": "Google Chrome for Testing",
   "key": "G",
+  "screen": "4",
+  "placement": "external_right_half"
+}
+```
+
+```json
+{
+  "name": "GitHub",
+  "key": "H",
   "screen": "3",
   "kind": "web_app",
   "placement": "internal_fill",
-  "open_path": "~/Applications/Chrome Apps.localized/GitHub.app",
-  "app_url": "https://github.com/"
+  "open_path": "~/Applications/Chromium Apps.localized/GitHub.app",
+  "app_url": "https://github.com/repos?q=owner%3A%40me+sort%3Aupdated"
 }
 ```
 
@@ -74,10 +84,11 @@ Web apps with `kind: "web_app"` use the same placement by default.
 The `X` web app is maximized on the internal display work area.
 The `小红书` web app is maximized on the internal display work area.
 The `GitHub` web app is maximized on the internal display work area.
-Google Chrome lands on the right half of the external display.
+Google Chrome and Google Chrome for Testing land on the right half of the external display.
 The `X`, `小红书`, and `GitHub` web app bundles can target the signed-in Chrome-family profile used by their app shims.
 Xiaohongshu Web App is available on `R` in the current default config.
-GitHub Web App is available on `G` in the current default config.
+Google Chrome for Testing is available on `G` in the current default config.
+GitHub Web App is available on `H` in the current default config.
 ChatGPT and Codex render in the HUD as symbolic shortcut labels: `⇥` for `Tab` / ChatGPT and `⇧` for `Shift` / Codex. They remain excluded from ordinary fallback numbering.
 Left `Command` opens System Settings. Right `Command` is intentionally reserved as a no-op.
 If no external display is available, `external_right_half` falls back to the right half of the internal display work area.

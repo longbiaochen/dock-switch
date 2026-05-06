@@ -128,9 +128,45 @@ function configureSerialPort(portPath, baudRate, options = {}) {
         "min",
         "1",
         "time",
-        "0"
+        "0",
+        "clocal",
+        "-hupcl"
     ], { encoding: "utf8" });
     return !result || result.status === 0;
+}
+
+function createConfiguredSerialReadStream(portPath, baudRate, options = {}) {
+    const fsModule = options.fs || fs;
+    if (typeof fsModule.openSync !== "function") {
+        if (!configureSerialPort(portPath, baudRate, options)) {
+            throw new Error(`Failed to configure serial port ${portPath}`);
+        }
+        return fsModule.createReadStream(portPath, { encoding: "utf8" });
+    }
+
+    let fd = null;
+    try {
+        fd = fsModule.openSync(portPath, "r");
+        if (!configureSerialPort(portPath, baudRate, options)) {
+            throw new Error(`Failed to configure serial port ${portPath}`);
+        }
+        const stream = fsModule.createReadStream(null, {
+            fd,
+            autoClose: true,
+            encoding: "utf8"
+        });
+        fd = null;
+        return stream;
+    } catch (e) {
+        if (fd !== null && typeof fsModule.closeSync === "function") {
+            try {
+                fsModule.closeSync(fd);
+            } catch (closeError) {
+                // Preserve the original open/configure error.
+            }
+        }
+        throw e;
+    }
 }
 
 function createGokit5SerialListener(options = {}) {
@@ -142,7 +178,8 @@ function createGokit5SerialListener(options = {}) {
     const onTarget = typeof options.onTarget === "function" ? options.onTarget : () => {};
     const onStatus = typeof options.onStatus === "function" ? options.onStatus : () => {};
     const findPort = options.findPort || (() => findGokit5SerialPort(options));
-    const createReadStream = options.createReadStream || ((portPath) => fsModule.createReadStream(portPath, { encoding: "utf8" }));
+    const createReadStream = options.createReadStream
+        || ((portPath) => createConfiguredSerialReadStream(portPath, baudRate, options));
 
     let stream = null;
     let reconnectTimer = null;
@@ -212,7 +249,6 @@ function createGokit5SerialListener(options = {}) {
         }
 
         currentPort = portPath;
-        configureSerialPort(portPath, baudRate, options);
         lineBuffer = "";
         try {
             stream = createReadStream(portPath);
@@ -268,5 +304,6 @@ module.exports = {
     listUsbModemPorts,
     findGokit5SerialPort,
     configureSerialPort,
+    createConfiguredSerialReadStream,
     createGokit5SerialListener
 };

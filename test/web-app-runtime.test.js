@@ -42,8 +42,8 @@ test("findAppProcessPidByOpenPathFromPsOutput matches app_mode_loader bundles", 
 test("findChromeAppProcessPidFromPsOutput matches Chrome for Testing browser app launches", () => {
     const psOutput = [
         "300 /Applications/Google Chrome.app/Contents/MacOS/Google Chrome --app=https://x.com/?utm_source=homescreen&utm_medium=shortcut",
-        "299 /tmp/example-user/.chrome-use/browsers/chrome-for-testing/147.0.7727.57/mac-arm64/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing --app=https://x.com/?utm_source=homescreen&utm_medium=shortcut --profile-directory=Default",
-        "301 /tmp/example-user/.chrome-use/browsers/chrome-for-testing/147.0.7727.57/mac-arm64/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing --app=https://x.com/?utm_source=homescreen&utm_medium=shortcut --profile-directory=Default"
+        "299 /tmp/chrome-use/browsers/chrome-for-testing/147.0.7727.57/mac-arm64/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing --app=https://x.com/?utm_source=homescreen&utm_medium=shortcut --profile-directory=Default",
+        "301 /tmp/chrome-use/browsers/chrome-for-testing/147.0.7727.57/mac-arm64/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing --app=https://x.com/?utm_source=homescreen&utm_medium=shortcut --profile-directory=Default"
     ].join("\n");
 
     const pid = findChromeAppProcessPidFromPsOutput(

@@ -18,17 +18,6 @@ function getDisplayPixelArea(display) {
     return Math.max(0, area.width) * Math.max(0, area.height);
 }
 
-function isDisplayLabel(display, pattern) {
-    return !!(display &&
-        typeof display.label === "string" &&
-        pattern.test(display.label.trim()));
-}
-
-function isExternalDisplay(display) {
-    return isDisplayLabel(display, /^External Display$/i) ||
-        isDisplayLabel(display, /(^|\s)dell\s+u3219q(\s|$)/i);
-}
-
 function getInternalDisplay(displays, primaryDisplay) {
     if (!Array.isArray(displays)) return primaryDisplay || null;
     var explicitInternal = displays.find(d => d && d.internal === true);
@@ -50,25 +39,27 @@ function displaySortX(display) {
 
 function getSideCandidates(displays) {
     if (!Array.isArray(displays)) return [];
+    var externalDisplay = getExternalDisplay(displays, null, null);
     return displays.filter(display =>
         display &&
         display.internal !== true &&
-        !isExternalDisplay(display)
+        display !== externalDisplay
     );
 }
 
 function getExternalDisplay(displays, primaryDisplay, currentDisplay) {
     if (!Array.isArray(displays) || displays.length === 0) return null;
 
-    var namedExternal = displays.find(isExternalDisplay);
-    if (namedExternal) return namedExternal;
-
     if (currentDisplay && currentDisplay.internal === false) {
         return currentDisplay;
     }
 
-    var explicitExternal = displays.find(d => d && d.internal === false);
-    if (explicitExternal) return explicitExternal;
+    var explicitExternals = displays.filter(d => d && d.internal === false);
+    if (explicitExternals.length > 0) {
+        return explicitExternals
+            .slice()
+            .sort((a, b) => getDisplayPixelArea(b) - getDisplayPixelArea(a))[0];
+    }
 
     if (currentDisplay && Number.isFinite(currentDisplay.id)) {
         var nonCurrent = displays.find(d => d && Number.isFinite(d.id) && d.id !== currentDisplay.id);

@@ -17,6 +17,12 @@
             "placement": "external_right_half"
         },
         {
+            "name": "Google Chrome for Testing",
+            "key": "G",
+            "screen": "4",
+            "placement": "external_right_half"
+        },
+        {
             "name": "微信",
             "key": "W",
             "screen": "3"
@@ -37,7 +43,7 @@
         },
         {
             "name": "GitHub",
-            "key": "G",
+            "key": "H",
             "screen": "3",
             "kind": "web_app",
             "placement": "internal_fill",

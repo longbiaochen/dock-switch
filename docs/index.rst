@@ -46,13 +46,22 @@ You can set browser windows to always land on a specific display region when lau
 .. code-block:: json
 
    {
-     "name": "GitHub",
+     "name": "Google Chrome for Testing",
      "key": "G",
+     "screen": "4",
+     "placement": "external_right_half"
+   }
+
+.. code-block:: json
+
+   {
+     "name": "GitHub",
+     "key": "H",
      "screen": "3",
      "kind": "web_app",
      "placement": "internal_fill",
-     "open_path": "~/Applications/Chrome Apps.localized/GitHub.app",
-     "app_url": "https://github.com/"
+     "open_path": "~/Applications/Chromium Apps.localized/GitHub.app",
+     "app_url": "https://github.com/repos?q=owner%3A%40me+sort%3Aupdated"
    }
 
 Current placement support:
@@ -74,11 +83,11 @@ Notes
 - ``side_left_fill`` and ``side_right_fill`` maximize to the left and right side-display work areas when those displays are available, and fall back to the external display work area otherwise.
 - If no external display is detected, ``external_left_half`` falls back to the left half of the internal display work area.
 - If no external display is detected, ``external_right_half`` falls back to the right half of the internal display work area.
-- In the current default config, ``S`` targets Safari on the left half and ``B`` targets Google Chrome on the right half.
+- In the current default config, ``S`` targets Safari on the left half, ``B`` targets Google Chrome on the right half, and ``G`` targets Google Chrome for Testing on the right half.
 - In the current launcher behavior, ``Shift`` opens ``Codex``, ``Tab`` opens ``ChatGPT``, left ``Command`` opens ``System Settings``, and right ``Command`` is a reserved no-op. App shortcuts restore remembered window bounds when available.
 - In the current launcher behavior, ``【`` and ``】`` tile the frontmost window to the left or right half of its current display.
 - ``Codex`` and ``ChatGPT`` render in the HUD as symbolic shortcut labels: ``⇧`` for ``Shift`` / Codex and ``⇥`` for ``Tab`` / ChatGPT. They remain excluded from ordinary fallback numbering, so their symbolic keys do not fall through to generic app launch or placement.
 - Numeric keys remain available for ordinary launcher selection and fallback numbering.
-- In the current default config, ``X``, ``R`` / Xiaohongshu, and ``G`` are mapped to web apps that use ``internal_fill`` on the internal display.
+- In the current default config, ``X``, ``R`` / Xiaohongshu, and ``H`` / GitHub are mapped to web apps that use ``internal_fill`` on the internal display.
 - You can map any convenient key to ``F20`` with Karabiner-Elements.
 - For Playwright-managed Chrome, use the CLI Chrome profile commands instead of generic app-name placement.
