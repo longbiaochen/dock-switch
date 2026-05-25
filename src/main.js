@@ -420,7 +420,7 @@ function launch_app_with_placement(item) {
                     String(item.placement)
                 );
                 if (directPidOk) {
-                    move_mouse_to_placement_center(String(item.placement));
+                    move_mouse_to_placed_window_center(String(item.name), String(item.placement));
                     return;
                 }
             }
@@ -434,7 +434,7 @@ function launch_app_with_placement(item) {
                     String(item.placement)
                 );
                 if (pidOk) {
-                    move_mouse_to_placement_center(String(item.placement));
+                    move_mouse_to_placed_window_center(String(item.name), String(item.placement));
                     return;
                 }
             }
@@ -446,7 +446,7 @@ function launch_app_with_placement(item) {
                 String(item.placement)
             );
             if (ok) {
-                move_mouse_to_placement_center(String(item.placement));
+                move_mouse_to_placed_window_center(String(item.name), String(item.placement));
                 return;
             }
         } catch (e) {
@@ -481,6 +481,11 @@ function move_mouse_to_application_window_center(appName) {
     };
 
     setTimeout(tryMove, app_launch_place_retry_delay_ms);
+}
+
+function move_mouse_to_placed_window_center(appName, placement) {
+    move_mouse_to_placement_center(placement);
+    move_mouse_to_application_window_center(appName);
 }
 
 function move_mouse_to_placement_center(placement) {

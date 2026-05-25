@@ -5,6 +5,7 @@ const {
     moveMouseToApplicationWindowCenter,
     moveMouseToBoundsCenter,
     placeFocusedWindowByAction,
+    placeProcessWindowByPlacement,
     resolveBoundsForAction,
     resolveBoundsForPlacement
 } = require("../src/window-control");
@@ -436,4 +437,56 @@ test("moveMouseToApplicationWindowCenter centers on the app window", () => {
     };
     assert.equal(moveMouseToApplicationWindowCenter("Codex", dockQuery), true);
     assert.deepEqual(mouseMoves[0], { x: 200, y: -800 });
+});
+
+test("moveMouseToApplicationWindowCenter falls back from WeChat dock label to runtime app name", () => {
+    const boundsRequests = [];
+    const mouseMoves = [];
+    const dockQuery = {
+        getApplicationWindowBounds: ({ name }) => {
+            boundsRequests.push(name);
+            if (name === "微信") throw new Error("Application process not found");
+            if (name === "WeChat") return { x: 10, y: 30, w: 800, h: 600 };
+            throw new Error(`Unexpected app ${name}`);
+        },
+        moveMouse: payload => {
+            mouseMoves.push(payload);
+            return true;
+        }
+    };
+
+    assert.equal(moveMouseToApplicationWindowCenter("微信", dockQuery), true);
+    assert.deepEqual(boundsRequests, ["微信", "WeChat"]);
+    assert.deepEqual(mouseMoves[0], { x: 410, y: 330 });
+});
+
+test("placeProcessWindowByPlacement falls back from WeChat dock label to runtime app name", () => {
+    const displays = [
+        makeDisplay({
+            id: 1,
+            label: "Internal Display",
+            internal: true,
+            x: 0,
+            y: 0,
+            width: 1512,
+            height: 982,
+            workArea: { x: 0, y: 33, width: 1512, height: 875 }
+        })
+    ];
+    const moveRequests = [];
+    const dockQuery = {
+        moveApplicationWindow: payload => {
+            moveRequests.push(payload);
+            if (payload.name === "微信") throw new Error("Application process not found");
+            return payload.name === "WeChat";
+        }
+    };
+    const electronScreen = {
+        getAllDisplays: () => displays,
+        getPrimaryDisplay: () => displays[0]
+    };
+
+    assert.equal(placeProcessWindowByPlacement("微信", dockQuery, electronScreen, "internal_fill"), true);
+    assert.deepEqual(moveRequests.map(request => request.name), ["微信", "WeChat"]);
+    assert.deepEqual(moveRequests[1], { name: "WeChat", x: 0, y: 33, w: 1512, h: 875 });
 });

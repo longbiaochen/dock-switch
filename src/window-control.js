@@ -13,6 +13,23 @@ var MOUSE_CENTER_ACTIONS = Object.freeze({
     right: true
 });
 
+var APPLICATION_RUNTIME_NAME_ALIASES = Object.freeze({
+    "微信": ["WeChat"]
+});
+
+function applicationRuntimeNameCandidates(processName) {
+    var name = String(processName || "");
+    if (!name) return [];
+    var candidates = [name];
+    var aliases = APPLICATION_RUNTIME_NAME_ALIASES[name] || [];
+    for (var i = 0; i < aliases.length; i++) {
+        if (aliases[i] && !candidates.includes(aliases[i])) {
+            candidates.push(aliases[i]);
+        }
+    }
+    return candidates;
+}
+
 function getAvailableDisplays(dockQuery, electronScreen) {
     // AX window bounds align with Electron's screen coordinates on macOS.
     // Native NSScreen snapshots are useful for debugging, but not for target
@@ -110,12 +127,18 @@ function moveMouseToApplicationWindowCenter(processName, dockQuery) {
     if (!processName || !dockQuery || typeof dockQuery.getApplicationWindowBounds !== "function") {
         return false;
     }
-    try {
-        var rect = dockQuery.getApplicationWindowBounds({ name: String(processName) });
-        return moveMouseToBoundsCenter(dockQuery, rect);
-    } catch (e) {
-        return false;
+    var candidates = applicationRuntimeNameCandidates(processName);
+    for (var i = 0; i < candidates.length; i++) {
+        try {
+            var rect = dockQuery.getApplicationWindowBounds({ name: candidates[i] });
+            if (moveMouseToBoundsCenter(dockQuery, rect)) {
+                return true;
+            }
+        } catch (e) {
+            // try the next runtime name candidate
+        }
     }
+    return false;
 }
 
 function moveMouseToApplicationDisplay(processName, dockQuery, electronScreen) {
@@ -359,13 +382,22 @@ function placeProcessWindowByPlacement(processName, dockQuery, electronScreen, p
     if (!target || target.w <= 0 || target.h <= 0) return false;
 
     var payload = {
-        name: processName,
         x: Math.round(target.x),
         y: Math.round(target.y),
         w: Math.round(target.w),
         h: Math.round(target.h)
     };
-    return !!dockQuery.moveApplicationWindow(payload);
+    var candidates = applicationRuntimeNameCandidates(processName);
+    for (var i = 0; i < candidates.length; i++) {
+        try {
+            if (dockQuery.moveApplicationWindow(Object.assign({ name: candidates[i] }, payload))) {
+                return true;
+            }
+        } catch (e) {
+            // try the next runtime name candidate
+        }
+    }
+    return false;
 }
 
 function placePidWindowByPlacement(processPid, dockQuery, electronScreen, placement) {
