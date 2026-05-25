@@ -41,7 +41,7 @@ Notes
 - `\` tiles to full size on the current display work area.
 - Screen direction codes used by keyboard movement are: `0=external`, `1=internal`, `2=full`, `3=left`, `4=right`.
 - If ``placement`` is set, placement behavior takes precedence over remembered bounds.
-- App activation shortcuts move the pointer to the center of the activated or placed window's display.
+- App activation shortcuts move the pointer to the center of the activated or placed window.
 - If ``kind`` is ``web_app`` and ``placement`` is not set, dock-switch places the app at ``external_right_half``.
 - If ``open_path`` is set, dock-switch launches that exact app bundle.
 - If ``app_url`` is set, dock-switch can place a Chrome app window by pid even when Accessibility exposes it as ``Google Chrome``.

@@ -175,7 +175,7 @@ function openAndRestoreItem(item) {
     setTimeout(() => {
         restoreWindowState(item);
         focusApplicationWindowSoon(item.name);
-        electron.ipcRenderer.send("move-mouse-to-app-display", item.name);
+        electron.ipcRenderer.send("move-mouse-to-app-window-center", item.name);
     }, 120);
 }
 

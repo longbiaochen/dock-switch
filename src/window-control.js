@@ -81,11 +81,41 @@ function moveMouseToDisplayCenter(dockQuery, display) {
     }
 }
 
+function moveMouseToBoundsCenter(dockQuery, bounds) {
+    if (!dockQuery || typeof dockQuery.moveMouse !== "function") {
+        return false;
+    }
+    if (!bounds || ![bounds.x, bounds.y, bounds.w, bounds.h].every(Number.isFinite) ||
+        bounds.w <= 0 || bounds.h <= 0) {
+        return false;
+    }
+    try {
+        return !!dockQuery.moveMouse({
+            x: Math.round(bounds.x + bounds.w / 2),
+            y: Math.round(bounds.y + bounds.h / 2)
+        });
+    } catch (e) {
+        return false;
+    }
+}
+
 function moveMouseToBoundsDisplayCenter(dockQuery, electronScreen, bounds) {
     if (!bounds) return false;
     var displays = getAvailableDisplays(dockQuery, electronScreen);
     if (!Array.isArray(displays) || displays.length === 0) return false;
     return moveMouseToDisplayCenter(dockQuery, getDisplayForRect(displays, bounds));
+}
+
+function moveMouseToApplicationWindowCenter(processName, dockQuery) {
+    if (!processName || !dockQuery || typeof dockQuery.getApplicationWindowBounds !== "function") {
+        return false;
+    }
+    try {
+        var rect = dockQuery.getApplicationWindowBounds({ name: String(processName) });
+        return moveMouseToBoundsCenter(dockQuery, rect);
+    } catch (e) {
+        return false;
+    }
 }
 
 function moveMouseToApplicationDisplay(processName, dockQuery, electronScreen) {
@@ -363,6 +393,8 @@ function placePidWindowByPlacement(processPid, dockQuery, electronScreen, placem
 module.exports = {
     getDisplayForRect,
     moveMouseToApplicationDisplay,
+    moveMouseToApplicationWindowCenter,
+    moveMouseToBoundsCenter,
     moveMouseToBoundsDisplayCenter,
     moveMouseToDisplayCenter,
     resolveBoundsForAction,

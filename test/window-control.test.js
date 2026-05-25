@@ -2,7 +2,8 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const {
-    moveMouseToApplicationDisplay,
+    moveMouseToApplicationWindowCenter,
+    moveMouseToBoundsCenter,
     placeFocusedWindowByAction,
     resolveBoundsForAction,
     resolveBoundsForPlacement
@@ -397,29 +398,34 @@ test("placeFocusedWindowByAction does not center the mouse for bracket tiling", 
     assert.deepEqual(mouseMoves, []);
 });
 
-test("moveMouseToApplicationDisplay centers on the app window display", () => {
-    const displays = [
-        makeDisplay({
-            id: 1,
-            label: "Internal Display",
-            internal: true,
-            x: 0,
-            y: 0,
-            width: 1512,
-            height: 982,
-            workArea: { x: 0, y: 33, width: 1512, height: 875 }
-        }),
-        makeDisplay({
-            id: 5,
-            label: "External Display",
-            internal: false,
-            x: -524,
-            y: -1440,
-            width: 2560,
-            height: 1440,
-            workArea: { x: -524, y: -1410, width: 2560, height: 1410 }
-        })
-    ];
+test("moveMouseToBoundsCenter centers on valid window bounds", () => {
+    const mouseMoves = [];
+    const dockQuery = {
+        moveMouse: payload => {
+            mouseMoves.push(payload);
+            return true;
+        }
+    };
+
+    assert.equal(moveMouseToBoundsCenter(dockQuery, { x: -401, y: -1201, w: 1201, h: 801 }), true);
+    assert.deepEqual(mouseMoves[0], { x: 200, y: -800 });
+});
+
+test("moveMouseToBoundsCenter rejects invalid bounds", () => {
+    const mouseMoves = [];
+    const dockQuery = {
+        moveMouse: payload => {
+            mouseMoves.push(payload);
+            return true;
+        }
+    };
+
+    assert.equal(moveMouseToBoundsCenter(dockQuery, { x: 10, y: 20, w: 0, h: 50 }), false);
+    assert.equal(moveMouseToBoundsCenter(dockQuery, { x: 10, y: Number.NaN, w: 50, h: 50 }), false);
+    assert.deepEqual(mouseMoves, []);
+});
+
+test("moveMouseToApplicationWindowCenter centers on the app window", () => {
     const mouseMoves = [];
     const dockQuery = {
         getApplicationWindowBounds: () => ({ x: -400, y: -1200, w: 1200, h: 800 }),
@@ -428,11 +434,6 @@ test("moveMouseToApplicationDisplay centers on the app window display", () => {
             return true;
         }
     };
-    const electronScreen = {
-        getAllDisplays: () => displays,
-        getPrimaryDisplay: () => displays[0]
-    };
-
-    assert.equal(moveMouseToApplicationDisplay("Codex", dockQuery, electronScreen), true);
-    assert.deepEqual(mouseMoves[0], { x: 756, y: -705 });
+    assert.equal(moveMouseToApplicationWindowCenter("Codex", dockQuery), true);
+    assert.deepEqual(mouseMoves[0], { x: 200, y: -800 });
 });

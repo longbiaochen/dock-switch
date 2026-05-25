@@ -31,7 +31,7 @@ often expose menu bar state, Dock contents, account badges, and workspace detail
 - Press left `Command` to focus or open `System Settings`, then restore its remembered window bounds when available.
 - Press right `Command` for a reserved no-op.
 - Press `\` to enter macOS native fullscreen (same as the green window button).
-- App activation and arrow display moves move the pointer to the center of the target display.
+- App activation moves the pointer to the center of the activated or placed window; arrow display moves keep moving the pointer to the center of the target display.
 - A connected GoKit5 controller flashed with [open-embodied](https://github.com/longbiaochen/open-embodied) can select Codex display focus: minus = left side display, voice = external display, green = right side display, plus / volume_up = internal display.
 - The UI closes automatically after a selection.
 
@@ -153,7 +153,7 @@ Notes:
 - If the dock-switch control socket is not running, the CLI launches `/Applications/dock-switch.app` and retries automatically.
 - `displays` prints JSON with Electron display bounds and work areas.
 - `gokit5-status` prints the runtime serial listener state and selected port.
-- `codex-display` focuses an existing Codex window on the target display when available; otherwise it moves a reusable Codex window there, activates it, and centers the pointer on that display.
+- `codex-display` focuses an existing Codex window on the target display when available and centers the pointer in that window; if no target window exists, it centers the pointer on that display.
 - The GoKit5 serial listener auto-detects the Espressif USB JTAG/serial device and can be pinned with `GOKIT5_SERIAL_PORT=/dev/cu.usbmodem...`; set `DOCK_SWITCH_GOKIT5=0` to disable it. The matching firmware lives at [longbiaochen/open-embodied](https://github.com/longbiaochen/open-embodied).
 
 ## Playwright Integration
