@@ -83,6 +83,7 @@ test("selectCodexDisplay focuses an existing Codex window on the target display"
     const displays = makeDisplays();
     const focused = [];
     const mouseMoves = [];
+    const mouseClicks = [];
     const feedbackPoints = [];
     const moves = [];
     const dockQuery = {
@@ -101,6 +102,10 @@ test("selectCodexDisplay focuses an existing Codex window on the target display"
         moveMouse: payload => {
             mouseMoves.push(payload);
             return true;
+        },
+        clickMouse: payload => {
+            mouseClicks.push(payload);
+            return true;
         }
     };
 
@@ -117,6 +122,7 @@ test("selectCodexDisplay focuses an existing Codex window on the target display"
     assert.equal(result.moved, false);
     assert.deepEqual(focused[0], { pid: 10, windowIndex: 0 });
     assert.deepEqual(mouseMoves[0], { x: -1850, y: -650 });
+    assert.deepEqual(mouseClicks[0], { x: -1850, y: -650 });
     assert.deepEqual(result.feedbackPoint, { x: -1850, y: -650 });
     assert.deepEqual(feedbackPoints[0], { x: -1850, y: -650 });
     assert.deepEqual(moves, []);
@@ -127,6 +133,7 @@ test("selectCodexDisplay only moves the mouse when target display has no Codex w
     const moves = [];
     const focused = [];
     const mouseMoves = [];
+    const mouseClicks = [];
     const feedbackPoints = [];
     const dockQuery = {
         getApplicationWindows: () => [
@@ -142,6 +149,10 @@ test("selectCodexDisplay only moves the mouse when target display has no Codex w
         },
         moveMouse: payload => {
             mouseMoves.push(payload);
+            return true;
+        },
+        clickMouse: payload => {
+            mouseClicks.push(payload);
             return true;
         }
     };
@@ -160,6 +171,7 @@ test("selectCodexDisplay only moves the mouse when target display has no Codex w
     assert.deepEqual(moves, []);
     assert.deepEqual(focused, []);
     assert.deepEqual(mouseMoves[0], { x: 756, y: -705 });
+    assert.deepEqual(mouseClicks[0], { x: 756, y: -705 });
     assert.deepEqual(result.feedbackPoint, { x: 756, y: -705 });
     assert.deepEqual(feedbackPoints[0], { x: 756, y: -705 });
 });

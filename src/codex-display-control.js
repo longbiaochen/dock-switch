@@ -111,6 +111,24 @@ function focusCodexWindow(dockQuery, win) {
     }
 }
 
+function clickMouseAtPoint(dockQuery, point) {
+    if (!dockQuery ||
+        !point ||
+        typeof dockQuery.clickMouse !== "function" ||
+        !Number.isFinite(point.x) ||
+        !Number.isFinite(point.y)) {
+        return false;
+    }
+    try {
+        return !!dockQuery.clickMouse({
+            x: Math.round(point.x),
+            y: Math.round(point.y)
+        });
+    } catch (e) {
+        return false;
+    }
+}
+
 function getTargetDisplaySnapshot(display) {
     if (!display) return null;
     return {
@@ -155,6 +173,7 @@ async function selectCodexDisplay(command, deps) {
             }
             : resolveDisplayCenterPoint(targetDisplay)
         : null;
+    const mouseClicked = mouseMoved && clickMouseAtPoint(deps.dockQuery, feedbackPoint);
     if (feedbackPoint && typeof deps.showMouseFeedback === "function") {
         deps.showMouseFeedback(feedbackPoint);
     }
@@ -174,6 +193,7 @@ async function selectCodexDisplay(command, deps) {
         moved: false,
         focused,
         mouseMoved,
+        mouseClicked,
         feedbackPoint
     };
 }
