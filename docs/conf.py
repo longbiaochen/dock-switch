@@ -18,7 +18,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'dock-switch'
-copyright = '2020, Longbiao CHEN'
+copyright = '2020-2026, Longbiao CHEN'
 author = 'Longbiao CHEN'
 
 

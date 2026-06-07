@@ -1,6 +1,10 @@
 # dock-switch
 Quickly switch among applications in the macOS Dock with one global hotkey.
 
+## Documentation
+- Sphinx docs live in `docs/` (start at `docs/index.rst`).
+- `README.md` stays as the quick-start / behavior overview.
+
 <a id="release-record-gokit5-serial-button-control"></a>
 
 ## 发版更新：GoKit5 串口按键控制
@@ -124,9 +128,11 @@ To disable restore for a specific app, add:
    - `yarn install`
 3. Run locally:
    - `yarn go`
-4. Build unsigned app bundle:
+4. Run tests:
+   - `node --test test/*.test.js`
+5. Build unsigned app bundle:
    - `yarn dist`
-5. Build signed app bundle (requires signing identity):
+6. Build signed app bundle (requires signing identity):
    - `yarn dist:signed`
 
 ## CLI
@@ -148,6 +154,7 @@ dock-switch-cli move-chrome-window --profile-dir /tmp/playwright_chromiumdev_pro
 
 Notes:
 
+- If `dock-switch-cli` is not on your PATH, run it as `node bin/dock-switch-cli.js ...` from this repo.
 - `--pid` is useful when you need to target one managed window from a multi-window app, but it is not sufficient for Playwright-managed Chrome.
 - `get-chrome-window` and `move-chrome-window` target the exact Chrome window for a specific `--user-data-dir` profile through Chrome DevTools, which is the reliable path for Playwright-managed Chrome windows.
 - If the dock-switch control socket is not running, the CLI launches `/Applications/dock-switch.app` and retries automatically.

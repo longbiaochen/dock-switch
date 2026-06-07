@@ -18,11 +18,11 @@ Core Flow
    use the placement path, while other apps restore remembered bounds.
    ``ArrowLeft``/``ArrowRight`` move to the left/right side-display work areas,
    ``ArrowUp`` moves to the external display, ``ArrowDown`` moves to the internal
-   display, ``【``/``】`` tile the current display left/right half, ``Shift`` opens
-   ``Codex``, ``Tab`` opens ``ChatGPT``, left ``Command`` opens ``System Settings``,
-   and right ``Command`` is a reserved no-op. ``Codex`` and ``ChatGPT`` are excluded
-   from the ordinary HUD item list, while numeric keys remain available for normal
-   launcher selection.
+   display, ``【``/``】`` tile the current display left/right half, ``\`` enters macOS
+   native fullscreen (green button), ``Shift`` opens ``Codex``, ``Tab`` opens
+   ``ChatGPT``, left ``Command`` opens ``System Settings``, and right ``Command`` is
+   a reserved no-op. ``Codex`` and ``ChatGPT`` are excluded from the ordinary HUD
+   item list, while numeric keys remain available for normal launcher selection.
 6. Display-moving arrows move the pointer to the center of the target display.
    App activation shortcuts move it to the center of the activated or placed window.
 7. The optional GoKit5 serial listener maps host-button events from

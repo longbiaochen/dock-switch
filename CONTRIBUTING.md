@@ -8,6 +8,15 @@ This project is a small Electron utility for macOS. Keep changes focused and min
    - `yarn install`
 2. Start locally:
    - `yarn go`
+3. Run tests:
+   - `node --test test/*.test.js`
+
+## Documentation
+- Quick-start docs: `README.md`
+- Reference docs (Sphinx): `docs/index.rst`
+- Build docs locally (requires Sphinx):
+  - `python -m pip install sphinx`
+  - `make -C docs html`
 
 ## Pull Request Guidelines
 - Keep PRs small and single-purpose.

@@ -31,15 +31,15 @@ Notes
 - In the current default config, ``X``, ``R`` / Xiaohongshu, and ``H`` / GitHub are mapped to web apps that use ``internal_fill``.
 - In the current launcher behavior, ``Shift`` opens ``Codex``, ``Tab`` opens ``ChatGPT``, left ``Command`` opens ``System Settings``, and right ``Command`` is a reserved no-op. App shortcuts restore remembered window bounds when available.
 - ``Codex`` and ``ChatGPT`` render in the launcher HUD as symbolic shortcut labels: ``⇧`` for ``Shift`` / Codex and ``⇥`` for ``Tab`` / ChatGPT. They remain excluded from ordinary fallback numbering, so their symbolic keys cannot fall through to a stale generic app-placement entry.
-- `ArrowLeft` moves the frontmost window to the left side-display work area.
-- `ArrowRight` moves the frontmost window to the right side-display work area.
-- `ArrowUp` moves the frontmost window to the external display work area.
-- `ArrowDown` moves the frontmost window to the internal display work area.
+- ``ArrowLeft`` moves the frontmost window to the left side-display work area.
+- ``ArrowRight`` moves the frontmost window to the right side-display work area.
+- ``ArrowUp`` moves the frontmost window to the external display work area.
+- ``ArrowDown`` moves the frontmost window to the internal display work area.
 - Arrow display moves also move the pointer to the center of the target display.
-- `【` / `】` tile the frontmost window to the left or right half of its current display.
-- `1` / `2` / `3` are available again for ordinary launcher item selection when those keys are assigned or used as fallback numbers.
-- `\` tiles to full size on the current display work area.
-- Screen direction codes used by keyboard movement are: `0=external`, `1=internal`, `2=full`, `3=left`, `4=right`.
+- ``【`` / ``】`` tile the frontmost window to the left or right half of its current display.
+- ``1`` / ``2`` / ``3`` are available again for ordinary launcher item selection when those keys are assigned or used as fallback numbers.
+- ``\`` enters macOS native fullscreen for the focused window (green window button).
+- Screen direction codes used by keyboard movement are: ``0=external``, ``1=internal``, ``2=full``, ``3=left``, ``4=right``.
 - If ``placement`` is set, placement behavior takes precedence over remembered bounds.
 - App activation shortcuts move the pointer to the center of the activated or placed window.
 - If ``kind`` is ``web_app`` and ``placement`` is not set, dock-switch places the app at ``external_right_half``.
@@ -53,24 +53,7 @@ Notes
 - If no external display is available, ``external_left_half`` falls back to the left half of the internal display work area.
 - If no external display is available, ``external_right_half`` falls back to the right half of the internal display work area.
 
-CLI
----
+CLI and GoKit5
+--------------
 
-``dock-switch-cli`` is the canonical command-line interface for Codex and other automation.
-
-Examples:
-
-- ``dock-switch-cli displays``
-- ``dock-switch-cli gokit5-status``
-- ``dock-switch-cli codex-display --target external``
-- ``dock-switch-cli place --app "Terminal" --placement external_right_half``
-- ``dock-switch-cli place --pid 12345 --placement external_right_half``
-- ``dock-switch-cli move --app "Terminal" --x 0 --y 25 --w 1512 --h 875``
-- ``dock-switch-cli move --pid 12345 --x 0 --y 25 --w 1512 --h 875``
-- ``dock-switch-cli get-chrome-window --profile-dir /tmp/playwright_chromiumdev_profile-XXXXXX``
-- ``dock-switch-cli move-chrome-window --profile-dir /tmp/playwright_chromiumdev_profile-XXXXXX --x 713 --y -1410 --w 1280 --h 1410``
-
-Use ``--pid`` when you need to target one managed window from a multi-window app such as Google Chrome.
-Use the Chrome profile commands for Playwright-managed Google Chrome windows, because the reported Playwright session pid is not the native Chrome window owner.
-If the dock-switch control socket is unavailable, the CLI launches ``/Applications/dock-switch.app`` and retries automatically.
-The GoKit5 serial listener auto-detects the Espressif USB JTAG/serial device, can be pinned with ``GOKIT5_SERIAL_PORT=/dev/cu.usbmodem...``, and can be disabled with ``DOCK_SWITCH_GOKIT5=0``. The matching firmware is published at ``https://github.com/longbiaochen/open-embodied``.
+See :doc:`cli` for the command-line interface and :doc:`gokit5` for serial-button control.
