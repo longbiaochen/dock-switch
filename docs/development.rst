@@ -38,6 +38,25 @@ Build
 
      yarn dist:signed
 
+Tests
+-----
+
+Run the Node test suite:
+
+.. code-block:: bash
+
+   node --test test/*.test.js
+
+Docs
+----
+
+Sphinx documentation sources live under ``docs/``.
+
+.. code-block:: bash
+
+   python -m pip install sphinx
+   make -C docs html
+
 Troubleshooting
 ---------------
 
