@@ -20,7 +20,7 @@ function usage() {
 
 function parseArgs(argv) {
     let anchorApp = "Codex";
-    let browserApp = "Google Chrome for Testing";
+    let browserApp = "Google Chrome";
 
     for (let i = 0; i < argv.length; i += 1) {
         const arg = argv[i];

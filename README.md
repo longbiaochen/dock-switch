@@ -48,26 +48,17 @@ Example:
 {
   "name": "Safari",
   "key": "S",
-  "screen": "3",
-  "placement": "external_left_half"
+  "screen": "1",
+  "placement": "internal_fill"
 }
 ```
 
 ```json
 {
   "name": "Google Chrome",
-  "key": "B",
-  "screen": "4",
-  "placement": "external_right_half"
-}
-```
-
-```json
-{
-  "name": "Google Chrome for Testing",
   "key": "G",
-  "screen": "4",
-  "placement": "external_right_half"
+  "screen": "1",
+  "placement": "internal_fill"
 }
 ```
 
@@ -75,7 +66,7 @@ Example:
 {
   "name": "GitHub",
   "key": "H",
-  "screen": "3",
+  "screen": "1",
   "kind": "web_app",
   "placement": "internal_fill",
   "open_path": "~/Applications/Chromium Apps.localized/GitHub.app",
@@ -83,15 +74,14 @@ Example:
 }
 ```
 
-When triggered from dock-switch, Safari lands on the left half of the external display.
-Web apps with `kind: "web_app"` use the same placement by default.
+When triggered from dock-switch, Safari and Google Chrome are maximized on the internal display work area.
+Web apps with `kind: "web_app"` use `internal_fill` by default.
 The `X` web app is maximized on the internal display work area.
 The `小红书` web app is maximized on the internal display work area.
 The `GitHub` web app is maximized on the internal display work area.
-Google Chrome and Google Chrome for Testing land on the right half of the external display.
 The `X`, `小红书`, and `GitHub` web app bundles can target the signed-in Chrome-family profile used by their app shims.
 Xiaohongshu Web App is available on `R` in the current default config.
-Google Chrome for Testing is available on `G` in the current default config.
+Google Chrome is available on `G` in the current default config.
 GitHub Web App is available on `H` in the current default config.
 ChatGPT and Codex render in the HUD as symbolic shortcut labels: `⇥` for `Tab` / ChatGPT and `⇧` for `Shift` / Codex. They remain excluded from ordinary fallback numbering.
 Left `Command` opens System Settings. Right `Command` is intentionally reserved as a no-op.
@@ -104,7 +94,7 @@ By default, dock-switch remembers the last known window bounds (x/y/width/height
 - Window state is kept in memory for the current app session (no disk persistence).
 - This includes maximized-like window sizes because the actual bounds are restored.
 - Apps with explicit `placement` (for example `external_right_half` or `internal_fill`) keep that placement behavior.
-- Apps with `kind: "web_app"` default to `external_right_half` unless `placement` overrides it.
+- Apps with `kind: "web_app"` default to `internal_fill` unless `placement` overrides it.
 - `open_path` can pin a launcher item to an exact app bundle, which is useful for Chrome web app shims stored under `~/Applications/Chrome Apps.localized`.
 - `app_url` lets dock-switch identify a Chrome `--app=...` window by pid when Accessibility sees only `Google Chrome`.
 
@@ -113,8 +103,9 @@ To disable restore for a specific app, add:
 ```json
 {
   "name": "Terminal",
-  "key": "T",
+  "key": "F3",
   "screen": "4",
+  "placement": "side_right_fill",
   "remember_window_state": false
 }
 ```
@@ -136,7 +127,7 @@ To disable restore for a specific app, add:
    - `yarn dist:signed`
 
 ## CLI
-`dock-switch-cli` is the canonical command-line entrypoint for window placement, display inspection, and Playwright-managed Chrome targeting.
+`dock-switch-cli` is the canonical command-line entrypoint for window placement, display inspection, and pid/profile-bound Chrome targeting.
 
 Examples:
 
@@ -144,44 +135,42 @@ Examples:
 dock-switch-cli displays
 dock-switch-cli gokit5-status
 dock-switch-cli codex-display --target external
-dock-switch-cli place --app "Terminal" --placement external_right_half
+dock-switch-cli place --app "Terminal" --placement side_right_fill
 dock-switch-cli place --pid 12345 --placement external_right_half
 dock-switch-cli move --app "Terminal" --x 0 --y 25 --w 1512 --h 875
 dock-switch-cli move --pid 12345 --x 0 --y 25 --w 1512 --h 875
-dock-switch-cli get-chrome-window --profile-dir /tmp/playwright_chromiumdev_profile-XXXXXX
-dock-switch-cli move-chrome-window --profile-dir /tmp/playwright_chromiumdev_profile-XXXXXX --x 713 --y -1410 --w 1280 --h 1410
+dock-switch-cli get-chrome-window --profile-dir /tmp/chrome_profile-XXXXXX
+dock-switch-cli move-chrome-window --profile-dir /tmp/chrome_profile-XXXXXX --x 713 --y -1410 --w 1280 --h 1410
 ```
 
 Notes:
 
 - If `dock-switch-cli` is not on your PATH, run it as `node bin/dock-switch-cli.js ...` from this repo.
-- `--pid` is useful when you need to target one managed window from a multi-window app, but it is not sufficient for Playwright-managed Chrome.
-- `get-chrome-window` and `move-chrome-window` target the exact Chrome window for a specific `--user-data-dir` profile through Chrome DevTools, which is the reliable path for Playwright-managed Chrome windows.
+- `--pid` is useful when you need to target one managed window from a multi-window app such as Google Chrome.
+- `get-chrome-window` and `move-chrome-window` target the exact Chrome window for a specific `--user-data-dir` profile through Chrome DevTools when a profile-bound helper still needs window placement.
 - If the dock-switch control socket is not running, the CLI launches `/Applications/dock-switch.app` and retries automatically.
 - `displays` prints JSON with Electron display bounds and work areas.
 - `gokit5-status` prints the runtime serial listener state and selected port.
-- `codex-display` focuses an existing Codex window on the target display when available and centers the pointer in that window; if no target window exists, it centers the pointer on that display.
+- `codex-display` focuses an existing Codex window on the target display when available, but always centers the pointer on the target display work area so repeated physical key presses do not drift with window bounds.
 - The GoKit5 serial listener auto-detects the Espressif USB JTAG/serial device and can be pinned with `GOKIT5_SERIAL_PORT=/dev/cu.usbmodem...`; set `DOCK_SWITCH_GOKIT5=0` to disable it. The matching firmware lives at [longbiaochen/open-embodied](https://github.com/longbiaochen/open-embodied).
 
-## Playwright Integration
-Headed Playwright Chrome should be targeted by profile, not by generic app name and not by the Playwright session pid reported in CLI output.
+## Managed Chrome Windows
+Codex browser work should use the official Chrome plugin for signed-in Google Chrome state and the in-app browser for unauthenticated local or public pages. The profile-bound Chrome CLI helpers are retained only for lower-level window placement.
 
 Typical flow:
 
 ```bash
 dock-switch-cli displays
-dock-switch-cli get-chrome-window --profile-dir /tmp/playwright_chromiumdev_profile-XXXXXX
-dock-switch-cli move-chrome-window --profile-dir /tmp/playwright_chromiumdev_profile-XXXXXX --x 713 --y -1410 --w 1280 --h 1410
+dock-switch-cli get-chrome-window --profile-dir /tmp/chrome_profile-XXXXXX
+dock-switch-cli move-chrome-window --profile-dir /tmp/chrome_profile-XXXXXX --x 713 --y -1410 --w 1280 --h 1410
 ```
-
-This is the path used by the shared Codex Playwright wrapper.
 
 ## Configuration
 App key/display mapping is stored in `src/config.json` under `dock_items`.
 
 ## Permissions and First Run
 - Map a key to `F20` (for example with [Karabiner-Elements](https://github.com/pqrs-org/Karabiner-Elements)).
-- A direct hotkey can call the CLI without opening the launcher. Example: `F3 -> dock-switch-cli place --app "Terminal" --placement external_right_half`.
+- A direct hotkey can call the CLI without opening the launcher. Example: `F3 -> dock-switch-cli place --app "Terminal" --placement side_right_fill`.
 - Keep the installed app in macOS `Open at Login` so the global shortcut and control socket are available after login.
 - On first use, dock-switch prompts for required macOS permissions:
   - Accessibility (control UI elements / Dock metadata)

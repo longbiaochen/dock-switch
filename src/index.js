@@ -1,7 +1,5 @@
 var electron = require("electron");
-var util = require("util");
 var $ = require("jquery");
-var bootstrap = require("bootstrap");
 const child_process = require("child_process");
 const path = require("path");
 const { normalizeLauncherKey } = require("./launcher-key");
@@ -14,10 +12,12 @@ const {
     resolveAppShortcut,
     resolveWindowPlacementShortcut
 } = require("./launcher-shortcuts");
+const {
+    buildReadableOverlayTarget
+} = require("./launcher-overlay-view");
 
-var CONFIG = require(`${__dirname}/config.json`);
-// Renderer-side templates for buttons and app launch command.
-var ITEM_TPL = `<div class="item" style="left: %dpx; top: 0;""><button type="button" class="btn btn-info">%s</button></div>`;
+var CONFIG = { dock_items: [] };
+var OVERLAY_LAYOUT = null;
 var ARROW_KEY_ACTIONS = Object.freeze({
     ArrowUp: "up",
     ArrowDown: "down",
@@ -164,7 +164,7 @@ function focusApplicationWindowSoon(appName) {
 function getItemPlacement(item) {
     if (!item) return "";
     if (item.placement) return String(item.placement);
-    if (item.kind === "web_app") return "external_right_half";
+    if (item.kind === "web_app") return "internal_fill";
     return "";
 }
 
@@ -192,6 +192,120 @@ function handleArrowWindowControl(key, code) {
     electron.ipcRenderer.send("arrow-window-control", action);
 }
 
+function activateLauncherItem(item) {
+    if (!item) return;
+
+    var placement = getItemPlacement(item);
+    if (placement) {
+        saveFrontmostWindowState();
+        electron.ipcRenderer.send("launch-app-with-placement", {
+            name: item.name,
+            placement: placement,
+            open_path: item.open_path,
+            app_url: item.app_url
+        });
+    } else {
+        openAndRestoreItem(item);
+    }
+}
+
+function hideLauncher() {
+    electron.ipcRenderer.invoke('hide-window');
+}
+
+function overlayItemForDockItem(dockItem, index) {
+    if (!OVERLAY_LAYOUT || !Array.isArray(OVERLAY_LAYOUT.items) || !dockItem) {
+        return null;
+    }
+
+    var exact = OVERLAY_LAYOUT.items.find(entry => entry && entry.name === dockItem.name);
+    if (exact) return exact;
+    return OVERLAY_LAYOUT.items[index] || null;
+}
+
+function updateDockReader(target) {
+    if (!target) return;
+    $(".dock-reader-key").text(target.key);
+    $(".dock-reader-name").text(target.item.name || target.label || "");
+}
+
+function renderLauncherItems(dockItems, config) {
+    CONFIG = config && Array.isArray(config.dock_items) ? config : { dock_items: [] };
+    $("#container").empty();
+    DOCK_ITEMS = [];
+
+    var launcherItems = buildLauncherItems(dockItems, CONFIG.dock_items);
+    var background = $("<div>").addClass("dock-cover");
+    $("#container").append(background);
+    var reader = $("<div>").addClass("dock-reader");
+    $("<span>").addClass("dock-reader-key").appendTo(reader);
+    $("<span>").addClass("dock-reader-name").appendTo(reader);
+    $("#container").append(reader);
+    var firstTarget = null;
+
+    for (var i = 0; i < launcherItems.length; i++) {
+        var item = launcherItems[i].item;
+        var overlayItem = overlayItemForDockItem(launcherItems[i].dockItem, i);
+        DOCK_ITEMS.push(item);
+        if (!overlayItem || !overlayItem.relativeRect) {
+            continue;
+        }
+
+        var target = buildReadableOverlayTarget(item, overlayItem, OVERLAY_LAYOUT, {
+            reservedTop: 34
+        });
+        if (!target) {
+            continue;
+        }
+        if (!firstTarget) firstTarget = target;
+
+        var button = $("<button>")
+            .attr("type", "button")
+            .attr("title", target.title)
+            .attr("aria-label", target.title)
+            .addClass("dock-target")
+            .css({
+                left: `${target.targetStyle.left}px`,
+                top: `${target.targetStyle.top}px`,
+                width: `${target.targetStyle.width}px`,
+                height: `${target.targetStyle.height}px`
+            })
+            .on("mousedown", event => {
+                event.preventDefault();
+                event.stopPropagation();
+            })
+            .on("mouseenter focus", { target }, event => {
+                updateDockReader(event.data.target);
+            })
+            .on("click", { item }, event => {
+                event.preventDefault();
+                event.stopPropagation();
+                hideLauncher();
+                activateLauncherItem(event.data.item);
+            });
+
+        $("<span>")
+            .addClass("dock-target-key")
+            .text(target.key)
+            .appendTo(button);
+        $("<span>")
+            .addClass("dock-target-label")
+            .text(target.label)
+            .appendTo(button);
+        $("<span>")
+            .addClass("dock-target-icon-zone")
+            .css({
+                top: `${target.iconStyle.top}px`,
+                height: `${target.iconStyle.height}px`
+            })
+            .appendTo(button);
+
+        $("#container").append(button);
+    }
+
+    updateDockReader(firstTarget);
+}
+
 $(function() {
     $(document).on("keydown", function(e) {
         e.preventDefault();
@@ -201,7 +315,7 @@ $(function() {
         } else {
             var normalizedKey = normalizeLauncherKey(e.key, e.code);
             // Hide first so launcher feels instant after key selection.
-            electron.ipcRenderer.invoke('hide-window');
+            hideLauncher();
             var shortcutApp = resolveAppShortcut(normalizedKey);
             if (shortcutApp) {
                 openAndRestoreItem({ name: shortcutApp });
@@ -222,39 +336,19 @@ $(function() {
             }
 
             // new Notification(item.name, { body: key });
-            var placement = getItemPlacement(item);
-            if (placement) {
-                saveFrontmostWindowState();
-                electron.ipcRenderer.send("launch-app-with-placement", {
-                    name: item.name,
-                    placement: placement,
-                    open_path: item.open_path,
-                    app_url: item.app_url
-                });
-            } else {
-                openAndRestoreItem(item);
-            }
+            activateLauncherItem(item);
         }
     });
 
-    electron.ipcRenderer.on("update-ui", (event, dock_items) => {
-        $("#container").html("");
-        DOCK_ITEMS = [];
-        var launcherItems = buildLauncherItems(dock_items, CONFIG.dock_items);
-        var visible_items = launcherItems.map(entry => entry.dockItem);
-        var base_x = visible_items.length > 0 ? visible_items[0].pos.x : 0;
-        for (var i = 0; i < launcherItems.length; i++) {
-            var item = launcherItems[i].item;
-            DOCK_ITEMS.push(item);
-            var left = Math.max(0, Math.round(launcherItems[i].dockItem.pos.x - base_x));
-            $("#container").append(util.format(ITEM_TPL, left, item.icon || item.key));
-        }
+    electron.ipcRenderer.on("update-ui", (event, dock_items, config, overlayLayout) => {
+        OVERLAY_LAYOUT = overlayLayout || null;
+        renderLauncherItems(dock_items, config);
     });
 
     electron.ipcRenderer.on("update-display", () => {});
 
     electron.ipcRenderer.on("activate-app-shortcut", (event, appName) => {
-        electron.ipcRenderer.invoke('hide-window');
+        hideLauncher();
         openAndRestoreItem({ name: appName });
     });
 

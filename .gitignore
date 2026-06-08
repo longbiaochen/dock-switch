@@ -7,6 +7,9 @@ output/
 release/
 bin/
 native/dock-query/build/
+native/dock-switch-app/.build/
+native/settings-app/build/
+artifacts/
 
 # Documentation build artifacts
 docs/_build/

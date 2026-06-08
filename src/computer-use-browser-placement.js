@@ -2,7 +2,7 @@ const { getDisplayArea } = require("./display-targets");
 const { getDisplayForRect } = require("./window-control");
 
 const DEFAULT_ANCHOR_APP = "Codex";
-const DEFAULT_BROWSER_APP = "Google Chrome for Testing";
+const DEFAULT_BROWSER_APP = "Google Chrome";
 
 function isUsableWindow(win) {
     return !!(win &&

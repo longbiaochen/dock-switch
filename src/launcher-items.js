@@ -53,7 +53,10 @@ function buildLauncherItems(dockItems, configDockItems) {
         var dockName = normalizeAppName(visibleItems[i].name);
         var item = specialLauncherItemForName(visibleItems[i].name);
         if (item == undefined) {
-            item = (configDockItems || []).find(entry => normalizeAppName(entry.name) === dockName);
+            item = (configDockItems || []).find(entry =>
+                normalizeAppName(entry.name) === dockName &&
+                String(entry.key || "").trim()
+            );
         }
         if (item == undefined) {
             item = {

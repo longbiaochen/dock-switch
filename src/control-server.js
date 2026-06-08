@@ -228,10 +228,33 @@ async function selectCodexDisplayWindow(command, deps) {
 
 async function placeComputerUseBrowserWindow(command, deps) {
     const anchorApp = String((command && command.anchorApp) || "Codex").trim();
-    const browserApp = String((command && command.browserApp) || "Google Chrome for Testing").trim();
+    const browserApp = String((command && command.browserApp) || "Google Chrome").trim();
     return runSingleFlight(`computer-use-browser:${anchorApp}:${browserApp}`, () => (
         placeComputerUseBrowser(command, deps)
     ));
+}
+
+function showLauncher(deps) {
+    if (!deps || typeof deps.showLauncher !== "function") {
+        return { ok: false, error: "launcher control is unavailable" };
+    }
+    const ok = deps.showLauncher();
+    return ok ? { ok: true } : { ok: false, error: "Failed to show launcher" };
+}
+
+function hideLauncher(deps) {
+    if (!deps || typeof deps.hideLauncher !== "function") {
+        return { ok: false, error: "launcher control is unavailable" };
+    }
+    const ok = deps.hideLauncher();
+    return ok ? { ok: true } : { ok: false, error: "Failed to hide launcher" };
+}
+
+async function captureLauncher(command, deps) {
+    if (!deps || typeof deps.captureLauncher !== "function") {
+        return { ok: false, error: "launcher capture is unavailable" };
+    }
+    return deps.captureLauncher(command);
 }
 
 function getDisplaysSnapshot(deps) {
@@ -320,6 +343,12 @@ function setupControlServer(deps) {
                             response = await selectCodexDisplayWindow(command, deps);
                         } else if (command.command === "computer-use-browser") {
                             response = await placeComputerUseBrowserWindow(command, deps);
+                        } else if (command.command === "show-launcher") {
+                            response = showLauncher(deps);
+                        } else if (command.command === "hide-launcher") {
+                            response = hideLauncher(deps);
+                        } else if (command.command === "capture-launcher") {
+                            response = await captureLauncher(command, deps);
                         } else if (command.command === "gokit5-status") {
                             response = getGokit5Status(deps);
                         } else if (command.command === "debug-displays") {

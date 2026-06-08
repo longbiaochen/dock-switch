@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dock Switch Settings</title>
+    <script src="settings.js"></script>
+    <link href="settings.css" rel="stylesheet">
+</head>
+
+<body>
+    <main class="settings-shell">
+        <aside class="settings-sidebar window-drag">
+            <div class="sidebar-title">Dock Switch</div>
+            <nav class="sidebar-nav" aria-label="设置分区">
+                <button class="sidebar-item selected" type="button">
+                    <span class="sidebar-icon">⌘</span>
+                    <span>启动默认值</span>
+                </button>
+                <button class="sidebar-item" type="button" disabled>
+                    <span class="sidebar-icon">▣</span>
+                    <span>显示器</span>
+                </button>
+                <button class="sidebar-item" type="button" disabled>
+                    <span class="sidebar-icon">⌁</span>
+                    <span>高级</span>
+                </button>
+            </nav>
+        </aside>
+
+        <section class="settings-content">
+            <header class="settings-header window-drag">
+                <div>
+                    <h1>启动默认值</h1>
+                    <p>为 Dock App 设置快捷键、默认屏幕和打开位置。</p>
+                </div>
+                <button id="refreshButton" type="button" class="toolbar-button">刷新</button>
+            </header>
+
+            <section class="settings-toolbar">
+                <div class="search-field">
+                    <span aria-hidden="true">⌕</span>
+                    <input id="searchInput" type="search" placeholder="搜索 App">
+                </div>
+            </section>
+
+            <section class="settings-list-wrap">
+                <div class="settings-list" role="table" aria-label="Dock App 设置">
+                    <div class="settings-list-header" role="row">
+                        <div role="columnheader">App</div>
+                        <div role="columnheader">快捷键</div>
+                        <div role="columnheader">默认屏幕</div>
+                        <div role="columnheader">位置</div>
+                        <div role="columnheader">状态</div>
+                    </div>
+                    <div id="settingsRows"></div>
+                </div>
+                <div id="emptyState" class="empty-state">没有匹配的 Dock App</div>
+            </section>
+
+            <footer class="settings-footer">
+                <div id="statusText" class="status-text">读取中...</div>
+                <div class="settings-actions">
+                    <button id="cancelButton" type="button" class="secondary-button">取消</button>
+                    <button id="saveButton" type="button" class="primary-button">保存</button>
+                </div>
+            </footer>
+        </section>
+    </main>
+</body>
+
+</html>

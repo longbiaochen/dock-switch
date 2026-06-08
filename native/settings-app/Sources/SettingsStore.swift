@@ -1,0 +1,249 @@
+import Foundation
+
+@MainActor
+final class SettingsStore: ObservableObject {
+    @Published var rows: [SettingsRow] = []
+    @Published var query = ""
+    @Published var statusText = "读取中..."
+    @Published var errorText = ""
+    @Published var isDirty = false
+
+    private let configPath: String
+    private let dockCachePath: String
+
+    init(arguments: [String]) {
+        self.configPath = Self.value(after: "--config", in: arguments)
+            ?? "/Applications/dock-switch.app/Contents/Resources/app/src/config.json"
+        self.dockCachePath = Self.value(after: "--dock-cache", in: arguments)
+            ?? "\(NSHomeDirectory())/Library/Application Support/dock-switch/dock-items-cache.json"
+        load()
+    }
+
+    var filteredRows: [SettingsRow] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return rows }
+        return rows.filter { $0.name.localizedCaseInsensitiveContains(trimmed) }
+    }
+
+    var canSave: Bool {
+        validationError() == nil
+    }
+
+    func load() {
+        do {
+            let config = try Self.readJSONObject(path: configPath) as? [String: Any] ?? [:]
+            let dockItems = try Self.readJSONObject(path: dockCachePath) as? [[String: Any]] ?? []
+            rows = buildRows(dockItems: dockItems, config: config)
+            isDirty = false
+            errorText = ""
+            statusText = "\(rows.count) 个 Dock App"
+        } catch {
+            errorText = "读取失败：\(error.localizedDescription)"
+            statusText = errorText
+        }
+    }
+
+    func update(rowID: SettingsRow.ID, key: String? = nil, screen: String? = nil, position: String? = nil) {
+        guard let index = rows.firstIndex(where: { $0.id == rowID }), !rows[index].readonly else { return }
+        if let key {
+            rows[index].key = normalizeLauncherKey(key)
+            rows[index].displayKey = rows[index].key
+        }
+        if let screen {
+            rows[index].screen = screen
+            rows[index].placement = ""
+            if screen.isEmpty {
+                rows[index].position = ""
+            } else if rows[index].position.isEmpty {
+                rows[index].position = "fill"
+            }
+        }
+        if let position {
+            rows[index].position = position
+            rows[index].placement = ""
+            if !position.isEmpty && rows[index].screen.isEmpty {
+                rows[index].screen = "1"
+            }
+        }
+        isDirty = true
+        refreshValidationText()
+    }
+
+    func save() {
+        if let validation = validationError() {
+            errorText = validation
+            statusText = validation
+            return
+        }
+
+        do {
+            var config = try Self.readJSONObject(path: configPath) as? [String: Any] ?? [:]
+            let dockItems = try Self.readJSONObject(path: dockCachePath) as? [[String: Any]] ?? []
+            try applyRows(to: &config, dockItems: dockItems)
+            try Self.writeJSONObject(config, path: configPath)
+            load()
+            statusText = "已保存，快捷键已刷新"
+        } catch {
+            errorText = "保存失败：\(error.localizedDescription)"
+            statusText = errorText
+        }
+    }
+
+    private func refreshValidationText() {
+        if let validation = validationError() {
+            errorText = validation
+            statusText = validation
+        } else {
+            errorText = ""
+            statusText = isDirty ? "有未保存修改" : "\(rows.count) 个 Dock App"
+        }
+    }
+
+    private func validationError() -> String? {
+        var byKey: [String: [String]] = [:]
+        for row in rows where !row.readonly {
+            let key = normalizeLauncherKey(row.key)
+            if key.isEmpty { continue }
+            if ["TAB", "SHIFT", "COMMAND_LEFT", "COMMAND_RIGHT"].contains(key) {
+                return "\(key) 是系统保留键"
+            }
+            byKey[key, default: []].append(row.name)
+        }
+        if let duplicate = byKey.first(where: { $0.value.count > 1 }) {
+            return "\(duplicate.key) 被 \(duplicate.value.joined(separator: "、")) 重复使用"
+        }
+        return nil
+    }
+
+    private func buildRows(dockItems: [[String: Any]], config: [String: Any]) -> [SettingsRow] {
+        let configItems = config["dock_items"] as? [[String: Any]] ?? []
+        let sortedDockItems = visibleDockItems(dockItems)
+        var fallbackKey = 1
+        var result: [SettingsRow] = []
+
+        for dockItem in sortedDockItems {
+            guard let name = dockItem["name"] as? String else { continue }
+            if let reserved = reservedItem(for: name) {
+                result.append(reserved)
+                continue
+            }
+            let configItem = configItems.first { normalizeAppName($0["name"] as? String ?? "") == normalizeAppName(name) }
+            if let configItem, let configuredKey = configItem["key"] as? String, !configuredKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                let placement = configItem["placement"] as? String ?? ""
+                let parsedPlacement = parsePlacement(placement)
+                let screen = normalizeScreenValue((configItem["screen"] as? String) ?? parsedPlacement.screen)
+                result.append(SettingsRow(
+                    id: name,
+                    name: (configItem["name"] as? String) ?? name,
+                    key: configuredKey,
+                    displayKey: configuredKey,
+                    screen: screen,
+                    position: parsedPlacement.position,
+                    placement: placement,
+                    status: .configured,
+                    readonly: false,
+                    configured: true,
+                    fallback: false
+                ))
+            } else {
+                result.append(SettingsRow(
+                    id: name,
+                    name: name,
+                    key: "\(fallbackKey)",
+                    displayKey: "\(fallbackKey)",
+                    screen: "",
+                    position: "",
+                    placement: "",
+                    status: .fallback,
+                    readonly: false,
+                    configured: false,
+                    fallback: true
+                ))
+                fallbackKey += 1
+            }
+        }
+        return result
+    }
+
+    private func applyRows(to config: inout [String: Any], dockItems: [[String: Any]]) throws {
+        let visibleNames = Set(visibleDockItems(dockItems).compactMap { $0["name"] as? String }.map(normalizeAppName))
+        var updates: [String: SettingsRow] = [:]
+        for row in rows where !row.readonly && visibleNames.contains(normalizeAppName(row.name)) {
+            updates[normalizeAppName(row.name)] = row
+        }
+
+        var configItems = config["dock_items"] as? [[String: Any]] ?? []
+        var seen = Set<String>()
+        for index in configItems.indices {
+            let name = configItems[index]["name"] as? String ?? ""
+            let normalized = normalizeAppName(name)
+            guard let row = updates[normalized] else { continue }
+            seen.insert(normalized)
+            apply(row: row, to: &configItems[index])
+        }
+
+        for (normalized, row) in updates where !seen.contains(normalized) {
+            let key = outputKey(for: row)
+            let placement = placementFor(screen: row.screen, position: row.position)
+            guard !key.isEmpty || !row.screen.isEmpty || !placement.isEmpty else { continue }
+            var item: [String: Any] = ["name": row.name]
+            if !key.isEmpty { item["key"] = key }
+            if !row.screen.isEmpty { item["screen"] = row.screen }
+            if !placement.isEmpty { item["placement"] = placement }
+            configItems.append(item)
+        }
+        config["dock_items"] = configItems
+    }
+
+    private func apply(row: SettingsRow, to item: inout [String: Any]) {
+        let key = outputKey(for: row)
+        if key.isEmpty { item.removeValue(forKey: "key") } else { item["key"] = key }
+        if row.screen.isEmpty { item.removeValue(forKey: "screen") } else { item["screen"] = row.screen }
+        let placement = placementFor(screen: row.screen, position: row.position)
+        if placement.isEmpty { item.removeValue(forKey: "placement") } else { item["placement"] = placement }
+    }
+
+    private func outputKey(for row: SettingsRow) -> String {
+        let key = normalizeLauncherKey(row.key)
+        if !row.configured && key == row.displayKey {
+            return ""
+        }
+        return key
+    }
+
+    private func visibleDockItems(_ dockItems: [[String: Any]]) -> [[String: Any]] {
+        dockItems
+            .filter {
+                guard let name = $0["name"] as? String,
+                      name != "Trash",
+                      name != "Downloads",
+                      let pos = $0["pos"] as? [String: Any],
+                      pos["x"] is NSNumber else {
+                    return false
+                }
+                return true
+            }
+            .sorted {
+                let lhs = (($0["pos"] as? [String: Any])?["x"] as? NSNumber)?.doubleValue ?? 0
+                let rhs = (($1["pos"] as? [String: Any])?["x"] as? NSNumber)?.doubleValue ?? 0
+                return lhs < rhs
+            }
+    }
+
+    private static func value(after flag: String, in arguments: [String]) -> String? {
+        guard let index = arguments.firstIndex(of: flag), arguments.indices.contains(index + 1) else {
+            return nil
+        }
+        return arguments[index + 1]
+    }
+
+    private static func readJSONObject(path: String) throws -> Any {
+        let data = try Data(contentsOf: URL(fileURLWithPath: path))
+        return try JSONSerialization.jsonObject(with: data)
+    }
+
+    private static func writeJSONObject(_ object: Any, path: String) throws {
+        let data = try JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted, .sortedKeys])
+        try data.write(to: URL(fileURLWithPath: path), options: [.atomic])
+    }
+}

@@ -54,7 +54,7 @@ test("chooseWindow prefers the focused usable window, then main and area", () =>
     assert.equal(chosen.pid, 2);
 });
 
-test("placeComputerUseBrowser pins Chrome for Testing to the right half of the Codex display", async () => {
+test("placeComputerUseBrowser pins Google Chrome to the right half of the Codex display", async () => {
     const displays = [
         makeDisplay({
             id: 1,
@@ -86,7 +86,7 @@ test("placeComputerUseBrowser pins Chrome for Testing to the right half of the C
                     { pid: 11, windowIndex: 1, x: -300, y: -1200, w: 1200, h: 900, focused: true }
                 ];
             }
-            if (name === "Google Chrome for Testing") {
+            if (name === "Google Chrome") {
                 return [
                     { pid: 20, windowIndex: 2, x: 10, y: 80, w: 900, h: 700, focused: true }
                 ];
@@ -143,5 +143,5 @@ test("placeComputerUseBrowser reports when the external browser is not open yet"
     });
 
     assert.equal(result.ok, false);
-    assert.match(result.error, /Google Chrome for Testing/);
+    assert.match(result.error, /Google Chrome/);
 });

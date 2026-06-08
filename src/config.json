@@ -7,35 +7,31 @@
         {
             "name": "Safari",
             "key": "S",
-            "screen": "3",
-            "placement": "external_left_half"
+            "screen": "1",
+            "placement": "internal_fill"
         },
         {
             "name": "Google Chrome",
-            "key": "B",
-            "screen": "4",
-            "placement": "external_right_half"
-        },
-        {
-            "name": "Google Chrome for Testing",
             "key": "G",
-            "screen": "4",
-            "placement": "external_right_half"
+            "screen": "1",
+            "placement": "internal_fill"
         },
         {
             "name": "微信",
             "key": "W",
-            "screen": "3"
+            "screen": "1",
+            "placement": "internal_fill"
         },
         {
             "name": "Feishu",
             "key": "F",
-            "screen": "3"
+            "screen": "1",
+            "placement": "internal_fill"
         },
         {
             "name": "X",
             "key": "X",
-            "screen": "3",
+            "screen": "1",
             "kind": "web_app",
             "placement": "internal_fill",
             "open_path": "~/Applications/Chromium Apps.localized/X.app",
@@ -44,7 +40,7 @@
         {
             "name": "GitHub",
             "key": "H",
-            "screen": "3",
+            "screen": "1",
             "kind": "web_app",
             "placement": "internal_fill",
             "open_path": "~/Applications/Chromium Apps.localized/GitHub.app",
@@ -53,17 +49,25 @@
         {
             "name": "Mail",
             "key": "E",
-            "screen": "3"
+            "screen": "1",
+            "placement": "internal_fill"
         },
         {
             "name": "Calendar",
             "key": "C",
-            "screen": "0"
+            "screen": "1",
+            "placement": "internal_fill"
+        },
+        {
+            "name": "LifeOS",
+            "key": "L",
+            "screen": "1",
+            "placement": "internal_fill"
         },
         {
             "name": "小红书",
             "key": "R",
-            "screen": "3",
+            "screen": "1",
             "kind": "web_app",
             "placement": "internal_fill",
             "open_path": "~/Applications/Chromium Apps.localized/小红书.app",
@@ -72,12 +76,14 @@
         {
             "name": "Notes",
             "key": "N",
-            "screen": "3"
+            "screen": "1",
+            "placement": "internal_fill"
         },
         {
             "name": "Contacts",
             "key": "A",
-            "screen": "4"
+            "screen": "1",
+            "placement": "internal_fill"
         },
         {
             "name": "Zotero",
@@ -97,7 +103,14 @@
         {
             "name": "Sublime Text",
             "key": "T",
-            "screen": "4"
+            "screen": "1",
+            "placement": "internal_fill"
+        },
+        {
+            "name": "Terminal",
+            "key": "F3",
+            "screen": "1",
+            "placement": "internal_fill"
         },
         {
             "name": "iPhone Mirroring",

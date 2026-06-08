@@ -230,6 +230,20 @@ function resolveBoundsForPlacement(placement, displays, primaryDisplay) {
         };
     }
 
+    function boundsForTargetPlacement(targetName, placementName) {
+        var display = getDisplayForTarget(targetName, displays, primaryDisplay);
+        if (!display) return null;
+        if (placementName === "fill") return boundsForDisplay(display);
+        if (placementName === "left_half") return leftHalfBounds(display);
+        if (placementName === "right_half") return rightHalfBounds(display);
+        return null;
+    }
+
+    var genericPlacement = String(placement || "").match(/^(internal|external|side_left|side_right)_(fill|left_half|right_half)$/);
+    if (genericPlacement) {
+        return boundsForTargetPlacement(genericPlacement[1], genericPlacement[2]);
+    }
+
     if (placement === "external_left_half") {
         var externalLeft = getExternalDisplay(displays, primaryDisplay, null);
         if (externalLeft) {

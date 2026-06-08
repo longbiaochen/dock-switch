@@ -11,7 +11,7 @@ Core Flow
 ---------
 
 1. A global shortcut (`F20`) toggles the launcher window.
-2. In the current default config, ``S`` targets Safari on the left half, ``B`` targets Google Chrome on the right half, ``G`` targets Google Chrome for Testing on the right half, ``X``, ``R``, and ``H`` target internal-fill web apps, and symbolic shortcuts target ChatGPT, Codex, and System Settings.
+2. In the current default config, Safari, Feishu, WeChat, Google Chrome, Calendar, Notes, Contacts, Mail, Sublime Text, and configured web apps target ``internal_fill`` on the internal display, while symbolic shortcuts target ChatGPT, Codex, and System Settings.
 3. The main process calls the native ``dock-query`` addon to fetch Dock app metadata.
 4. The renderer builds a compact key map UI.
 5. Key presses launch/focus apps; items with explicit placement or ``kind: "web_app"``
@@ -45,4 +45,4 @@ Architecture
 - ``native/dock-query``:
   Native Node addon that reads live Dock metadata directly in-process.
 - ``bin/dock-switch-cli.js``:
-  Canonical automation CLI for display inspection, Codex display selection, AX-based app/pid movement, and Chrome-profile targeting for Playwright-managed windows.
+  Canonical automation CLI for display inspection, Codex display selection, AX-based app/pid movement, and lower-level Chrome profile targeting.

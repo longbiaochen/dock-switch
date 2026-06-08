@@ -162,16 +162,9 @@ async function selectCodexDisplay(command, deps) {
     const windows = getCodexWindows(deps.dockQuery, appName);
     const targetWindow = chooseCodexWindowForDisplay(windows, targetDisplay, displays);
     const focused = targetWindow ? focusCodexWindow(deps.dockQuery, targetWindow) : false;
-    const mouseMoved = targetWindow
-        ? moveMouseToBoundsCenter(deps.dockQuery, targetWindow)
-        : moveMouseToDisplayCenter(deps.dockQuery, targetDisplay);
+    const mouseMoved = moveMouseToDisplayCenter(deps.dockQuery, targetDisplay);
     const feedbackPoint = mouseMoved
-        ? targetWindow
-            ? {
-                x: Math.round(targetWindow.x + targetWindow.w / 2),
-                y: Math.round(targetWindow.y + targetWindow.h / 2)
-            }
-            : resolveDisplayCenterPoint(targetDisplay)
+        ? resolveDisplayCenterPoint(targetDisplay)
         : null;
     const mouseClicked = mouseMoved && clickMouseAtPoint(deps.dockQuery, feedbackPoint);
     if (feedbackPoint && typeof deps.showMouseFeedback === "function") {

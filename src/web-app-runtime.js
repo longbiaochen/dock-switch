@@ -97,7 +97,7 @@ function escapeRegex(text) {
 }
 
 function isChromeBrowserCommand(command) {
-    return /\/(?:Google Chrome(?: for Testing)?|Chromium)\.app\/Contents\/MacOS\/(?:Google Chrome(?: for Testing)?|Chromium)(?:\s|$)/.test(
+    return /\/(?:Google Chrome|Chromium)\.app\/Contents\/MacOS\/(?:Google Chrome|Chromium)(?:\s|$)/.test(
         String(command || "")
     );
 }

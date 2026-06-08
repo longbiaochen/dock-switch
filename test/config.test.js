@@ -9,7 +9,7 @@ test("default config maps Xiaohongshu web app to R", () => {
     assert.deepEqual(item, {
         name: "小红书",
         key: "R",
-        screen: "3",
+        screen: "1",
         kind: "web_app",
         placement: "internal_fill",
         open_path: "~/Applications/Chromium Apps.localized/小红书.app",
@@ -17,17 +17,65 @@ test("default config maps Xiaohongshu web app to R", () => {
     });
 });
 
-test("default config maps G to Chrome for Testing and H to GitHub", () => {
-    const chromeForTesting = config.dock_items.find(entry => entry.name === "Google Chrome for Testing");
+test("default config maps requested apps and web apps to internal fill", () => {
+    const expectedInternalFill = [
+        "Safari",
+        "Google Chrome",
+        "微信",
+        "Feishu",
+        "Mail",
+        "Calendar",
+        "LifeOS",
+        "Notes",
+        "Contacts",
+        "Sublime Text",
+        "Terminal",
+        "X",
+        "GitHub",
+        "小红书"
+    ];
+
+    for (const name of expectedInternalFill) {
+        const item = config.dock_items.find(entry => entry.name === name);
+        assert.equal(item && item.screen, "1", `${name} should target the internal screen`);
+        assert.equal(item && item.placement, "internal_fill", `${name} should be maximized on the internal screen`);
+    }
+});
+
+test("default config maps Terminal to internal fill", () => {
+    const terminal = config.dock_items.find(entry => entry.name === "Terminal");
+    const sublimeText = config.dock_items.find(entry => entry.name === "Sublime Text");
+
+    assert.equal(sublimeText && sublimeText.key, "T");
+    assert.deepEqual(terminal, {
+        name: "Terminal",
+        key: "F3",
+        screen: "1",
+        placement: "internal_fill"
+    });
+});
+
+test("default config maps G to Google Chrome and H to GitHub", () => {
+    const chrome = config.dock_items.find(entry => entry.name === "Google Chrome");
     const github = config.dock_items.find(entry => entry.name === "GitHub");
 
-    assert.deepEqual(chromeForTesting, {
-        name: "Google Chrome for Testing",
+    assert.deepEqual(chrome, {
+        name: "Google Chrome",
         key: "G",
-        screen: "4",
-        placement: "external_right_half"
+        screen: "1",
+        placement: "internal_fill"
     });
+    assert.equal(config.dock_items.some(entry => /Testing/.test(entry.name)), false);
     assert.equal(github.key, "H");
+});
+
+test("default config maps L to LifeOS", () => {
+    assert.deepEqual(config.dock_items.find(entry => entry.name === "LifeOS"), {
+        name: "LifeOS",
+        key: "L",
+        screen: "1",
+        placement: "internal_fill"
+    });
 });
 
 test("default config does not assign duplicate launcher keys", () => {

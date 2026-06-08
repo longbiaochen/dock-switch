@@ -302,6 +302,70 @@ test("resolveBoundsForPlacement supports side-left compatibility and side-right 
     });
 });
 
+test("resolveBoundsForPlacement supports fill and half placements on each symbolic display", () => {
+    const displays = [
+        makeDisplay({
+            id: 1,
+            label: "Internal Display",
+            internal: true,
+            x: 0,
+            y: 0,
+            width: 1512,
+            height: 982,
+            workArea: { x: 0, y: 33, width: 1512, height: 875 }
+        }),
+        makeDisplay({
+            id: 2,
+            label: "Left Side Display",
+            internal: false,
+            x: -2444,
+            y: -1080,
+            width: 1920,
+            height: 1080,
+            workArea: { x: -2444, y: -1050, width: 1920, height: 1050 }
+        }),
+        makeDisplay({
+            id: 3,
+            label: "Right Side Display",
+            internal: false,
+            x: 2036,
+            y: -1080,
+            width: 1920,
+            height: 1080,
+            workArea: { x: 2036, y: -1050, width: 1920, height: 1050 }
+        }),
+        makeDisplay({
+            id: 5,
+            label: "External Display",
+            internal: false,
+            x: -524,
+            y: -1440,
+            width: 2560,
+            height: 1440,
+            workArea: { x: -524, y: -1410, width: 2560, height: 1410 }
+        })
+    ];
+
+    assert.deepEqual(resolveBoundsForPlacement("internal_left_half", displays, displays[0]), {
+        x: 0,
+        y: 33,
+        w: 756,
+        h: 875
+    });
+    assert.deepEqual(resolveBoundsForPlacement("side_right_right_half", displays, displays[0]), {
+        x: 2996,
+        y: -1050,
+        w: 960,
+        h: 1050
+    });
+    assert.deepEqual(resolveBoundsForPlacement("side_left_left_half", displays, displays[0]), {
+        x: -2444,
+        y: -1050,
+        w: 960,
+        h: 1050
+    });
+});
+
 test("placeFocusedWindowByAction centers the mouse on arrow target displays", () => {
     const displays = [
         makeDisplay({

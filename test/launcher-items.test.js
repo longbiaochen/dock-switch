@@ -55,3 +55,21 @@ test("buildLauncherItems renders special app labels and preserves fallback numer
         ["D", "⇥", "⇧", 1]
     );
 });
+
+test("buildLauncherItems ignores config entries without keys so fallback keys still work", () => {
+    const dockItems = [
+        { name: "X", pos: { x: 10, y: 0 } }
+    ];
+    const configDockItems = [
+        { name: "X", screen: "1", kind: "web_app", app_url: "https://x.com/" }
+    ];
+
+    const launcherItems = buildLauncherItems(dockItems, configDockItems);
+
+    assert.deepEqual(
+        launcherItems.map(entry => ({ name: entry.item.name, key: entry.item.key })),
+        [
+            { name: "X", key: 1 }
+        ]
+    );
+});

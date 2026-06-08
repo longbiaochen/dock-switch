@@ -21,7 +21,7 @@
 | --- | --- | --- | --- |
 | Verify display labels before placement work | `node bin/dock-switch-cli.js displays` | Display labels and bounds are current | Re-map display-target logic from live labels before editing config |
 | Change launcher/window behavior | `node --test test/<name>.test.js` then `yarn dist` | Tests pass and `/Applications/dock-switch.app` is replaced by the new build | Reinstall previous app bundle from backup or revert only the touched source files |
-| Place Computer Use browser beside Codex | `node scripts/place-computer-use-browser.js` | `Google Chrome for Testing` moves to the right half of the focused Codex display | Focus the intended Codex window and rerun; if stale, reset the Computer Use binding |
+| Place Computer Use browser beside Codex | `node scripts/place-computer-use-browser.js` | `Google Chrome` moves to the right half of the focused Codex display | Focus the intended Codex window and rerun; if stale, reset the Computer Use binding |
 
 ## Troubleshooting
 
@@ -47,9 +47,13 @@
 
 - Prefer `AXUIElement`-based movement over AppleScript for normal window movement.
 - Preserve reserved symbolic Codex display keys and ordinary HUD numeric fallbacks.
-- Do not let agent-controlled standalone windows land on the internal display.
+- Official Computer Use now targets the internal display by default; keep other standalone automation windows off the internal display unless the global guidance or current task explicitly says otherwise.
 
 ## Known State
 
 - Use `node bin/dock-switch-cli.js displays` as the live display probe.
 - Treat display labels as machine-specific runtime data; do not hard-code a maintainer's monitor names or local paths in public docs.
+
+## Browser Automation Constraint
+- Follow the global `~/.codex/AGENTS.md` official browser/GUI policy: Browser plugin for unauthenticated local/public rendering, Chrome plugin for signed-in/default-profile browser state, and Computer Use only for native desktop boundaries.
+- Keep only repo-specific verification surfaces here; do not copy the full global policy block into this runbook.

@@ -3,9 +3,11 @@
 #import <ApplicationServices/ApplicationServices.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cctype>
 #include <string>
+#include <thread>
 #include <unordered_set>
 #include <vector>
 #include <unistd.h>
@@ -14,10 +16,24 @@ struct DockItem {
   std::string name;
   int x;
   int y;
+  int w;
+  int h;
 };
 
 static CFStringRef kAXFullScreenAttrCompat = CFSTR("AXFullScreen");
 static CFStringRef kAXZoomedAttrCompat = CFSTR("AXZoomed");
+struct MouseDownPayload {
+  double x;
+  double y;
+};
+
+static napi_threadsafe_function gMouseDownTsfn = nullptr;
+static CFMachPortRef gMouseDownTap = nullptr;
+static CFRunLoopSourceRef gMouseDownTapSource = nullptr;
+static CFRunLoopRef gMouseDownTapRunLoop = nullptr;
+static id gMouseDownMonitor = nil;
+static std::thread gMouseDownTapThread;
+static std::atomic<bool> gMouseDownTapRunning(false);
 
 static CFTypeRef CopyAXAttr(AXUIElementRef element, CFStringRef attr) {
   CFTypeRef value = nullptr;
@@ -569,10 +585,14 @@ static void CollectDockItems(AXUIElementRef element, int depth, std::vector<Dock
     std::string name = GetAXString(element, kAXTitleAttribute);
     if (name.empty()) name = GetAXString(element, kAXDescriptionAttribute);
     if (!name.empty() && name != "missing value" && name != "Dock") {
+      CGSize s = CGSizeZero;
+      bool hasSize = GetAXSize(element, kAXSizeAttribute, &s);
       items->push_back(DockItem{
           name,
           (int)std::lround(p.x),
           (int)std::lround(p.y),
+          hasSize ? (int)std::lround(s.width) : 0,
+          hasSize ? (int)std::lround(s.height) : 0,
       });
     }
   }
@@ -631,6 +651,12 @@ static napi_value MoveMouse(napi_env env, napi_callback_info info) {
   CGError err = CGWarpMouseCursorPosition(point);
   if (err == kCGErrorSuccess) {
     CGAssociateMouseAndMouseCursorPosition(true);
+    CGEventRef move = CGEventCreateMouseEvent(nullptr, kCGEventMouseMoved, point,
+                                              kCGMouseButtonLeft);
+    if (move) {
+      CGEventPost(kCGHIDEventTap, move);
+      CFRelease(move);
+    }
   }
 
   napi_value out;
@@ -678,6 +704,162 @@ static napi_value ClickMouse(napi_env env, napi_callback_info info) {
   CGEventPost(kCGHIDEventTap, up);
   CFRelease(down);
   CFRelease(up);
+
+  napi_value out;
+  napi_get_boolean(env, true, &out);
+  return out;
+}
+
+static void CallJsMouseDown(napi_env env, napi_value jsCallback, void* context, void* data) {
+  (void)context;
+  MouseDownPayload* payload = static_cast<MouseDownPayload*>(data);
+  if (!env || !jsCallback || !payload) {
+    delete payload;
+    return;
+  }
+
+  napi_value eventObj;
+  napi_create_object(env, &eventObj);
+  napi_value xVal;
+  napi_create_double(env, payload->x, &xVal);
+  napi_set_named_property(env, eventObj, "x", xVal);
+  napi_value yVal;
+  napi_create_double(env, payload->y, &yVal);
+  napi_set_named_property(env, eventObj, "y", yVal);
+
+  napi_value undefined;
+  napi_get_undefined(env, &undefined);
+  napi_call_function(env, undefined, jsCallback, 1, &eventObj, nullptr);
+  delete payload;
+}
+
+static void QueueMouseDown(CGPoint point) {
+  if (!gMouseDownTsfn) return;
+  MouseDownPayload* payload = new MouseDownPayload{ point.x, point.y };
+  napi_status status =
+      napi_call_threadsafe_function(gMouseDownTsfn, payload, napi_tsfn_nonblocking);
+  if (status != napi_ok) {
+    delete payload;
+  }
+}
+
+static CGEventRef MouseDownTapCallback(CGEventTapProxy proxy, CGEventType type,
+                                       CGEventRef event, void* userInfo) {
+  (void)proxy;
+  (void)userInfo;
+  if (type == kCGEventTapDisabledByTimeout || type == kCGEventTapDisabledByUserInput) {
+    if (gMouseDownTap) CGEventTapEnable(gMouseDownTap, true);
+    return event;
+  }
+
+  if (type == kCGEventLeftMouseDown && gMouseDownTsfn) {
+    QueueMouseDown(CGEventGetLocation(event));
+  }
+  return event;
+}
+
+static void StopMouseDownTapInternal() {
+  if (gMouseDownMonitor) {
+    [NSEvent removeMonitor:gMouseDownMonitor];
+    gMouseDownMonitor = nil;
+  }
+  if (gMouseDownTapRunLoop) {
+    CFRunLoopStop(gMouseDownTapRunLoop);
+  }
+  if (gMouseDownTapThread.joinable() &&
+      gMouseDownTapThread.get_id() != std::this_thread::get_id()) {
+    gMouseDownTapThread.join();
+  }
+  if (gMouseDownTsfn) {
+    napi_release_threadsafe_function(gMouseDownTsfn, napi_tsfn_release);
+    gMouseDownTsfn = nullptr;
+  }
+  gMouseDownTapRunning = false;
+}
+
+static napi_value StopMouseDownTap(napi_env env, napi_callback_info info) {
+  (void)env;
+  (void)info;
+  StopMouseDownTapInternal();
+  napi_value out;
+  napi_get_boolean(env, true, &out);
+  return out;
+}
+
+static napi_value StartMouseDownTap(napi_env env, napi_callback_info info) {
+  size_t argc = 1;
+  napi_value argv[1];
+  napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+  if (argc < 1) return MakeError(env, "Expected callback");
+
+  napi_valuetype type;
+  napi_typeof(env, argv[0], &type);
+  if (type != napi_function) return MakeError(env, "callback is required");
+
+  StopMouseDownTapInternal();
+
+  napi_value resourceName;
+  napi_create_string_utf8(env, "dock-switch-mouse-down-tap", NAPI_AUTO_LENGTH, &resourceName);
+  napi_status status = napi_create_threadsafe_function(
+      env,
+      argv[0],
+      nullptr,
+      resourceName,
+      0,
+      1,
+      nullptr,
+      nullptr,
+      nullptr,
+      CallJsMouseDown,
+      &gMouseDownTsfn);
+  if (status != napi_ok) return MakeError(env, "Failed to create mouse tap callback");
+
+  gMouseDownMonitor = [NSEvent addGlobalMonitorForEventsMatchingMask:NSEventMaskLeftMouseDown
+                                                             handler:^(NSEvent* event) {
+    CGEventRef cgEvent = [event CGEvent];
+    if (cgEvent) {
+      QueueMouseDown(CGEventGetLocation(cgEvent));
+    }
+  }];
+
+  gMouseDownTapRunning = true;
+  gMouseDownTapThread = std::thread([]() {
+    CGEventMask mask = CGEventMaskBit(kCGEventLeftMouseDown);
+    gMouseDownTap = CGEventTapCreate(
+        kCGSessionEventTap,
+        kCGHeadInsertEventTap,
+        kCGEventTapOptionListenOnly,
+        mask,
+        MouseDownTapCallback,
+        nullptr);
+    if (!gMouseDownTap) {
+      gMouseDownTapRunning = false;
+      return;
+    }
+
+    gMouseDownTapSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, gMouseDownTap, 0);
+    gMouseDownTapRunLoop = CFRunLoopGetCurrent();
+    CFRetain(gMouseDownTapRunLoop);
+    CFRunLoopAddSource(gMouseDownTapRunLoop, gMouseDownTapSource, kCFRunLoopCommonModes);
+    CGEventTapEnable(gMouseDownTap, true);
+    CFRunLoopRun();
+
+    if (gMouseDownTapSource) {
+      CFRunLoopRemoveSource(gMouseDownTapRunLoop, gMouseDownTapSource, kCFRunLoopCommonModes);
+      CFRelease(gMouseDownTapSource);
+      gMouseDownTapSource = nullptr;
+    }
+    if (gMouseDownTap) {
+      CFMachPortInvalidate(gMouseDownTap);
+      CFRelease(gMouseDownTap);
+      gMouseDownTap = nullptr;
+    }
+    if (gMouseDownTapRunLoop) {
+      CFRelease(gMouseDownTapRunLoop);
+      gMouseDownTapRunLoop = nullptr;
+    }
+    gMouseDownTapRunning = false;
+  });
 
   napi_value out;
   napi_get_boolean(env, true, &out);
@@ -778,6 +960,22 @@ static napi_value GetDockItems(napi_env env, napi_callback_info info) {
     napi_set_named_property(env, posObj, "y", yVal);
 
     napi_set_named_property(env, itemObj, "pos", posObj);
+
+    if (unique[i].w > 0 && unique[i].h > 0) {
+      napi_value sizeObj;
+      napi_create_object(env, &sizeObj);
+
+      napi_value wVal;
+      napi_create_int32(env, unique[i].w, &wVal);
+      napi_set_named_property(env, sizeObj, "w", wVal);
+
+      napi_value hVal;
+      napi_create_int32(env, unique[i].h, &hVal);
+      napi_set_named_property(env, sizeObj, "h", hVal);
+
+      napi_set_named_property(env, itemObj, "size", sizeObj);
+    }
+
     napi_set_element(env, out, i, itemObj);
   }
 
@@ -1635,6 +1833,14 @@ static napi_value Init(napi_env env, napi_value exports) {
   napi_create_function(env, "clickMouse", NAPI_AUTO_LENGTH, ClickMouse,
                        nullptr, &clickMouseFn);
   napi_set_named_property(env, exports, "clickMouse", clickMouseFn);
+  napi_value startMouseDownTapFn;
+  napi_create_function(env, "startMouseDownTap", NAPI_AUTO_LENGTH,
+                       StartMouseDownTap, nullptr, &startMouseDownTapFn);
+  napi_set_named_property(env, exports, "startMouseDownTap", startMouseDownTapFn);
+  napi_value stopMouseDownTapFn;
+  napi_create_function(env, "stopMouseDownTap", NAPI_AUTO_LENGTH,
+                       StopMouseDownTap, nullptr, &stopMouseDownTapFn);
+  napi_set_named_property(env, exports, "stopMouseDownTap", stopMouseDownTapFn);
   napi_value pressKeyCodeFn;
   napi_create_function(env, "pressKeyCode", NAPI_AUTO_LENGTH, PressKeyCode,
                        nullptr, &pressKeyCodeFn);

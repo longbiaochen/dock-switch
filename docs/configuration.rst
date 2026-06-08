@@ -18,7 +18,7 @@ The top-level key is ``dock_items``, each containing:
 - ``screen``: legacy field retained for backward compatibility (not used by the current node-only runtime path)
 - ``remember_window_state`` (optional): defaults to ``true``; when enabled, dock-switch restores last known window bounds for that app (in-memory for current app session)
 - ``placement`` (optional): explicit placement policy (for example ``external_right_half`` or ``internal_fill``)
-- ``kind`` (optional): built-in launch behavior tag. ``web_app`` defaults to ``external_right_half`` unless ``placement`` overrides it.
+- ``kind`` (optional): built-in launch behavior tag. ``web_app`` defaults to ``internal_fill`` unless ``placement`` overrides it.
 - ``open_path`` (optional): exact app bundle path to open instead of resolving by app name
 - ``app_url`` (optional): exact Chrome ``--app=...`` URL used to identify a web app window by pid after launch
 
@@ -27,8 +27,7 @@ Notes
 
 - App names are matched exactly against Dock item names.
 - Key matching in the renderer is case-insensitive, with symbolic support for launcher keys such as ``Tab``, ``Shift``, left ``Command``, right ``Command``, and ``Space``.
-- In the current default config, ``S`` is mapped to Safari on ``external_left_half``, ``B`` is mapped to Google Chrome on ``external_right_half``, and ``G`` is mapped to Google Chrome for Testing on ``external_right_half``.
-- In the current default config, ``X``, ``R`` / Xiaohongshu, and ``H`` / GitHub are mapped to web apps that use ``internal_fill``.
+- In the current default config, Safari, Feishu, WeChat, Google Chrome, Calendar, Notes, Contacts, Mail, Sublime Text, and configured web apps are mapped to ``internal_fill`` on the internal display.
 - In the current launcher behavior, ``Shift`` opens ``Codex``, ``Tab`` opens ``ChatGPT``, left ``Command`` opens ``System Settings``, and right ``Command`` is a reserved no-op. App shortcuts restore remembered window bounds when available.
 - ``Codex`` and ``ChatGPT`` render in the launcher HUD as symbolic shortcut labels: ``⇧`` for ``Shift`` / Codex and ``⇥`` for ``Tab`` / ChatGPT. They remain excluded from ordinary fallback numbering, so their symbolic keys cannot fall through to a stale generic app-placement entry.
 - ``ArrowLeft`` moves the frontmost window to the left side-display work area.
@@ -42,7 +41,7 @@ Notes
 - Screen direction codes used by keyboard movement are: ``0=external``, ``1=internal``, ``2=full``, ``3=left``, ``4=right``.
 - If ``placement`` is set, placement behavior takes precedence over remembered bounds.
 - App activation shortcuts move the pointer to the center of the activated or placed window.
-- If ``kind`` is ``web_app`` and ``placement`` is not set, dock-switch places the app at ``external_right_half``.
+- If ``kind`` is ``web_app`` and ``placement`` is not set, dock-switch places the app at ``internal_fill``.
 - If ``open_path`` is set, dock-switch launches that exact app bundle.
 - If ``app_url`` is set, dock-switch can place a Chrome app window by pid even when Accessibility exposes it as ``Google Chrome``.
 - ``external_fill`` maximizes to the external display work area.

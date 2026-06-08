@@ -121,10 +121,10 @@ test("selectCodexDisplay focuses an existing Codex window on the target display"
     assert.equal(result.reusedExistingTargetWindow, true);
     assert.equal(result.moved, false);
     assert.deepEqual(focused[0], { pid: 10, windowIndex: 0 });
-    assert.deepEqual(mouseMoves[0], { x: -1850, y: -650 });
-    assert.deepEqual(mouseClicks[0], { x: -1850, y: -650 });
-    assert.deepEqual(result.feedbackPoint, { x: -1850, y: -650 });
-    assert.deepEqual(feedbackPoints[0], { x: -1850, y: -650 });
+    assert.deepEqual(mouseMoves[0], { x: -1484, y: -525 });
+    assert.deepEqual(mouseClicks[0], { x: -1484, y: -525 });
+    assert.deepEqual(result.feedbackPoint, { x: -1484, y: -525 });
+    assert.deepEqual(feedbackPoints[0], { x: -1484, y: -525 });
     assert.deepEqual(moves, []);
 });
 

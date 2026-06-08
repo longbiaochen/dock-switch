@@ -1,18 +1,140 @@
-@import "../node_modules/bootstrap/dist/css/bootstrap.min.css";
-
+html,
 body {
+    width: 100%;
+    height: 100%;
     margin: 0;
     padding: 0;
+    overflow: hidden;
+    background: transparent;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
 }
 
 #container {
-    margin: 0 10px;
-    padding: 0;
     position: absolute;
+    inset: 0;
 }
 
-.item {
+.dock-cover {
     position: absolute;
-    padding: 10px 0;
-    min-width: 50px;
+    inset: 0;
+    border-radius: 18px 18px 0 0;
+    background: rgba(18, 22, 28, 0.16);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34);
+    backdrop-filter: blur(8px) saturate(1.12);
+    -webkit-backdrop-filter: blur(8px) saturate(1.12);
+    pointer-events: none;
+}
+
+.dock-reader {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    top: 4px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #fff;
+    pointer-events: none;
+}
+
+.dock-reader-key {
+    min-width: 28px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: rgba(19, 132, 153, 0.98);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.22);
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 22px;
+    text-align: center;
+}
+
+.dock-reader-name {
+    max-width: min(460px, 70%);
+    height: 24px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: rgba(10, 14, 18, 0.66);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 24px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dock-target {
+    position: absolute;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.34);
+    border-radius: 8px;
+    color: #fff;
+    background: rgba(16, 20, 26, 0.36);
+    box-shadow:
+        0 8px 18px rgba(0, 0, 0, 0.24),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    letter-spacing: 0;
+    text-align: center;
+    appearance: none;
+    -webkit-appearance: none;
+    overflow: hidden;
+}
+
+.dock-target-key {
+    position: absolute;
+    top: 3px;
+    right: 4px;
+    min-width: 22px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 999px;
+    color: #fff;
+    background: rgba(19, 132, 153, 0.96);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.22);
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 20px;
+}
+
+.dock-target-label {
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    top: 3px;
+    height: 20px;
+    padding-right: 26px;
+    color: rgba(255, 255, 255, 0.96);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 20px;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dock-target-icon-zone {
+    position: absolute;
+    left: 5px;
+    right: 5px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.08);
+    pointer-events: none;
+}
+
+.dock-target:focus {
+    outline: none;
+    box-shadow:
+        0 8px 18px rgba(0, 0, 0, 0.24),
+        0 0 0 2px rgba(255, 255, 255, 0.78);
+}
+
+.dock-target:hover {
+    border-color: rgba(255, 255, 255, 0.72);
+    background: rgba(18, 28, 36, 0.58);
 }
