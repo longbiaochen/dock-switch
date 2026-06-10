@@ -168,6 +168,67 @@ test("createGokit5SerialListener dispatches volume_up to the internal target", (
     listener.stop();
 });
 
+test("createGokit5SerialListener ignores callback exceptions from serial events", () => {
+    const stream = new EventEmitter();
+    stream.destroy = () => {};
+    const statusEvents = [];
+
+    const listener = createGokit5SerialListener({
+        debounceMs: 0,
+        findPort: () => "/dev/cu.usbmodem13101",
+        createReadStream: () => stream,
+        onStatus: status => {
+            statusEvents.push(status.status);
+        },
+        onButton: () => {
+            throw new Error("button callback failure");
+        },
+        onTarget: () => {
+            throw new Error("target callback failure");
+        }
+    });
+
+    listener.start();
+    assert.doesNotThrow(() => {
+        stream.emit("data", "GOKIT5_HOST_BUTTON:volume_up\n");
+    });
+    assert.ok(statusEvents.includes("connected"));
+
+    listener.stop();
+});
+
+test("createGokit5SerialListener handles findPort exceptions without crashing", () => {
+    const statuses = [];
+    const timers = [];
+    const originalSetTimeout = global.setTimeout;
+    const originalClearTimeout = global.clearTimeout;
+    global.setTimeout = fn => {
+        timers.push(fn);
+        return { id: timers.length };
+    };
+    global.clearTimeout = () => {};
+
+    try {
+        const listener = createGokit5SerialListener({
+            findPort: () => {
+                throw new Error("port probe failed");
+            },
+            onStatus: status => {
+                statuses.push(status);
+            }
+        });
+
+        assert.doesNotThrow(() => listener.start());
+        assert.equal(statuses[0].status, "find_port_failed");
+        assert.match(statuses[0].error, /port probe failed/);
+        assert.equal(timers.length, 1);
+        listener.stop();
+    } finally {
+        global.setTimeout = originalSetTimeout;
+        global.clearTimeout = originalClearTimeout;
+    }
+});
+
 test("createConfiguredSerialReadStream closes the held fd when stty fails", () => {
     const events = [];
     const fsModule = {

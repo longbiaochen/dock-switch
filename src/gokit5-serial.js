@@ -189,6 +189,14 @@ function createGokit5SerialListener(options = {}) {
     let currentPort = "";
     const lastDispatchByButton = new Map();
 
+    function notifyStatus(status) {
+        try {
+            onStatus(status);
+        } catch (e) {
+            // Status callbacks are best-effort and must not terminate the listener.
+        }
+    }
+
     function clearReconnectTimer() {
         if (reconnectTimer) {
             clearTimeout(reconnectTimer);
@@ -223,8 +231,16 @@ function createGokit5SerialListener(options = {}) {
             return;
         }
         const target = mapGokit5ButtonToTarget(button);
-        onButton(button, target, line);
-        onTarget(target, { button, line, portPath: currentPort });
+        try {
+            onButton(button, target, line);
+        } catch (e) {
+            // Listener callback failures should not crash the process.
+        }
+        try {
+            onTarget(target, { button, line, portPath: currentPort });
+        } catch (e) {
+            // Listener callback failures should not crash the process.
+        }
     }
 
     function handleChunk(chunk) {
@@ -242,9 +258,16 @@ function createGokit5SerialListener(options = {}) {
 
     function connect() {
         if (!running || stream) return;
-        const portPath = findPort();
+        let portPath = "";
+        try {
+            portPath = findPort();
+        } catch (e) {
+            notifyStatus({ status: "find_port_failed", error: e.message || String(e) });
+            scheduleReconnect();
+            return;
+        }
         if (!portPath) {
-            onStatus({ status: "not_found" });
+            notifyStatus({ status: "not_found" });
             scheduleReconnect();
             return;
         }
@@ -254,20 +277,20 @@ function createGokit5SerialListener(options = {}) {
         try {
             stream = createReadStream(portPath);
         } catch (e) {
-            onStatus({ status: "open_failed", portPath, error: e.message || String(e) });
+            notifyStatus({ status: "open_failed", portPath, error: e.message || String(e) });
             scheduleReconnect();
             return;
         }
 
-        onStatus({ status: "connected", portPath });
+        notifyStatus({ status: "connected", portPath });
         stream.on("data", handleChunk);
         stream.on("error", err => {
-            onStatus({ status: "error", portPath, error: err.message || String(err) });
+            notifyStatus({ status: "error", portPath, error: err.message || String(err) });
             closeStream();
             scheduleReconnect();
         });
         stream.on("close", () => {
-            onStatus({ status: "closed", portPath });
+            notifyStatus({ status: "closed", portPath });
             closeStream();
             scheduleReconnect();
         });
