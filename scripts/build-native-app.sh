@@ -16,10 +16,12 @@ IDENTITY="${CSC_NAME:-$DEFAULT_IDENTITY}"
 swift build --package-path "$PACKAGE_DIR" -c release --arch arm64
 
 rm -rf "$APP_DIR"
-mkdir -p "$MACOS_DIR" "$APP_RESOURCES_DIR/src"
+mkdir -p "$MACOS_DIR" "$APP_RESOURCES_DIR/src" "$APP_RESOURCES_DIR/bin"
 cp "$BUILD_DIR/DockSwitch" "$MACOS_DIR/DockSwitch"
 cp "$BUILD_DIR/DockSwitchGokit5Serial" "$RESOURCES_DIR/DockSwitchGokit5Serial"
 cp "$ROOT_DIR/src/config.json" "$APP_RESOURCES_DIR/src/config.json"
+cp "$ROOT_DIR/bin/dock-switch-cli.js" "$APP_RESOURCES_DIR/bin/dock-switch-cli.js"
+chmod 755 "$APP_RESOURCES_DIR/bin/dock-switch-cli.js"
 
 if [[ -d "$ROOT_DIR/native/settings-app/build/DockSwitchSettings.app" ]]; then
   cp -R "$ROOT_DIR/native/settings-app/build/DockSwitchSettings.app" "$RESOURCES_DIR/DockSwitchSettings.app"
@@ -55,7 +57,7 @@ cat > "$CONTENTS_DIR/Info.plist" <<'PLIST'
         <string>MacOSX</string>
     </array>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.1</string>
+    <string>1.0.3</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>DTCompiler</key>

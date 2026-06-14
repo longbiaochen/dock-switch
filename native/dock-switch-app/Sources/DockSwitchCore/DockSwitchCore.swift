@@ -28,6 +28,25 @@ public struct DSRect: Codable, Equatable {
     }
 }
 
+public struct SubprocessOutput {
+    public let terminationStatus: Int32
+    public let stdout: Data
+}
+
+public enum Subprocess {
+    public static func captureOutput(executableURL: URL, arguments: [String]) -> SubprocessOutput? {
+        let process = Process()
+        let stdout = Pipe()
+        process.executableURL = executableURL
+        process.arguments = arguments
+        process.standardOutput = stdout
+        guard (try? process.run()) != nil else { return nil }
+        let data = stdout.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        return SubprocessOutput(terminationStatus: process.terminationStatus, stdout: data)
+    }
+}
+
 public struct DisplaySnapshot: Codable, Equatable {
     public var id: UInt32
     public var internalDisplay: Bool
@@ -127,6 +146,30 @@ public struct OverlayLayout: Equatable {
     public var windowFrameAX: DSRect
     public var dockRect: DSRect
     public var targets: [OverlayTarget]
+}
+
+public enum OverlayAnimationPolicy {
+    public static let showDuration: TimeInterval = 0
+    public static let showUsesFinalFrame = true
+    public static let hideDuration: TimeInterval = 0.12
+    public static let hideScale: Double = 0.96
+}
+
+public enum StatusItemIconPolicy {
+    public static let size = CGSize(width: 18, height: 18)
+    public static let usesTemplateImage = true
+    public static let accessibilityLabel = "dock-switch"
+}
+
+public enum CodexDisplaySelectionPolicy {
+    public static func shouldActivateApplication(appName: String, source: String) -> Bool {
+        let normalizedAppName = LauncherRules.normalizeAppName(appName)
+        let normalizedSource = source.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if normalizedAppName == "codex", normalizedSource.hasPrefix("gokit5:") {
+            return false
+        }
+        return true
+    }
 }
 
 public enum LauncherShortcutRules {
@@ -762,15 +805,11 @@ public enum WebAppRuntime {
     }
 
     private static func processTable() -> [(pid: pid_t, command: String)] {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/ps")
-        process.arguments = ["ax", "-o", "pid=,command="]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        guard (try? process.run()) != nil else { return [] }
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else { return [] }
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        guard let output = Subprocess.captureOutput(
+            executableURL: URL(fileURLWithPath: "/bin/ps"),
+            arguments: ["ax", "-o", "pid=,command="]
+        ), output.terminationStatus == 0 else { return [] }
+        let data = output.stdout
         let text = String(data: data, encoding: .utf8) ?? ""
         return text.split(separator: "\n").compactMap { line in
             let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1055,6 +1094,24 @@ public struct Gokit5Status {
     public var lastReadErrno: Int32? = nil
     public var resetInfo: String? = nil
 
+    public mutating func clearConnectionTelemetry() {
+        lastButton = nil
+        lastTarget = nil
+        lastLine = nil
+        lastEventAt = nil
+        lastSerialLine = nil
+        lastSerialLineAt = nil
+        serialLineCount = 0
+        helperStdoutChunkCount = 0
+        helperStdoutByteCount = 0
+        helperStdoutLfCount = 0
+        helperStdoutPreview = nil
+        recentLines = []
+        readPollCount = 0
+        lastReadErrno = nil
+        resetInfo = nil
+    }
+
     public func json() -> [String: Any] {
         var payload: [String: Any] = [
             "enabled": enabled,
@@ -1149,6 +1206,7 @@ public final class Gokit5SerialListener {
         }
         serialFD = fd
         lineBuffer = Data()
+        status.clearConnectionTelemetry()
         updateStatus("connected", portPath: port)
         readLoopGeneration += 1
         startReadLoop(portPath: port, generation: readLoopGeneration)
@@ -1168,13 +1226,9 @@ public final class Gokit5SerialListener {
         process.arguments = [port]
         process.standardOutput = stdout
         process.standardError = stderr
-        process.terminationHandler = { [weak self] _ in
+        process.terminationHandler = { [weak self] process in
             self?.queue.async {
-                guard self?.status.running == true else { return }
-                self?.helperProcess = nil
-                self?.helperPipe = nil
-                self?.updateStatus("closed", portPath: port)
-                self?.scheduleReconnect()
+                self?.handleHelperEnded(portPath: port, pid: process.processIdentifier, status: "closed")
             }
         }
         do {
@@ -1185,13 +1239,14 @@ public final class Gokit5SerialListener {
         }
         helperProcess = process
         helperPipe = stdout
+        status.clearConnectionTelemetry()
         updateStatus("connected", portPath: port)
-        startHelperPipeReadLoop(pipe: stdout, portPath: port)
+        startHelperPipeReadLoop(pipe: stdout, portPath: port, pid: process.processIdentifier)
         startHelperErrorReadLoop(pipe: stderr)
         return true
     }
 
-    private func startHelperPipeReadLoop(pipe: Pipe, portPath: String) {
+    private func startHelperPipeReadLoop(pipe: Pipe, portPath: String, pid: Int32) {
         let fd = pipe.fileHandleForReading.fileDescriptor
         DispatchQueue.global(qos: .utility).async { [weak self] in
             var buffer = [UInt8](repeating: 0, count: 4096)
@@ -1209,14 +1264,28 @@ public final class Gokit5SerialListener {
                     continue
                 }
                 if count == 0 {
+                    self?.queue.async {
+                        self?.handleHelperEnded(portPath: portPath, pid: pid, status: "closed")
+                    }
                     return
                 }
                 if errno == EINTR {
                     continue
                 }
+                let readError = String(cString: strerror(errno))
+                self?.queue.async {
+                    self?.handleHelperEnded(portPath: portPath, pid: pid, status: "error", error: readError)
+                }
                 return
             }
         }
+    }
+
+    private func handleHelperEnded(portPath: String, pid: Int32, status nextStatus: String, error: String? = nil) {
+        guard status.running, helperProcess?.processIdentifier == pid else { return }
+        updateStatus(nextStatus, portPath: portPath, error: error)
+        closeHandle()
+        scheduleReconnect()
     }
 
     private func startHelperErrorReadLoop(pipe: Pipe) {
@@ -1357,6 +1426,9 @@ public final class Gokit5SerialListener {
     }
 
     private func updateStatus(_ next: String, portPath: String, error: String? = nil) {
+        if next != "connected" {
+            status.clearConnectionTelemetry()
+        }
         status.status = next
         status.portPath = portPath
         status.updatedAt = Self.isoNow()
@@ -1450,7 +1522,7 @@ public final class CodexDisplaySelectionService {
         .first
 
         if let window {
-            focus(appName: appName, windowBounds: window)
+            focus(appName: appName, source: source, windowBounds: window)
         }
         let point = CGPoint(x: targetDisplay.workArea.centerX, y: targetDisplay.workArea.centerY)
         let actualPoint = moveMouse(to: point, display: targetDisplay)
@@ -1549,12 +1621,14 @@ public final class CodexDisplaySelectionService {
         }
     }
 
-    private func focus(appName: String, windowBounds: DSRect) {
+    private func focus(appName: String, source: String, windowBounds: DSRect) {
         let normalized = LauncherRules.normalizeAppName(appName)
         guard let app = NSWorkspace.shared.runningApplications.first(where: {
             LauncherRules.normalizeAppName($0.localizedName ?? "") == normalized
         }) else { return }
-        app.activate(options: [.activateIgnoringOtherApps])
+        if CodexDisplaySelectionPolicy.shouldActivateApplication(appName: appName, source: source) {
+            app.activate(options: [.activateIgnoringOtherApps])
+        }
         let axApp = AXUIElementCreateApplication(app.processIdentifier)
         guard let win = firstWindow(in: axApp) else { return }
         AXUIElementPerformAction(win, kAXRaiseAction as CFString)

@@ -224,6 +224,40 @@ final class DockSwitchCoreTests: XCTestCase {
         XCTAssertFalse(LauncherShortcutRules.shouldCenterMouse(for: "current_right"))
     }
 
+    func testOverlayAnimationPolicyShowsInstantlyAndHidesSwiftly() {
+        XCTAssertEqual(OverlayAnimationPolicy.showDuration, 0)
+        XCTAssertTrue(OverlayAnimationPolicy.showUsesFinalFrame)
+        XCTAssertGreaterThan(OverlayAnimationPolicy.hideDuration, 0)
+        XCTAssertLessThanOrEqual(OverlayAnimationPolicy.hideDuration, 0.14)
+        XCTAssertGreaterThan(OverlayAnimationPolicy.hideScale, 0.92)
+        XCTAssertLessThan(OverlayAnimationPolicy.hideScale, 1)
+    }
+
+    func testStatusItemIconPolicyUsesTemplateImagesForSystemAppearance() {
+        XCTAssertEqual(StatusItemIconPolicy.size, CGSize(width: 18, height: 18))
+        XCTAssertTrue(StatusItemIconPolicy.usesTemplateImage)
+        XCTAssertEqual(StatusItemIconPolicy.accessibilityLabel, "dock-switch")
+    }
+
+    func testSubprocessCaptureDrainsLargeStdoutBeforeWaiting() throws {
+        let startedAt = Date()
+        let output = try XCTUnwrap(Subprocess.captureOutput(
+            executableURL: URL(fileURLWithPath: "/bin/sh"),
+            arguments: ["-c", "/usr/bin/yes 012345678901234567890123456789 | /usr/bin/head -n 20000"]
+        ))
+
+        XCTAssertEqual(output.terminationStatus, 0)
+        XCTAssertGreaterThan(output.stdout.count, 128 * 1024)
+        XCTAssertLessThan(Date().timeIntervalSince(startedAt), 5)
+    }
+
+    func testCodexHardwareDisplaySelectionSkipsDockActivation() {
+        XCTAssertFalse(CodexDisplaySelectionPolicy.shouldActivateApplication(appName: "Codex", source: "gokit5:plus"))
+        XCTAssertFalse(CodexDisplaySelectionPolicy.shouldActivateApplication(appName: "codex", source: "gokit5:minus"))
+        XCTAssertTrue(CodexDisplaySelectionPolicy.shouldActivateApplication(appName: "Finder", source: "gokit5:plus"))
+        XCTAssertTrue(CodexDisplaySelectionPolicy.shouldActivateApplication(appName: "Codex", source: "manual"))
+    }
+
     func testDisplayGeometryRoutesArrowsToPhysicalDisplays() {
         let displays = fourDisplayLayout()
         let primary = displays[0]
@@ -333,6 +367,43 @@ final class DockSwitchCoreTests: XCTestCase {
         XCTAssertTrue(Gokit5Serial.isDiagnosticLine("GOKIT5_ADC_PROBE:8:603"))
         XCTAssertTrue(Gokit5Serial.isDiagnosticLine("I (123) Gokit5: GOKIT5_HOST_BUTTON:green"))
         XCTAssertFalse(Gokit5Serial.isDiagnosticLine("I (123) WifiBoard: Free internal"))
+    }
+
+    func testGokit5StatusClearsStaleConnectionTelemetry() {
+        var status = Gokit5Status(enabled: true, status: "connected", portPath: "/dev/cu.usbmodem13101", running: true, updatedAt: "now", error: nil)
+        status.lastButton = "green"
+        status.lastTarget = "side_right"
+        status.lastLine = "GOKIT5_HOST_BUTTON:green"
+        status.lastEventAt = "event-time"
+        status.lastSerialLine = "GOKIT5_HOST_BUTTON:green"
+        status.lastSerialLineAt = "serial-time"
+        status.serialLineCount = 12
+        status.helperStdoutChunkCount = 3
+        status.helperStdoutByteCount = 120
+        status.helperStdoutLfCount = 12
+        status.helperStdoutPreview = "GOKIT5_HOST_BUTTON:green"
+        status.recentLines = ["GOKIT5_HOST_BUTTON:green"]
+        status.readPollCount = 4
+        status.lastReadErrno = 35
+        status.resetInfo = "get:0"
+
+        status.clearConnectionTelemetry()
+
+        XCTAssertNil(status.lastButton)
+        XCTAssertNil(status.lastTarget)
+        XCTAssertNil(status.lastLine)
+        XCTAssertNil(status.lastEventAt)
+        XCTAssertNil(status.lastSerialLine)
+        XCTAssertNil(status.lastSerialLineAt)
+        XCTAssertEqual(status.serialLineCount, 0)
+        XCTAssertEqual(status.helperStdoutChunkCount, 0)
+        XCTAssertEqual(status.helperStdoutByteCount, 0)
+        XCTAssertEqual(status.helperStdoutLfCount, 0)
+        XCTAssertNil(status.helperStdoutPreview)
+        XCTAssertTrue(status.recentLines.isEmpty)
+        XCTAssertEqual(status.readPollCount, 0)
+        XCTAssertNil(status.lastReadErrno)
+        XCTAssertNil(status.resetInfo)
     }
 
     func testGokit5PortExtractionFindsEspressifSerialSuffix() {

@@ -58,12 +58,16 @@ final class DockSwitchApp: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let iconURL = Bundle.main.url(forResource: "icon", withExtension: "icns"),
            let image = NSImage(contentsOf: iconURL) {
-            image.size = NSSize(width: 18, height: 18)
-            image.isTemplate = false
+            image.size = StatusItemIconPolicy.size
+            image.isTemplate = StatusItemIconPolicy.usesTemplateImage
             statusItem?.button?.image = image
             statusItem?.button?.imagePosition = .imageOnly
+            statusItem?.button?.toolTip = StatusItemIconPolicy.accessibilityLabel
+            statusItem?.button?.setAccessibilityLabel(StatusItemIconPolicy.accessibilityLabel)
         } else {
             statusItem?.button?.title = "DS"
+            statusItem?.button?.toolTip = StatusItemIconPolicy.accessibilityLabel
+            statusItem?.button?.setAccessibilityLabel(StatusItemIconPolicy.accessibilityLabel)
         }
         let menu = NSMenu()
         menu.addItem(NSMenuItem(title: "Show Launcher", action: #selector(showLauncherMenu), keyEquivalent: ""))
@@ -239,26 +243,39 @@ final class DockSwitchApp: NSObject, NSApplicationDelegate {
             }
         )
         panel.contentView = NSHostingView(rootView: view)
-        let startFrame = NSRect(x: frame.minX, y: frame.minY, width: frame.width, height: min(6, frame.height))
-        panel.alphaValue = 0
-        panel.setFrame(startFrame, display: true)
+        panel.alphaValue = 1
+        panel.setFrame(frame, display: true)
         panel.orderFrontRegardless()
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKey()
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.16
-            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            panel.animator().setFrame(frame, display: true)
-            panel.animator().alphaValue = 1
-        }
         startKeyMonitor()
     }
 
     private func hideLauncher() {
-        overlayPanel?.orderOut(nil)
         stopKeyMonitor()
         currentTargets = []
-        dockVisibilityService.restoreDock()
+        guard let panel = overlayPanel else {
+            dockVisibilityService.restoreDock()
+            return
+        }
+        let frame = panel.frame
+        let scale = CGFloat(OverlayAnimationPolicy.hideScale)
+        let hiddenFrame = NSRect(
+            x: frame.midX - frame.width * scale / 2,
+            y: frame.midY - frame.height * scale / 2,
+            width: frame.width * scale,
+            height: frame.height * scale
+        )
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = OverlayAnimationPolicy.hideDuration
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            panel.animator().alphaValue = 0
+            panel.animator().setFrame(hiddenFrame, display: true)
+        } completionHandler: { [weak self, weak panel] in
+            panel?.orderOut(nil)
+            panel?.alphaValue = 1
+            self?.dockVisibilityService.restoreDock()
+        }
     }
 
     private func activate(_ item: LauncherItem) {
