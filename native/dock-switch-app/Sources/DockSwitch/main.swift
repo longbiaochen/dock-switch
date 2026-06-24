@@ -323,7 +323,10 @@ final class DockSwitchApp: NSObject, NSApplicationDelegate {
     }
 
     private func item(for event: NSEvent) -> LauncherItem? {
-        let text = (event.charactersIgnoringModifiers ?? event.characters ?? "").uppercased()
+        let text = LauncherRules.normalizeEventKey(
+            characters: event.charactersIgnoringModifiers ?? event.characters ?? "",
+            keyCode: event.keyCode
+        )
         return currentTargets.first { target in
             target.item.key.uppercased() == text || target.item.displayKey.uppercased() == text
         }?.item
@@ -346,12 +349,10 @@ final class DockSwitchApp: NSObject, NSApplicationDelegate {
     }
 
     private func handleAppShortcut(for event: NSEvent) -> Bool {
-        let normalized: String
-        if event.keyCode == UInt16(kVK_Tab) {
-            normalized = "TAB"
-        } else {
-            normalized = LauncherRules.normalizeKey(event.charactersIgnoringModifiers ?? event.characters ?? "")
-        }
+        let normalized = LauncherRules.normalizeEventKey(
+            characters: event.charactersIgnoringModifiers ?? event.characters ?? "",
+            keyCode: event.keyCode
+        )
         guard LauncherShortcutRules.isReserved(normalized) else { return false }
         activateShortcut(normalized)
         return true

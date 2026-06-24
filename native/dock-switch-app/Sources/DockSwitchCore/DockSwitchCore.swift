@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import Carbon
 import Foundation
 
 public struct DSRect: Codable, Equatable {
@@ -477,6 +478,17 @@ public enum LauncherRules {
         }
         if trimmed.count == 1 { return trimmed.uppercased() }
         return trimmed.uppercased()
+    }
+
+    public static func normalizeEventKey(characters: String, keyCode: UInt16) -> String {
+        switch Int(keyCode) {
+        case kVK_Tab:
+            return "TAB"
+        case kVK_ANSI_Backslash:
+            return "\\"
+        default:
+            return normalizeKey(characters)
+        }
     }
 
     public static func keyIcon(for key: String) -> String? {

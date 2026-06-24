@@ -1,3 +1,4 @@
+import Carbon
 import XCTest
 @testable import DockSwitchCore
 
@@ -218,6 +219,12 @@ final class DockSwitchCoreTests: XCTestCase {
         XCTAssertEqual(LauncherRules.normalizeKey("left_cmd"), "COMMAND_LEFT")
         XCTAssertEqual(LauncherRules.normalizeKey("cmd-right"), "COMMAND_RIGHT")
         XCTAssertEqual(LauncherRules.keyIcon(for: "COMMAND_LEFT"), "⌘")
+    }
+
+    func testEventKeyNormalizationUsesHardwareBackslash() {
+        XCTAssertEqual(LauncherRules.normalizeEventKey(characters: "", keyCode: UInt16(kVK_ANSI_Backslash)), "\\")
+        XCTAssertEqual(LauncherRules.normalizeEventKey(characters: "¥", keyCode: UInt16(kVK_ANSI_Backslash)), "\\")
+        XCTAssertEqual(LauncherRules.normalizeEventKey(characters: "", keyCode: UInt16(kVK_Tab)), "TAB")
     }
 
     func testShortcutRulesMapReservedAppsAndWindowActions() {
