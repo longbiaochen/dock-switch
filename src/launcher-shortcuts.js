@@ -1,7 +1,7 @@
 var APP_SHORTCUTS = Object.freeze({
     TAB: "ChatGPT",
     SHIFT: "Codex",
-    COMMAND_LEFT: "System Settings"
+    COMMAND_LEFT: "SmartShadow"
 });
 var RESERVED_LAUNCHER_SHORTCUTS = Object.freeze({
     TAB: true,

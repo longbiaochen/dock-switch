@@ -116,6 +116,12 @@
             "name": "iPhone Mirroring",
             "key": "I",
             "screen": "4"
+        },
+        {
+            "name": "SmartShadow",
+            "key": "COMMAND_LEFT",
+            "screen": "0",
+            "placement": "side_left_fill"
         }
     ]
 }

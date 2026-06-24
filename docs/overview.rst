@@ -11,7 +11,7 @@ Core Flow
 ---------
 
 1. A global shortcut (`F20`) toggles the launcher window.
-2. In the current default config, Safari, Feishu, WeChat, Google Chrome, Calendar, Notes, Contacts, Mail, Sublime Text, and configured web apps target ``internal_fill`` on the internal display, while symbolic shortcuts target ChatGPT, Codex, and System Settings.
+2. In the current default config, Safari, Feishu, WeChat, Google Chrome, Calendar, Notes, Contacts, Mail, Sublime Text, and configured web apps target ``internal_fill`` on the internal display, while symbolic shortcuts target ChatGPT, Codex, and SmartShadow.
 3. The main process calls the native ``dock-query`` addon to fetch Dock app metadata.
 4. The renderer builds a compact key map UI.
 5. Key presses launch/focus apps; items with explicit placement or ``kind: "web_app"``
@@ -20,8 +20,8 @@ Core Flow
    ``ArrowUp`` moves to the external display, ``ArrowDown`` moves to the internal
    display, ``【``/``】`` tile the current display left/right half, ``\`` enters macOS
    native fullscreen (green button), ``Shift`` opens ``Codex``, ``Tab`` opens
-   ``ChatGPT``, left ``Command`` opens ``System Settings``, and right ``Command`` is
-   a reserved no-op. ``Codex`` and ``ChatGPT`` are excluded from the ordinary HUD
+   ``ChatGPT``, left ``Command`` opens ``SmartShadow`` on the left side display, and right ``Command`` is
+   a reserved no-op. ``Command`` shortcuts render as ``⌘`` in the HUD. ``Codex`` and ``ChatGPT`` are excluded from the ordinary HUD
    item list, while numeric keys remain available for normal launcher selection.
 6. Display-moving arrows move the pointer to the center of the target display.
    App activation shortcuts move it to the center of the activated or placed window.

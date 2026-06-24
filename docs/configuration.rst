@@ -28,8 +28,8 @@ Notes
 - App names are matched exactly against Dock item names.
 - Key matching in the renderer is case-insensitive, with symbolic support for launcher keys such as ``Tab``, ``Shift``, left ``Command``, right ``Command``, and ``Space``.
 - In the current default config, Safari, Feishu, WeChat, Google Chrome, Calendar, Notes, Contacts, Mail, Sublime Text, and configured web apps are mapped to ``internal_fill`` on the internal display.
-- In the current launcher behavior, ``Shift`` opens ``Codex``, ``Tab`` opens ``ChatGPT``, left ``Command`` opens ``System Settings``, and right ``Command`` is a reserved no-op. App shortcuts restore remembered window bounds when available.
-- ``Codex`` and ``ChatGPT`` render in the launcher HUD as symbolic shortcut labels: ``⇧`` for ``Shift`` / Codex and ``⇥`` for ``Tab`` / ChatGPT. They remain excluded from ordinary fallback numbering, so their symbolic keys cannot fall through to a stale generic app-placement entry.
+- In the current launcher behavior, ``Shift`` opens ``Codex``, ``Tab`` opens ``ChatGPT``, left ``Command`` opens ``SmartShadow`` with ``side_left_fill``, and right ``Command`` is a reserved no-op. App shortcuts restore remembered window bounds when available.
+- ``Codex``, ``ChatGPT``, and Command shortcuts render in the launcher HUD as symbolic shortcut labels: ``⇧`` for ``Shift`` / Codex, ``⇥`` for ``Tab`` / ChatGPT, and ``⌘`` for left/right ``Command``. They remain excluded from ordinary fallback numbering, so their symbolic keys cannot fall through to a stale generic app-placement entry.
 - ``ArrowLeft`` moves the frontmost window to the left side-display work area.
 - ``ArrowRight`` moves the frontmost window to the right side-display work area.
 - ``ArrowUp`` moves the frontmost window to the external display work area.

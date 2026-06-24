@@ -318,7 +318,10 @@ $(function() {
             hideLauncher();
             var shortcutApp = resolveAppShortcut(normalizedKey);
             if (shortcutApp) {
-                openAndRestoreItem({ name: shortcutApp });
+                var configuredShortcut = (CONFIG.dock_items || []).find(entry =>
+                    normalizeAppName(entry.name) === normalizeAppName(shortcutApp)
+                );
+                activateLauncherItem(configuredShortcut || { name: shortcutApp });
                 return;
             }
             if (isReservedLauncherShortcut(normalizedKey)) {

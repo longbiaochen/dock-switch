@@ -16,6 +16,9 @@ test("normalizeLauncherKey keeps symbolic launcher keys stable", () => {
     assert.equal(normalizeLauncherKey("Tab", "Tab"), "TAB");
     assert.equal(normalizeLauncherKey("Meta", "MetaLeft"), "COMMAND_LEFT");
     assert.equal(normalizeLauncherKey("Meta", "MetaRight"), "COMMAND_RIGHT");
+    assert.equal(normalizeLauncherKey("cmd_left", ""), "COMMAND_LEFT");
+    assert.equal(normalizeLauncherKey("left_cmd", ""), "COMMAND_LEFT");
+    assert.equal(normalizeLauncherKey("cmd-right", ""), "COMMAND_RIGHT");
     assert.equal(normalizeLauncherKey("b", "KeyB"), "B");
 });
 
@@ -28,7 +31,7 @@ test("normalizeLauncherKey maps digit codes to stable numeric keys", () => {
 test("resolveAppShortcut maps symbolic app keys", () => {
     assert.equal(resolveAppShortcut("TAB"), "ChatGPT");
     assert.equal(resolveAppShortcut("SHIFT"), "Codex");
-    assert.equal(resolveAppShortcut("COMMAND_LEFT"), "System Settings");
+    assert.equal(resolveAppShortcut("COMMAND_LEFT"), "SmartShadow");
     assert.equal(resolveAppShortcut("COMMAND_RIGHT"), "");
     assert.equal(resolveAppShortcut("SPACE"), "");
 });

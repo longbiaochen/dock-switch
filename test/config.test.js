@@ -78,6 +78,15 @@ test("default config maps L to LifeOS", () => {
     });
 });
 
+test("default config maps left command to SmartShadow on the left side display", () => {
+    assert.deepEqual(config.dock_items.find(entry => entry.name === "SmartShadow"), {
+        name: "SmartShadow",
+        key: "COMMAND_LEFT",
+        screen: "0",
+        placement: "side_left_fill"
+    });
+});
+
 test("default config does not assign duplicate launcher keys", () => {
     const byKey = new Map();
 

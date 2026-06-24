@@ -180,7 +180,7 @@ public enum LauncherShortcutRules {
         case "SHIFT":
             return "Codex"
         case "COMMAND_LEFT":
-            return "System Settings"
+            return "SmartShadow"
         default:
             return nil
         }
@@ -463,15 +463,35 @@ public enum LauncherRules {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty { return "" }
         let lower = trimmed.lowercased()
+            .replacingOccurrences(of: "-", with: "_")
+            .replacingOccurrences(of: " ", with: "_")
         if lower == "space" { return "SPACE" }
         if lower == "tab" { return "TAB" }
         if lower == "shift" { return "SHIFT" }
-        if lower == "cmd" || lower == "command" { return "COMMAND_LEFT" }
+        if ["cmd", "command", "cmd_left", "left_cmd", "command_left", "left_command", "meta_left", "left_meta"].contains(lower) {
+            return "COMMAND_LEFT"
+        }
+        if ["cmd_right", "right_cmd", "command_right", "right_command", "meta_right", "right_meta"].contains(lower) {
+            return "COMMAND_RIGHT"
+        }
         if lower.hasPrefix("f"), lower.dropFirst().allSatisfy(\.isNumber) {
             return lower.uppercased()
         }
         if trimmed.count == 1 { return trimmed.uppercased() }
         return trimmed.uppercased()
+    }
+
+    public static func keyIcon(for key: String) -> String? {
+        switch normalizeKey(key) {
+        case "TAB":
+            return "⇥"
+        case "SHIFT":
+            return "⇧"
+        case "COMMAND", "COMMAND_LEFT", "COMMAND_RIGHT":
+            return "⌘"
+        default:
+            return nil
+        }
     }
 
     public static func specialItem(for name: String) -> (name: String, key: String, icon: String)? {
@@ -515,7 +535,7 @@ public enum LauncherRules {
                 return LauncherItem(
                     name: configured.name,
                     key: normalizeKey(configured.key ?? ""),
-                    icon: nil,
+                    icon: keyIcon(for: configured.key ?? ""),
                     kind: configured.kind,
                     placement: configured.placement,
                     openPath: configured.openPath,
@@ -1010,9 +1030,17 @@ public enum Gokit5Serial {
     public static let diagnosticPrefix = "GOKIT5_"
 
     public static func normalizeButton(_ button: String) -> String {
-        button.trimmingCharacters(in: .whitespacesAndNewlines)
+        let key = button.trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
             .replacingOccurrences(of: "-", with: "_")
+        switch key {
+        case "+", "add", "plus":
+            return "plus"
+        case "volume+", "volume_plus", "volumeup", "vol_up", "volup":
+            return "volume_up"
+        default:
+            return key
+        }
     }
 
     public static func displayTarget(for button: String) -> String {
@@ -1038,7 +1066,7 @@ public enum Gokit5Serial {
             .first
             .map(String.init) ?? ""
         let cleaned = String(raw.prefix { char in
-            char.isLetter || char.isNumber || char == "_" || char == "-"
+            char.isLetter || char.isNumber || char == "_" || char == "-" || char == "+"
         })
         let button = normalizeButton(cleaned)
         return displayTarget(for: button).isEmpty ? "" : button
@@ -1091,6 +1119,9 @@ public struct Gokit5Status {
     public var helperStdoutPreview: String? = nil
     public var recentLines: [String] = []
     public var readPollCount: Int = 0
+    public var debounceDropCount: Int = 0
+    public var lastDebouncedButton: String? = nil
+    public var lastDebouncedAt: String? = nil
     public var lastReadErrno: Int32? = nil
     public var resetInfo: String? = nil
 
@@ -1108,6 +1139,9 @@ public struct Gokit5Status {
         helperStdoutPreview = nil
         recentLines = []
         readPollCount = 0
+        debounceDropCount = 0
+        lastDebouncedButton = nil
+        lastDebouncedAt = nil
         lastReadErrno = nil
         resetInfo = nil
     }
@@ -1134,6 +1168,9 @@ public struct Gokit5Status {
         if let helperStdoutPreview { payload["helperStdoutPreview"] = helperStdoutPreview }
         if !recentLines.isEmpty { payload["recentLines"] = recentLines }
         payload["readPollCount"] = readPollCount
+        payload["debounceDropCount"] = debounceDropCount
+        if let lastDebouncedButton { payload["lastDebouncedButton"] = lastDebouncedButton }
+        if let lastDebouncedAt { payload["lastDebouncedAt"] = lastDebouncedAt }
         if let lastReadErrno { payload["lastReadErrno"] = lastReadErrno }
         if let resetInfo { payload["resetInfo"] = resetInfo }
         return payload
@@ -1154,7 +1191,7 @@ public final class Gokit5SerialListener {
     private var status = Gokit5Status(enabled: true, status: "starting", portPath: "", running: false, updatedAt: isoNow(), error: nil)
     private var readLoopGeneration = 0
 
-    public init(debounceMs: Int = 250, reconnectMs: Int = 2000, onTarget: @escaping (String, String, String) -> Void) {
+    public init(debounceMs: Int = 0, reconnectMs: Int = 2000, onTarget: @escaping (String, String, String) -> Void) {
         self.debounceMs = debounceMs
         self.reconnectMs = reconnectMs
         self.onTarget = onTarget
@@ -1323,7 +1360,7 @@ public final class Gokit5SerialListener {
                     guard self?.readLoopGeneration == generation else { return }
                     self?.readAvailable(portPath: portPath)
                 }
-                Thread.sleep(forTimeInterval: 0.05)
+                Thread.sleep(forTimeInterval: 0.01)
             }
         }
     }
@@ -1393,8 +1430,12 @@ public final class Gokit5SerialListener {
 
     private func shouldDispatch(_ button: String) -> Bool {
         let now = Date()
-        if let last = lastDispatchByButton[button],
+        if debounceMs > 0,
+           let last = lastDispatchByButton[button],
            now.timeIntervalSince(last) * 1000 < Double(debounceMs) {
+            status.debounceDropCount += 1
+            status.lastDebouncedButton = button
+            status.lastDebouncedAt = Self.isoNow()
             return false
         }
         lastDispatchByButton[button] = now
@@ -1493,9 +1534,14 @@ public final class Gokit5SerialListener {
 
 public final class CodexDisplaySelectionService {
     private let displayService: DisplayService
+    private let showMouseFeedback: (CGPoint) -> Void
 
-    public init(displayService: DisplayService = DisplayService()) {
+    public init(
+        displayService: DisplayService = DisplayService(),
+        showMouseFeedback: @escaping (CGPoint) -> Void = { _ in }
+    ) {
         self.displayService = displayService
+        self.showMouseFeedback = showMouseFeedback
     }
 
     public func select(target rawTarget: String, appName: String = "Codex", source: String = "") -> [String: Any] {
@@ -1527,6 +1573,7 @@ public final class CodexDisplaySelectionService {
         let point = CGPoint(x: targetDisplay.workArea.centerX, y: targetDisplay.workArea.centerY)
         let actualPoint = moveMouse(to: point, display: targetDisplay)
         clickMouse(at: actualPoint)
+        showMouseFeedback(actualPoint)
 
         return [
             "ok": true,
@@ -1558,7 +1605,7 @@ public final class CodexDisplaySelectionService {
             return "external"
         case "right", "green", "side_right":
             return "side_right"
-        case "down", "bottom", "plus", "volume_up", "internal":
+        case "down", "bottom", "+", "add", "plus", "volume+", "volume_plus", "volume_up", "internal":
             return "internal"
         default:
             return ""
@@ -1951,24 +1998,83 @@ private func moveFirstWindow(app: AXUIElement, bounds: DSRect) -> Bool {
 
 private func moveWindow(_ win: AXUIElement, bounds: DSRect) -> Bool {
     guard AXIsProcessTrusted() else { return false }
-    setAXBoolIfSettable(win, attr: "AXFullScreen" as CFString, value: false)
-    setAXBoolIfSettable(win, attr: "AXZoomed" as CFString, value: false)
+    clearAXBoolIfTrueAndSettable(win, attr: "AXFullScreen" as CFString)
+    let moved = applyWindowBoundsPrecisely(win, bounds: bounds)
+    if moved {
+        AXUIElementPerformAction(win, kAXRaiseAction as CFString)
+    }
+    return moved
+}
+
+private func applyWindowBoundsPrecisely(_ win: AXUIElement, bounds: DSRect) -> Bool {
     var point = CGPoint(x: bounds.x, y: bounds.y)
     var size = CGSize(width: bounds.width, height: bounds.height)
     guard let pointValue = AXValueCreate(.cgPoint, &point),
           let sizeValue = AXValueCreate(.cgSize, &size) else { return false }
-    let positionResult = AXUIElementSetAttributeValue(win, kAXPositionAttribute as CFString, pointValue)
-    let sizeResult = AXUIElementSetAttributeValue(win, kAXSizeAttribute as CFString, sizeValue)
-    AXUIElementPerformAction(win, kAXRaiseAction as CFString)
-    return positionResult == .success && sizeResult == .success
+
+    let app = applicationElement(for: win)
+    var restoredEnhancedUI = false
+    if let app,
+       axBool(app, "AXEnhancedUserInterface" as CFString) == true,
+       setAXBoolIfSettable(app, attr: "AXEnhancedUserInterface" as CFString, value: false) {
+        restoredEnhancedUI = true
+    }
+    defer {
+        if restoredEnhancedUI, let app {
+            _ = setAXBoolIfSettable(app, attr: "AXEnhancedUserInterface" as CFString, value: true)
+        }
+    }
+
+    func applyOnce() {
+        _ = AXUIElementSetAttributeValue(win, kAXSizeAttribute as CFString, sizeValue)
+        _ = AXUIElementSetAttributeValue(win, kAXPositionAttribute as CFString, pointValue)
+        _ = AXUIElementSetAttributeValue(win, kAXSizeAttribute as CFString, sizeValue)
+        Thread.sleep(forTimeInterval: 0.012)
+    }
+
+    applyOnce()
+    if windowBounds(win)?.isNear(bounds, tolerance: 2) == true {
+        return true
+    }
+    applyOnce()
+    return windowBounds(win)?.isNear(bounds, tolerance: 2) == true
 }
 
-private func setAXBoolIfSettable(_ element: AXUIElement, attr: CFString, value: Bool) {
+private func applicationElement(for window: AXUIElement) -> AXUIElement? {
+    var pid = pid_t()
+    guard AXUIElementGetPid(window, &pid) == .success, pid > 0 else { return nil }
+    return AXUIElementCreateApplication(pid)
+}
+
+private func clearAXBoolIfTrueAndSettable(_ element: AXUIElement, attr: CFString) {
+    guard axBool(element, attr) == true else { return }
+    _ = setAXBoolIfSettable(element, attr: attr, value: false)
+}
+
+private func setAXBoolIfSettable(_ element: AXUIElement, attr: CFString, value: Bool) -> Bool {
     var settable = DarwinBoolean(false)
     guard AXUIElementIsAttributeSettable(element, attr, &settable) == .success, settable.boolValue else {
-        return
+        return false
     }
-    AXUIElementSetAttributeValue(element, attr, value as CFBoolean)
+    return AXUIElementSetAttributeValue(element, attr, value as CFBoolean) == .success
+}
+
+private func axBool(_ element: AXUIElement, _ attr: CFString) -> Bool? {
+    var value: CFTypeRef?
+    guard AXUIElementCopyAttributeValue(element, attr, &value) == .success,
+          let boolValue = value as? Bool else {
+        return nil
+    }
+    return boolValue
+}
+
+private extension DSRect {
+    func isNear(_ other: DSRect, tolerance: Double) -> Bool {
+        abs(x - other.x) <= tolerance &&
+            abs(y - other.y) <= tolerance &&
+            abs(width - other.width) <= tolerance &&
+            abs(height - other.height) <= tolerance
+    }
 }
 
 private func moveMouse(to point: CGPoint) {

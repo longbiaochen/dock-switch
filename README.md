@@ -32,7 +32,7 @@ often expose menu bar state, Dock contents, account badges, and workspace detail
 - Press `】` to tile the frontmost window to the right half of its current display.
 - Press `Shift` to focus or open `Codex`, then restore its remembered window bounds when available.
 - Press `Tab` to focus or open `ChatGPT`, then restore its remembered window bounds when available.
-- Press left `Command` to focus or open `System Settings`, then restore its remembered window bounds when available.
+- Press left `Command` to focus or open `SmartShadow` on the left side display, maximized to the display work area.
 - Press right `Command` for a reserved no-op.
 - Press `\` to enter macOS native fullscreen (same as the green window button).
 - App activation moves the pointer to the center of the activated or placed window; arrow display moves keep moving the pointer to the center of the target display.
@@ -83,8 +83,8 @@ The `X`, `小红书`, and `GitHub` web app bundles can target the signed-in Chro
 Xiaohongshu Web App is available on `R` in the current default config.
 Google Chrome is available on `G` in the current default config.
 GitHub Web App is available on `H` in the current default config.
-ChatGPT and Codex render in the HUD as symbolic shortcut labels: `⇥` for `Tab` / ChatGPT and `⇧` for `Shift` / Codex. They remain excluded from ordinary fallback numbering.
-Left `Command` opens System Settings. Right `Command` is intentionally reserved as a no-op.
+ChatGPT, Codex, and Command shortcuts render in the HUD as symbolic shortcut labels: `⇥` for `Tab` / ChatGPT, `⇧` for `Shift` / Codex, and `⌘` for left/right `Command`. They remain excluded from ordinary fallback numbering.
+Left `Command` opens SmartShadow on the left side display with `side_left_fill`. Right `Command` is intentionally reserved as a no-op.
 If no external display is available, `external_right_half` falls back to the right half of the internal display work area.
 If no external display is available, `external_left_half` falls back to the left half of the internal display work area.
 

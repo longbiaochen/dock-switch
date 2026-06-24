@@ -72,16 +72,18 @@ final class DockSwitchCoreTests: XCTestCase {
             DockItemSnapshot(name: "Finder", pos: CGPoint(x: 10, y: 900), size: CGSize(width: 50, height: 66)),
             DockItemSnapshot(name: "ChatGPT", pos: CGPoint(x: 60, y: 900), size: CGSize(width: 50, height: 66)),
             DockItemSnapshot(name: "Codex", pos: CGPoint(x: 110, y: 900), size: CGSize(width: 50, height: 66)),
-            DockItemSnapshot(name: "Temporary", pos: CGPoint(x: 160, y: 900), size: CGSize(width: 50, height: 66))
+            DockItemSnapshot(name: "SmartShadow", pos: CGPoint(x: 160, y: 900), size: CGSize(width: 50, height: 66)),
+            DockItemSnapshot(name: "Temporary", pos: CGPoint(x: 210, y: 900), size: CGSize(width: 50, height: 66))
         ]
         let config = LauncherConfig(dockItems: [
-            LauncherConfigItem(name: "Finder", key: "D", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil)
+            LauncherConfigItem(name: "Finder", key: "D", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil),
+            LauncherConfigItem(name: "SmartShadow", key: "COMMAND_LEFT", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil)
         ])
 
         let items = LauncherRules.buildLauncherItems(dockItems: dockItems, config: config)
 
-        XCTAssertEqual(items.map(\.key), ["D", "TAB", "SHIFT", "1"])
-        XCTAssertEqual(items.map(\.displayKey), ["D", "⇥", "⇧", "1"])
+        XCTAssertEqual(items.map(\.key), ["D", "TAB", "SHIFT", "COMMAND_LEFT", "1"])
+        XCTAssertEqual(items.map(\.displayKey), ["D", "⇥", "⇧", "⌘", "1"])
     }
 
     func testBottomDockOverlaySitsAboveDock() {
@@ -208,12 +210,16 @@ final class DockSwitchCoreTests: XCTestCase {
         XCTAssertEqual(LauncherRules.normalizeKey("tab"), "TAB")
         XCTAssertEqual(LauncherRules.normalizeKey("f20"), "F20")
         XCTAssertEqual(LauncherRules.normalizeKey("d"), "D")
+        XCTAssertEqual(LauncherRules.normalizeKey("cmd_left"), "COMMAND_LEFT")
+        XCTAssertEqual(LauncherRules.normalizeKey("left_cmd"), "COMMAND_LEFT")
+        XCTAssertEqual(LauncherRules.normalizeKey("cmd-right"), "COMMAND_RIGHT")
+        XCTAssertEqual(LauncherRules.keyIcon(for: "COMMAND_LEFT"), "⌘")
     }
 
     func testShortcutRulesMapReservedAppsAndWindowActions() {
         XCTAssertEqual(LauncherShortcutRules.appName(for: "TAB"), "ChatGPT")
         XCTAssertEqual(LauncherShortcutRules.appName(for: "SHIFT"), "Codex")
-        XCTAssertEqual(LauncherShortcutRules.appName(for: "COMMAND_LEFT"), "System Settings")
+        XCTAssertEqual(LauncherShortcutRules.appName(for: "COMMAND_LEFT"), "SmartShadow")
         XCTAssertNil(LauncherShortcutRules.appName(for: "COMMAND_RIGHT"))
         XCTAssertTrue(LauncherShortcutRules.isReserved("COMMAND_RIGHT"))
         XCTAssertEqual(LauncherShortcutRules.windowAction(key: "ArrowUp"), "up")
@@ -353,14 +359,19 @@ final class DockSwitchCoreTests: XCTestCase {
         XCTAssertEqual(Gokit5Serial.parseButtonLine("I (123) Gokit5: GOKIT5_HOST_BUTTON:voice"), "voice")
         XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:green\r"), "green")
         XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:plus extra"), "plus")
+        XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:+"), "plus")
         XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:volume-up"), "volume_up")
+        XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:volume+"), "volume_up")
         XCTAssertEqual(Gokit5Serial.parseButtonLine("I (123) VolcRTCApp: Heap Info"), "")
 
         XCTAssertEqual(Gokit5Serial.displayTarget(for: "minus"), "side_left")
         XCTAssertEqual(Gokit5Serial.displayTarget(for: "voice"), "external")
         XCTAssertEqual(Gokit5Serial.displayTarget(for: "green"), "side_right")
         XCTAssertEqual(Gokit5Serial.displayTarget(for: "plus"), "internal")
+        XCTAssertEqual(Gokit5Serial.displayTarget(for: "+"), "internal")
+        XCTAssertEqual(Gokit5Serial.displayTarget(for: "add"), "internal")
         XCTAssertEqual(Gokit5Serial.displayTarget(for: "volume-up"), "internal")
+        XCTAssertEqual(Gokit5Serial.displayTarget(for: "volume+"), "internal")
     }
 
     func testGokit5DiagnosticLineDetection() {
