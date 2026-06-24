@@ -67,6 +67,7 @@ func normalizeLauncherKey(_ value: String) -> String {
     if lower == "space" { return "SPACE" }
     if lower == "tab" { return "TAB" }
     if lower == "shift" { return "SHIFT" }
+    if trimmed == "⌘" { return "COMMAND_LEFT" }
     if ["cmd", "command", "cmd_left", "left_cmd", "command_left", "left_command", "meta_left", "left_meta"].contains(lower) {
         return "COMMAND_LEFT"
     }
@@ -93,6 +94,11 @@ func launcherKeyIcon(_ value: String) -> String? {
     default:
         return nil
     }
+}
+
+func displayLauncherKey(_ value: String) -> String {
+    let normalized = normalizeLauncherKey(value)
+    return launcherKeyIcon(normalized) ?? normalized
 }
 
 func reservedItem(for name: String) -> SettingsRow? {

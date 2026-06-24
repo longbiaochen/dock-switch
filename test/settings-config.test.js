@@ -39,6 +39,7 @@ test("buildSettingsRows merges visible Dock apps with configured, reserved, and 
 test("normalizeEditableKey uses launcher key normalization for settings input", () => {
     assert.equal(normalizeEditableKey(" f3 "), "F3");
     assert.equal(normalizeEditableKey("space"), "SPACE");
+    assert.equal(normalizeEditableKey("⌘"), "COMMAND_LEFT");
     assert.equal(normalizeEditableKey("cmd_left"), "COMMAND_LEFT");
     assert.equal(normalizeEditableKey("left_cmd"), "COMMAND_LEFT");
     assert.equal(normalizeEditableKey(""), "");
@@ -53,8 +54,20 @@ test("buildSettingsRows renders command shortcuts with the command icon", () => 
         ]
     });
 
-    assert.equal(rows[0].key, "COMMAND_LEFT");
+    assert.equal(rows[0].key, "⌘");
     assert.equal(rows[0].displayKey, "⌘");
+});
+
+test("validateKeyUpdates allows left command for System Settings only", () => {
+    const allowed = validateKeyUpdates([
+        { name: "System Settings", key: "⌘" }
+    ]);
+    const rejected = validateKeyUpdates([
+        { name: "Finder", key: "⌘" }
+    ]);
+
+    assert.equal(allowed.length, 0);
+    assert.equal(rejected.some(error => error.type === "reserved" && error.key === "COMMAND_LEFT"), true);
 });
 
 test("validateKeyUpdates rejects duplicate and reserved settings keys", () => {
@@ -66,6 +79,21 @@ test("validateKeyUpdates rejects duplicate and reserved settings keys", () => {
 
     assert.equal(errors.some(error => error.type === "duplicate" && error.key === "D"), true);
     assert.equal(errors.some(error => error.type === "reserved" && error.key === "SHIFT"), true);
+});
+
+test("saveDockItemSettings writes command icon input as COMMAND_LEFT", () => {
+    const result = saveDockItemSettings({
+        dock_items: [
+            { name: "System Settings", key: "COMMAND_LEFT", screen: "1", placement: "internal_fill" }
+        ]
+    }, [
+        { name: "System Settings", pos: { x: 10, y: 0 } }
+    ], [
+        { name: "System Settings", key: "⌘", screen: "1", placement: "internal_fill" }
+    ]);
+
+    assert.equal(result.ok, true);
+    assert.equal(result.config.dock_items[0].key, "COMMAND_LEFT");
 });
 
 test("saveDockItemSettings updates only visible Dock app settings and preserves advanced fields", () => {

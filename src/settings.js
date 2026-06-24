@@ -1,6 +1,6 @@
 const electron = require("electron");
 const $ = require("jquery");
-const { normalizeLauncherKey } = require("./launcher-key");
+const { displayLauncherKey, normalizeLauncherKey } = require("./launcher-key");
 
 let rows = [];
 let dirty = false;
@@ -29,14 +29,14 @@ function statusLabel(status) {
 function normalizeInputKey(value) {
     const raw = String(value || "").trim();
     if (!raw) return "";
-    return normalizeLauncherKey(raw, "");
+    return displayLauncherKey(raw);
 }
 
 function keyFromKeyboardEvent(event) {
     if (event.key === "Backspace" || event.key === "Delete") return "";
     if (event.key === "Escape" || event.key === "Enter") return null;
     if (event.key === "Tab") return null;
-    return normalizeLauncherKey(event.key, event.code);
+    return displayLauncherKey(normalizeLauncherKey(event.key, event.code));
 }
 
 function screenTargetForValue(value) {
@@ -180,7 +180,10 @@ function validateRows() {
     $(".key-input").removeClass("is-invalid");
     for (const update of collectUpdates()) {
         if (!update.key) continue;
-        if (["TAB", "SHIFT", "COMMAND_LEFT", "COMMAND_RIGHT"].includes(update.key)) {
+        if (
+            ["TAB", "SHIFT", "COMMAND_RIGHT"].includes(update.key) ||
+            (update.key === "COMMAND_LEFT" && String(update.name || "").trim().toLowerCase() !== "system settings")
+        ) {
             errors.push(`${update.key} 是系统保留键`);
             $(`.key-input[data-name="${cssEscape(update.name)}"]`).addClass("is-invalid");
             continue;

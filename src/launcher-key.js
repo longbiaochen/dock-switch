@@ -8,6 +8,7 @@ function normalizeLauncherKey(key, code) {
     if (key === "Tab" || code === "Tab") return "TAB";
     if (code === "MetaLeft") return "COMMAND_LEFT";
     if (code === "MetaRight") return "COMMAND_RIGHT";
+    if (raw === "⌘") return "COMMAND_LEFT";
     if (["cmd", "command", "cmd_left", "left_cmd", "command_left", "left_command", "meta_left", "left_meta"].includes(lower)) {
         return "COMMAND_LEFT";
     }
@@ -29,7 +30,13 @@ function launcherKeyIcon(key) {
     return "";
 }
 
+function displayLauncherKey(key) {
+    var normalizedKey = normalizeLauncherKey(key, "");
+    return launcherKeyIcon(normalizedKey) || normalizedKey;
+}
+
 module.exports = {
+    displayLauncherKey,
     launcherKeyIcon,
     normalizeLauncherKey
 };

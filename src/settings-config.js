@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { launcherKeyIcon, normalizeLauncherKey } = require("./launcher-key");
+const { displayLauncherKey, launcherKeyIcon, normalizeLauncherKey } = require("./launcher-key");
 const {
     isReservedLauncherShortcut
 } = require("./launcher-shortcuts");
@@ -73,6 +73,13 @@ function hasEditableSetting(update) {
     );
 }
 
+function isReservedSettingsKey(key, name) {
+    if (key === "COMMAND_LEFT" && normalizeAppName(name) === "system settings") {
+        return false;
+    }
+    return isReservedLauncherShortcut(key);
+}
+
 function buildSettingsRows(dockItems, config) {
     const configDockItems = normalizeConfig(config).dock_items;
     const rows = [];
@@ -99,8 +106,8 @@ function buildSettingsRows(dockItems, config) {
         if (configItem && String(configItem.key || "").trim()) {
             rows.push({
                 name: configItem.name || dockItem.name,
-                key: String(configItem.key || ""),
-                displayKey: launcherKeyIcon(configItem.key) || String(configItem.key || ""),
+                key: displayLauncherKey(configItem.key),
+                displayKey: displayLauncherKey(configItem.key),
                 screen: String(configItem.screen || ""),
                 placement: String(configItem.placement || ""),
                 status: "configured",
@@ -136,7 +143,7 @@ function validateKeyUpdates(updates) {
         const key = normalizeEditableKey(update && update.key);
         if (!name || !key) continue;
 
-        if (isReservedLauncherShortcut(key)) {
+        if (isReservedSettingsKey(key, name)) {
             errors.push({
                 type: "reserved",
                 key,

@@ -46,7 +46,7 @@ final class SettingsStore: ObservableObject {
     func update(rowID: SettingsRow.ID, key: String? = nil, screen: String? = nil, position: String? = nil) {
         guard let index = rows.firstIndex(where: { $0.id == rowID }), !rows[index].readonly else { return }
         if let key {
-            rows[index].key = normalizeLauncherKey(key)
+            rows[index].key = displayLauncherKey(key)
             rows[index].displayKey = rows[index].key
         }
         if let screen {
@@ -104,7 +104,7 @@ final class SettingsStore: ObservableObject {
         for row in rows where !row.readonly {
             let key = normalizeLauncherKey(row.key)
             if key.isEmpty { continue }
-            if ["TAB", "SHIFT", "COMMAND_LEFT", "COMMAND_RIGHT"].contains(key) {
+            if isReservedSettingsKey(key, for: row.name) {
                 return "\(key) 是系统保留键"
             }
             byKey[key, default: []].append(row.name)
@@ -135,8 +135,8 @@ final class SettingsStore: ObservableObject {
                 result.append(SettingsRow(
                     id: name,
                     name: (configItem["name"] as? String) ?? name,
-                    key: configuredKey,
-                    displayKey: launcherKeyIcon(configuredKey) ?? configuredKey,
+                    key: displayLauncherKey(configuredKey),
+                    displayKey: displayLauncherKey(configuredKey),
                     screen: screen,
                     position: parsedPlacement.position,
                     placement: placement,
@@ -209,6 +209,13 @@ final class SettingsStore: ObservableObject {
             return ""
         }
         return key
+    }
+
+    private func isReservedSettingsKey(_ key: String, for appName: String) -> Bool {
+        if key == "COMMAND_LEFT", normalizeAppName(appName) == "system settings" {
+            return false
+        }
+        return ["TAB", "SHIFT", "COMMAND_LEFT", "COMMAND_RIGHT"].contains(key)
     }
 
     private func visibleDockItems(_ dockItems: [[String: Any]]) -> [[String: Any]] {
