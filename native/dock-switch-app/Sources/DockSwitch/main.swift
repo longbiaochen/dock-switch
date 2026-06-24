@@ -13,7 +13,12 @@ final class DockSwitchApp: NSObject, NSApplicationDelegate {
     private let dockVisibilityService = DockVisibilityService()
     private let overlayLayoutService = OverlayLayoutService()
     private let windowPlacementService = WindowPlacementService()
-    private let codexDisplaySelectionService = CodexDisplaySelectionService()
+    private let mouseFeedbackPresenter = MouseFeedbackPresenter()
+    private lazy var codexDisplaySelectionService = CodexDisplaySelectionService(
+        showMouseFeedback: { [weak self] point in
+            self?.mouseFeedbackPresenter.show(at: point)
+        }
+    )
     private lazy var launcherService = LauncherService(windowPlacement: windowPlacementService)
     private var controlServer: ControlServer?
     private var gokit5SerialListener: Gokit5SerialListener?
@@ -52,6 +57,7 @@ final class DockSwitchApp: NSObject, NSApplicationDelegate {
         if let eventHandler { RemoveEventHandler(eventHandler) }
         gokit5SerialListener?.stop()
         controlServer?.stop()
+        mouseFeedbackPresenter.close()
     }
 
     private func setupStatusItem() {
@@ -389,8 +395,6 @@ final class DockSwitchApp: NSObject, NSApplicationDelegate {
             return "current_left"
         case kVK_ANSI_RightBracket:
             return "current_right"
-        case kVK_ANSI_Backslash:
-            return "fill"
         default:
             let text = event.charactersIgnoringModifiers ?? event.characters ?? ""
             return LauncherShortcutRules.windowAction(key: text)
@@ -439,6 +443,168 @@ final class DockSwitchApp: NSObject, NSApplicationDelegate {
         }
         let mainHeight = NSScreen.main?.frame.height ?? 0
         return NSRect(x: rect.x, y: Double(mainHeight) - rect.y - rect.height, width: rect.width, height: rect.height)
+    }
+}
+
+private final class MouseFeedbackPresenter {
+    private let size = CGSize(width: 96, height: 96)
+    private var panel: NSPanel?
+    private var hideWorkItem: DispatchWorkItem?
+
+    func show(at quartzPoint: CGPoint) {
+        if !Thread.isMainThread {
+            DispatchQueue.main.async { [weak self] in
+                self?.show(at: quartzPoint)
+            }
+            return
+        }
+        guard quartzPoint.x.isFinite, quartzPoint.y.isFinite else { return }
+
+        let origin = Self.appKitWindowOrigin(forQuartzPoint: quartzPoint, windowSize: size)
+        let panel = feedbackPanel()
+        panel.setFrame(NSRect(origin: origin, size: size), display: false)
+        panel.orderFrontRegardless()
+        pulse(in: panel)
+        scheduleHide()
+    }
+
+    func close() {
+        hideWorkItem?.cancel()
+        hideWorkItem = nil
+        (panel?.contentView as? MouseFeedbackView)?.stopPulse()
+        panel?.close()
+        panel = nil
+    }
+
+    private func feedbackPanel() -> NSPanel {
+        if let panel {
+            return panel
+        }
+        let panel = NSPanel(
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = false
+        panel.ignoresMouseEvents = true
+        panel.isReleasedWhenClosed = false
+        panel.canHide = false
+        panel.hidesOnDeactivate = false
+        panel.sharingType = .readOnly
+        panel.level = .screenSaver
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
+
+        panel.contentView = MouseFeedbackView(frame: NSRect(origin: .zero, size: size))
+        self.panel = panel
+        return panel
+    }
+
+    private func pulse(in panel: NSPanel) {
+        (panel.contentView as? MouseFeedbackView)?.startPulse()
+    }
+
+    private func scheduleHide() {
+        hideWorkItem?.cancel()
+        let item = DispatchWorkItem { [weak self] in
+            self?.panel?.orderOut(nil)
+        }
+        hideWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.82, execute: item)
+    }
+
+    private static func appKitWindowOrigin(forQuartzPoint point: CGPoint, windowSize: CGSize) -> CGPoint {
+        for screen in NSScreen.screens {
+            let id = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? 0
+            guard id != 0 else { continue }
+            let quartzBounds = CGDisplayBounds(CGDirectDisplayID(id))
+            guard quartzBounds.contains(point) else { continue }
+            let localX = point.x - quartzBounds.minX
+            let localY = point.y - quartzBounds.minY
+            return CGPoint(
+                x: screen.frame.minX + localX - windowSize.width / 2,
+                y: screen.frame.maxY - localY - windowSize.height / 2
+            )
+        }
+        let mouseLocation = NSEvent.mouseLocation
+        return CGPoint(
+            x: mouseLocation.x - windowSize.width / 2,
+            y: mouseLocation.y - windowSize.height / 2
+        )
+    }
+}
+
+private final class MouseFeedbackView: NSView {
+    private let duration: TimeInterval = 0.82
+    private var startedAt = Date.distantPast
+    private var timer: Timer?
+
+    override var isOpaque: Bool { false }
+
+    func startPulse() {
+        startedAt = Date()
+        timer?.invalidate()
+        needsDisplay = true
+        let timer = Timer(timeInterval: 1.0 / 60.0, repeats: true) { [weak self] timer in
+            guard let self else {
+                timer.invalidate()
+                return
+            }
+            if Date().timeIntervalSince(self.startedAt) >= self.duration {
+                self.needsDisplay = true
+                timer.invalidate()
+                self.timer = nil
+                return
+            }
+            self.needsDisplay = true
+        }
+        self.timer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+
+    func stopPulse() {
+        timer?.invalidate()
+        timer = nil
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        let elapsed = Date().timeIntervalSince(startedAt)
+        guard elapsed >= 0, elapsed < duration else { return }
+
+        let t = min(max(elapsed / duration, 0), 1)
+        let eased = 1 - pow(1 - CGFloat(t), 3)
+        let scale = 0.72 + (1.58 - 0.72) * eased
+        let fadeStart = 0.42
+        let opacity: CGFloat
+        if t <= fadeStart {
+            opacity = 0.96
+        } else {
+            opacity = max(0.12, 0.96 * (1 - CGFloat((t - fadeStart) / (1 - fadeStart))))
+        }
+
+        let center = CGPoint(x: bounds.midX, y: bounds.midY)
+        let baseDiameter: CGFloat = 54
+        let diameter = baseDiameter * scale
+        let rect = CGRect(
+            x: center.x - diameter / 2,
+            y: center.y - diameter / 2,
+            width: diameter,
+            height: diameter
+        )
+
+        drawRing(in: rect.insetBy(dx: -4, dy: -4), color: .white, alpha: opacity * 0.72, lineWidth: 4)
+        drawRing(in: rect, color: .controlAccentColor, alpha: opacity, lineWidth: 3)
+        drawRing(in: rect.insetBy(dx: -8, dy: -8), color: .controlAccentColor, alpha: opacity * 0.34, lineWidth: 10)
+    }
+
+    private func drawRing(in rect: CGRect, color: NSColor, alpha: CGFloat, lineWidth: CGFloat) {
+        let path = NSBezierPath(ovalIn: rect)
+        path.lineWidth = lineWidth
+        color.withAlphaComponent(alpha).setStroke()
+        path.stroke()
     }
 }
 

@@ -28,9 +28,7 @@ var ARROW_KEY_ACTIONS = Object.freeze({
     "BracketLeft": "current_left",
     "]": "current_right",
     "】": "current_right",
-    "BracketRight": "current_right",
-    "\\": "fill",
-    "Backslash": "fill"
+    "BracketRight": "current_right"
 });
 var DOCK_ITEMS = [];
 const DOCK_QUERY_MODULE_PATH = path.join(

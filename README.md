@@ -32,9 +32,10 @@ often expose menu bar state, Dock contents, account badges, and workspace detail
 - Press `】` to tile the frontmost window to the right half of its current display.
 - Press `Shift` to focus or open `Codex`, then restore its remembered window bounds when available.
 - Press `Tab` to focus or open `ChatGPT`, then restore its remembered window bounds when available.
-- Press left `Command` to focus or open `SmartShadow` on the left side display, maximized to the display work area.
+- Press left `Command` to focus or open `System Settings` on the internal display, maximized to the display work area.
 - Press right `Command` for a reserved no-op.
-- Press `\` to enter macOS native fullscreen (same as the green window button).
+- Press `\` to focus or open `Terminal` on the right side display, maximized to the display work area.
+- Press `F3` to focus or open `SmartShadow` on the left side display, maximized to the display work area.
 - App activation moves the pointer to the center of the activated or placed window; arrow display moves keep moving the pointer to the center of the target display.
 - A connected GoKit5 controller flashed with [open-embodied](https://github.com/longbiaochen/open-embodied) can select Codex display focus: minus = left side display, voice = external display, green = right side display, plus / volume_up = internal display.
 - The UI closes automatically after a selection.
@@ -84,7 +85,7 @@ Xiaohongshu Web App is available on `R` in the current default config.
 Google Chrome is available on `G` in the current default config.
 GitHub Web App is available on `H` in the current default config.
 ChatGPT, Codex, and Command shortcuts render in the HUD as symbolic shortcut labels: `⇥` for `Tab` / ChatGPT, `⇧` for `Shift` / Codex, and `⌘` for left/right `Command`. They remain excluded from ordinary fallback numbering.
-Left `Command` opens SmartShadow on the left side display with `side_left_fill`. Right `Command` is intentionally reserved as a no-op.
+Left `Command` opens System Settings on the internal display with `internal_fill`. `\` opens Terminal on the right side display with `side_right_fill`. `F3` opens SmartShadow on the left side display with `side_left_fill`. Right `Command` is intentionally reserved as a no-op.
 If no external display is available, `external_right_half` falls back to the right half of the internal display work area.
 If no external display is available, `external_left_half` falls back to the left half of the internal display work area.
 
@@ -103,8 +104,8 @@ To disable restore for a specific app, add:
 ```json
 {
   "name": "Terminal",
-  "key": "F3",
-  "screen": "4",
+  "key": "\\",
+  "screen": "side_right",
   "placement": "side_right_fill",
   "remember_window_state": false
 }
@@ -170,7 +171,7 @@ App key/display mapping is stored in `src/config.json` under `dock_items`.
 
 ## Permissions and First Run
 - Map a key to `F20` (for example with [Karabiner-Elements](https://github.com/pqrs-org/Karabiner-Elements)).
-- A direct hotkey can call the CLI without opening the launcher. Example: `F3 -> dock-switch-cli place --app "Terminal" --placement side_right_fill`.
+- A direct hotkey can call the CLI without opening the launcher. Example: `F3 -> dock-switch-cli place --app "SmartShadow" --placement side_left_fill`.
 - Keep the installed app in macOS `Open at Login` so the global shortcut and control socket are available after login.
 - On first use, dock-switch prompts for required macOS permissions:
   - Accessibility (control UI elements / Dock metadata)

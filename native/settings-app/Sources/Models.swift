@@ -62,10 +62,17 @@ func normalizeLauncherKey(_ value: String) -> String {
     let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
     if trimmed.isEmpty { return "" }
     let lower = trimmed.lowercased()
+        .replacingOccurrences(of: "-", with: "_")
+        .replacingOccurrences(of: " ", with: "_")
     if lower == "space" { return "SPACE" }
     if lower == "tab" { return "TAB" }
     if lower == "shift" { return "SHIFT" }
-    if lower == "cmd" || lower == "command" { return "COMMAND_LEFT" }
+    if ["cmd", "command", "cmd_left", "left_cmd", "command_left", "left_command", "meta_left", "left_meta"].contains(lower) {
+        return "COMMAND_LEFT"
+    }
+    if ["cmd_right", "right_cmd", "command_right", "right_command", "meta_right", "right_meta"].contains(lower) {
+        return "COMMAND_RIGHT"
+    }
     if lower.hasPrefix("f"), lower.dropFirst().allSatisfy({ $0.isNumber }) {
         return lower.uppercased()
     }
@@ -73,6 +80,19 @@ func normalizeLauncherKey(_ value: String) -> String {
         return trimmed.uppercased()
     }
     return trimmed.uppercased()
+}
+
+func launcherKeyIcon(_ value: String) -> String? {
+    switch normalizeLauncherKey(value) {
+    case "TAB":
+        return "⇥"
+    case "SHIFT":
+        return "⇧"
+    case "COMMAND", "COMMAND_LEFT", "COMMAND_RIGHT":
+        return "⌘"
+    default:
+        return nil
+    }
 }
 
 func reservedItem(for name: String) -> SettingsRow? {

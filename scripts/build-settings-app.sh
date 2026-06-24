@@ -6,7 +6,7 @@ APP_DIR="$ROOT_DIR/native/settings-app/build/DockSwitchSettings.app"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 SOURCE_DIR="$ROOT_DIR/native/settings-app/Sources"
-DEFAULT_IDENTITY="Apple Development: LONGBIAO CHEN (YRQ5DV25KM)"
+DEFAULT_IDENTITY="Developer ID Application: LONGBIAO CHEN (HJG65XBC25)"
 IDENTITY="${CSC_NAME:-$DEFAULT_IDENTITY}"
 
 rm -rf "$APP_DIR"
@@ -77,6 +77,6 @@ if [[ -z "$IDENTITY" ]] || ! security find-identity -v -p codesigning | grep -q 
   exit 1
 fi
 
-/usr/bin/codesign --force --sign "$IDENTITY" "$APP_DIR"
+/usr/bin/codesign --force --options runtime --timestamp --sign "$IDENTITY" "$APP_DIR"
 
 echo "$APP_DIR"

@@ -10,7 +10,7 @@ MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
 APP_RESOURCES_DIR="$RESOURCES_DIR/app"
 ENTITLEMENTS="$ROOT_DIR/build/entitlements.mac.plist"
-DEFAULT_IDENTITY="Apple Development: LONGBIAO CHEN (YRQ5DV25KM)"
+DEFAULT_IDENTITY="Developer ID Application: LONGBIAO CHEN (HJG65XBC25)"
 IDENTITY="${CSC_NAME:-$DEFAULT_IDENTITY}"
 
 swift build --package-path "$PACKAGE_DIR" -c release --arch arm64
@@ -102,10 +102,10 @@ if [[ -z "$IDENTITY" ]] || ! security find-identity -v -p codesigning | grep -q 
 fi
 
 if [[ -d "$RESOURCES_DIR/DockSwitchSettings.app" ]]; then
-  /usr/bin/codesign --force --sign "$IDENTITY" "$RESOURCES_DIR/DockSwitchSettings.app"
+  /usr/bin/codesign --force --options runtime --timestamp --sign "$IDENTITY" "$RESOURCES_DIR/DockSwitchSettings.app"
 fi
 
-/usr/bin/codesign --force --sign "$IDENTITY" "$RESOURCES_DIR/DockSwitchGokit5Serial"
-/usr/bin/codesign --force --sign "$IDENTITY" --entitlements "$ENTITLEMENTS" "$APP_DIR"
+/usr/bin/codesign --force --options runtime --timestamp --sign "$IDENTITY" "$RESOURCES_DIR/DockSwitchGokit5Serial"
+/usr/bin/codesign --force --options runtime --timestamp --sign "$IDENTITY" --entitlements "$ENTITLEMENTS" "$APP_DIR"
 
 echo "$APP_DIR"

@@ -108,9 +108,9 @@
         },
         {
             "name": "Terminal",
-            "key": "F3",
-            "screen": "1",
-            "placement": "internal_fill"
+            "key": "\\",
+            "screen": "side_right",
+            "placement": "side_right_fill"
         },
         {
             "name": "iPhone Mirroring",
@@ -118,9 +118,15 @@
             "screen": "4"
         },
         {
-            "name": "SmartShadow",
+            "name": "System Settings",
             "key": "COMMAND_LEFT",
-            "screen": "0",
+            "screen": "1",
+            "placement": "internal_fill"
+        },
+        {
+            "name": "SmartShadow",
+            "key": "F3",
+            "screen": "side_left",
             "placement": "side_left_fill"
         }
     ]

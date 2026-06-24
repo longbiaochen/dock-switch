@@ -1284,16 +1284,10 @@ static napi_value MoveFocusedWindow(napi_env env, napi_callback_info info) {
   CFRelease(app);
   if (!win) return MakeError(env, "Focused app has no window");
 
-  // Ensure fullscreen state does not block explicit bounds changes.
-  if (IsAXAttrSettable(win, kAXFullScreenAttrCompat)) {
+  bool fullscreen = false;
+  if (GetAXBool(win, kAXFullScreenAttrCompat, &fullscreen) && fullscreen &&
+      IsAXAttrSettable(win, kAXFullScreenAttrCompat)) {
     SetAXBool(win, kAXFullScreenAttrCompat, false);
-  }
-  // Only de-zoom when the attribute exists and is currently enabled.
-  if (IsAXAttrSettable(win, kAXZoomedAttrCompat)) {
-    bool zoomed = false;
-    if (GetAXBool(win, kAXZoomedAttrCompat, &zoomed) && zoomed) {
-      SetAXBool(win, kAXZoomedAttrCompat, false);
-    }
   }
 
   usleep(15000);
@@ -1357,14 +1351,10 @@ static napi_value MoveApplicationWindow(napi_env env, napi_callback_info info) {
   CFRelease(app);
   if (!win) return MakeError(env, "Application has no window");
 
-  if (IsAXAttrSettable(win, kAXFullScreenAttrCompat)) {
+  bool fullscreen = false;
+  if (GetAXBool(win, kAXFullScreenAttrCompat, &fullscreen) && fullscreen &&
+      IsAXAttrSettable(win, kAXFullScreenAttrCompat)) {
     SetAXBool(win, kAXFullScreenAttrCompat, false);
-  }
-  if (IsAXAttrSettable(win, kAXZoomedAttrCompat)) {
-    bool zoomed = false;
-    if (GetAXBool(win, kAXZoomedAttrCompat, &zoomed) && zoomed) {
-      SetAXBool(win, kAXZoomedAttrCompat, false);
-    }
   }
 
   usleep(15000);
@@ -1429,14 +1419,10 @@ static napi_value MoveApplicationWindowByPid(napi_env env, napi_callback_info in
   CFRelease(app);
   if (!win) return MakeError(env, "Application has no window");
 
-  if (IsAXAttrSettable(win, kAXFullScreenAttrCompat)) {
+  bool fullscreen = false;
+  if (GetAXBool(win, kAXFullScreenAttrCompat, &fullscreen) && fullscreen &&
+      IsAXAttrSettable(win, kAXFullScreenAttrCompat)) {
     SetAXBool(win, kAXFullScreenAttrCompat, false);
-  }
-  if (IsAXAttrSettable(win, kAXZoomedAttrCompat)) {
-    bool zoomed = false;
-    if (GetAXBool(win, kAXZoomedAttrCompat, &zoomed) && zoomed) {
-      SetAXBool(win, kAXZoomedAttrCompat, false);
-    }
   }
 
   usleep(15000);
@@ -1556,14 +1542,10 @@ static napi_value MoveApplicationWindowByPidAndIndex(napi_env env, napi_callback
   CFRelease(app);
   if (!win) return MakeError(env, "Application window not found");
 
-  if (IsAXAttrSettable(win, kAXFullScreenAttrCompat)) {
+  bool fullscreen = false;
+  if (GetAXBool(win, kAXFullScreenAttrCompat, &fullscreen) && fullscreen &&
+      IsAXAttrSettable(win, kAXFullScreenAttrCompat)) {
     SetAXBool(win, kAXFullScreenAttrCompat, false);
-  }
-  if (IsAXAttrSettable(win, kAXZoomedAttrCompat)) {
-    bool zoomed = false;
-    if (GetAXBool(win, kAXZoomedAttrCompat, &zoomed) && zoomed) {
-      SetAXBool(win, kAXZoomedAttrCompat, false);
-    }
   }
 
   usleep(15000);

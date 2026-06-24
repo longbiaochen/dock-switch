@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { normalizeLauncherKey } = require("./launcher-key");
+const { launcherKeyIcon, normalizeLauncherKey } = require("./launcher-key");
 const {
     isReservedLauncherShortcut
 } = require("./launcher-shortcuts");
@@ -100,7 +100,7 @@ function buildSettingsRows(dockItems, config) {
             rows.push({
                 name: configItem.name || dockItem.name,
                 key: String(configItem.key || ""),
-                displayKey: String(configItem.key || ""),
+                displayKey: launcherKeyIcon(configItem.key) || String(configItem.key || ""),
                 screen: String(configItem.screen || ""),
                 placement: String(configItem.placement || ""),
                 status: "configured",

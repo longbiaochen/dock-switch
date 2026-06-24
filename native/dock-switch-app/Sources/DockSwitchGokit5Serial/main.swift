@@ -47,15 +47,12 @@ func resetUsbSerial() {
 }
 
 runStty()
-fputs("helper:stty\n", stderr)
 resetUsbSerial()
-fputs("helper:reset\n", stderr)
 
 var buffer = [UInt8](repeating: 0, count: 4096)
 while true {
     let count = Darwin.read(fd, &buffer, buffer.count)
     if count > 0 {
-        fputs("helper:read:\(count)\n", stderr)
         FileHandle.standardOutput.write(Data(buffer.prefix(count)))
         fflush(stdout)
         continue
@@ -64,7 +61,7 @@ while true {
         exit(0)
     }
     if errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR {
-        usleep(50_000)
+        usleep(10_000)
         continue
     }
     fputs("read failed: \(String(cString: strerror(errno)))\n", stderr)

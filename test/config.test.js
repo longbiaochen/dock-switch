@@ -29,7 +29,6 @@ test("default config maps requested apps and web apps to internal fill", () => {
         "Notes",
         "Contacts",
         "Sublime Text",
-        "Terminal",
         "X",
         "GitHub",
         "小红书"
@@ -42,16 +41,16 @@ test("default config maps requested apps and web apps to internal fill", () => {
     }
 });
 
-test("default config maps Terminal to internal fill", () => {
+test("default config maps Terminal to right screen fill", () => {
     const terminal = config.dock_items.find(entry => entry.name === "Terminal");
     const sublimeText = config.dock_items.find(entry => entry.name === "Sublime Text");
 
     assert.equal(sublimeText && sublimeText.key, "T");
     assert.deepEqual(terminal, {
         name: "Terminal",
-        key: "F3",
-        screen: "1",
-        placement: "internal_fill"
+        key: "\\",
+        screen: "side_right",
+        placement: "side_right_fill"
     });
 });
 
@@ -78,11 +77,20 @@ test("default config maps L to LifeOS", () => {
     });
 });
 
-test("default config maps left command to SmartShadow on the left side display", () => {
+test("default config maps left command to System Settings on the internal display", () => {
+    assert.deepEqual(config.dock_items.find(entry => entry.name === "System Settings"), {
+        name: "System Settings",
+        key: "COMMAND_LEFT",
+        screen: "1",
+        placement: "internal_fill"
+    });
+});
+
+test("default config maps F3 to SmartShadow on the left side display", () => {
     assert.deepEqual(config.dock_items.find(entry => entry.name === "SmartShadow"), {
         name: "SmartShadow",
-        key: "COMMAND_LEFT",
-        screen: "0",
+        key: "F3",
+        screen: "side_left",
         placement: "side_left_fill"
     });
 });

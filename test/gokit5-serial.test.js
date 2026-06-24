@@ -17,7 +17,9 @@ test("parseGokit5ButtonLine extracts stable host button events from ESP logs", (
     assert.equal(parseGokit5ButtonLine("I (123) Gokit5: GOKIT5_HOST_BUTTON:voice"), "voice");
     assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:green\r"), "green");
     assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:plus extra"), "plus");
+    assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:+"), "plus");
     assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:volume_up"), "volume_up");
+    assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:volume+"), "volume_up");
     assert.equal(parseGokit5ButtonLine("I (123) VolcRTCApp: Heap Info"), "");
 });
 
@@ -26,8 +28,11 @@ test("mapGokit5ButtonToTarget maps physical keys and firmware aliases to display
     assert.equal(mapGokit5ButtonToTarget("voice"), "external");
     assert.equal(mapGokit5ButtonToTarget("green"), "side_right");
     assert.equal(mapGokit5ButtonToTarget("plus"), "internal");
+    assert.equal(mapGokit5ButtonToTarget("+"), "internal");
+    assert.equal(mapGokit5ButtonToTarget("add"), "internal");
     assert.equal(mapGokit5ButtonToTarget("volume_up"), "internal");
     assert.equal(mapGokit5ButtonToTarget("volume-up"), "internal");
+    assert.equal(mapGokit5ButtonToTarget("volume+"), "internal");
 });
 
 test("shouldDispatchButton debounces repeated events per button", () => {

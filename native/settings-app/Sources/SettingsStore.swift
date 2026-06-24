@@ -136,7 +136,7 @@ final class SettingsStore: ObservableObject {
                     id: name,
                     name: (configItem["name"] as? String) ?? name,
                     key: configuredKey,
-                    displayKey: configuredKey,
+                    displayKey: launcherKeyIcon(configuredKey) ?? configuredKey,
                     screen: screen,
                     position: parsedPlacement.position,
                     placement: placement,

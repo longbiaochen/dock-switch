@@ -1,3 +1,5 @@
+const { launcherKeyIcon } = require("./launcher-key");
+
 function normalizeAppName(name) {
     var normalized = String(name || "")
         .trim()
@@ -53,10 +55,15 @@ function buildLauncherItems(dockItems, configDockItems) {
         var dockName = normalizeAppName(visibleItems[i].name);
         var item = specialLauncherItemForName(visibleItems[i].name);
         if (item == undefined) {
-            item = (configDockItems || []).find(entry =>
+            var configItem = (configDockItems || []).find(entry =>
                 normalizeAppName(entry.name) === dockName &&
                 String(entry.key || "").trim()
             );
+            if (configItem) {
+                item = Object.assign({}, configItem, {
+                    icon: launcherKeyIcon(configItem.key) || configItem.icon
+                });
+            }
         }
         if (item == undefined) {
             item = {

@@ -3,7 +3,7 @@ const fs = require("fs");
 
 const DEFAULT_BAUD_RATE = 115200;
 const DEFAULT_RECONNECT_MS = 2000;
-const DEFAULT_DEBOUNCE_MS = 250;
+const DEFAULT_DEBOUNCE_MS = 0;
 const DEFAULT_SERIAL_NUMBER = "94:A9:90:10:E5:F4";
 const HOST_BUTTON_PREFIX = "GOKIT5_HOST_BUTTON:";
 
@@ -16,7 +16,12 @@ const BUTTON_TO_DISPLAY_TARGET = Object.freeze({
 });
 
 function normalizeGokit5ButtonName(button) {
-    return String(button || "").trim().toLowerCase().replace(/-/g, "_");
+    const key = String(button || "").trim().toLowerCase().replace(/-/g, "_");
+    if (key === "+" || key === "add" || key === "plus") return "plus";
+    if (["volume+", "volume_plus", "volumeup", "vol_up", "volup"].includes(key)) {
+        return "volume_up";
+    }
+    return key;
 }
 
 function mapGokit5ButtonToTarget(button) {
@@ -33,7 +38,7 @@ function parseGokit5ButtonLine(line) {
     const rawButton = text.slice(markerIndex + HOST_BUTTON_PREFIX.length)
         .trim()
         .split(/\s+/)[0]
-        .replace(/[^A-Za-z0-9_-].*$/, "");
+        .replace(/[^A-Za-z0-9_+-].*$/, "");
     const button = normalizeGokit5ButtonName(rawButton);
     return mapGokit5ButtonToTarget(button) ? button : "";
 }

@@ -180,7 +180,7 @@ public enum LauncherShortcutRules {
         case "SHIFT":
             return "Codex"
         case "COMMAND_LEFT":
-            return "SmartShadow"
+            return "System Settings"
         default:
             return nil
         }
@@ -206,8 +206,6 @@ public enum LauncherShortcutRules {
                 return "current_left"
             case "]", "】", "BracketRight":
                 return "current_right"
-            case "\\", "Backslash":
-                return "fill"
             default:
                 continue
             }

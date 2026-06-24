@@ -31,7 +31,7 @@ test("normalizeLauncherKey maps digit codes to stable numeric keys", () => {
 test("resolveAppShortcut maps symbolic app keys", () => {
     assert.equal(resolveAppShortcut("TAB"), "ChatGPT");
     assert.equal(resolveAppShortcut("SHIFT"), "Codex");
-    assert.equal(resolveAppShortcut("COMMAND_LEFT"), "SmartShadow");
+    assert.equal(resolveAppShortcut("COMMAND_LEFT"), "System Settings");
     assert.equal(resolveAppShortcut("COMMAND_RIGHT"), "");
     assert.equal(resolveAppShortcut("SPACE"), "");
 });
@@ -45,6 +45,7 @@ test("resolveAppShortcut does not consume numeric launcher fallback keys", () =>
 test("resolveWindowPlacementShortcut no longer consumes SPACE", () => {
     assert.equal(resolveWindowPlacementShortcut("SPACE"), "");
     assert.equal(resolveWindowPlacementShortcut("1"), "");
+    assert.equal(resolveWindowPlacementShortcut("\\"), "");
 });
 
 test("reserved symbolic launcher keys cannot fall through to app fallback", () => {

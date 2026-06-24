@@ -72,18 +72,22 @@ final class DockSwitchCoreTests: XCTestCase {
             DockItemSnapshot(name: "Finder", pos: CGPoint(x: 10, y: 900), size: CGSize(width: 50, height: 66)),
             DockItemSnapshot(name: "ChatGPT", pos: CGPoint(x: 60, y: 900), size: CGSize(width: 50, height: 66)),
             DockItemSnapshot(name: "Codex", pos: CGPoint(x: 110, y: 900), size: CGSize(width: 50, height: 66)),
-            DockItemSnapshot(name: "SmartShadow", pos: CGPoint(x: 160, y: 900), size: CGSize(width: 50, height: 66)),
-            DockItemSnapshot(name: "Temporary", pos: CGPoint(x: 210, y: 900), size: CGSize(width: 50, height: 66))
+            DockItemSnapshot(name: "System Settings", pos: CGPoint(x: 160, y: 900), size: CGSize(width: 50, height: 66)),
+            DockItemSnapshot(name: "SmartShadow", pos: CGPoint(x: 210, y: 900), size: CGSize(width: 50, height: 66)),
+            DockItemSnapshot(name: "Terminal", pos: CGPoint(x: 260, y: 900), size: CGSize(width: 50, height: 66)),
+            DockItemSnapshot(name: "Temporary", pos: CGPoint(x: 310, y: 900), size: CGSize(width: 50, height: 66))
         ]
         let config = LauncherConfig(dockItems: [
             LauncherConfigItem(name: "Finder", key: "D", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil),
-            LauncherConfigItem(name: "SmartShadow", key: "COMMAND_LEFT", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil)
+            LauncherConfigItem(name: "System Settings", key: "COMMAND_LEFT", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil),
+            LauncherConfigItem(name: "SmartShadow", key: "F3", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil),
+            LauncherConfigItem(name: "Terminal", key: "\\", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil)
         ])
 
         let items = LauncherRules.buildLauncherItems(dockItems: dockItems, config: config)
 
-        XCTAssertEqual(items.map(\.key), ["D", "TAB", "SHIFT", "COMMAND_LEFT", "1"])
-        XCTAssertEqual(items.map(\.displayKey), ["D", "⇥", "⇧", "⌘", "1"])
+        XCTAssertEqual(items.map(\.key), ["D", "TAB", "SHIFT", "COMMAND_LEFT", "F3", "\\", "1"])
+        XCTAssertEqual(items.map(\.displayKey), ["D", "⇥", "⇧", "⌘", "F3", "\\", "1"])
     }
 
     func testBottomDockOverlaySitsAboveDock() {
@@ -219,13 +223,13 @@ final class DockSwitchCoreTests: XCTestCase {
     func testShortcutRulesMapReservedAppsAndWindowActions() {
         XCTAssertEqual(LauncherShortcutRules.appName(for: "TAB"), "ChatGPT")
         XCTAssertEqual(LauncherShortcutRules.appName(for: "SHIFT"), "Codex")
-        XCTAssertEqual(LauncherShortcutRules.appName(for: "COMMAND_LEFT"), "SmartShadow")
+        XCTAssertEqual(LauncherShortcutRules.appName(for: "COMMAND_LEFT"), "System Settings")
         XCTAssertNil(LauncherShortcutRules.appName(for: "COMMAND_RIGHT"))
         XCTAssertTrue(LauncherShortcutRules.isReserved("COMMAND_RIGHT"))
         XCTAssertEqual(LauncherShortcutRules.windowAction(key: "ArrowUp"), "up")
         XCTAssertEqual(LauncherShortcutRules.windowAction(key: "【"), "current_left")
         XCTAssertEqual(LauncherShortcutRules.windowAction(key: "]"), "current_right")
-        XCTAssertEqual(LauncherShortcutRules.windowAction(key: "\\"), "fill")
+        XCTAssertNil(LauncherShortcutRules.windowAction(key: "\\"))
         XCTAssertTrue(LauncherShortcutRules.shouldCenterMouse(for: "right"))
         XCTAssertFalse(LauncherShortcutRules.shouldCenterMouse(for: "current_right"))
     }

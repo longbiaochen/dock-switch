@@ -39,7 +39,22 @@ test("buildSettingsRows merges visible Dock apps with configured, reserved, and 
 test("normalizeEditableKey uses launcher key normalization for settings input", () => {
     assert.equal(normalizeEditableKey(" f3 "), "F3");
     assert.equal(normalizeEditableKey("space"), "SPACE");
+    assert.equal(normalizeEditableKey("cmd_left"), "COMMAND_LEFT");
+    assert.equal(normalizeEditableKey("left_cmd"), "COMMAND_LEFT");
     assert.equal(normalizeEditableKey(""), "");
+});
+
+test("buildSettingsRows renders command shortcuts with the command icon", () => {
+    const rows = buildSettingsRows([
+        { name: "System Settings", pos: { x: 10, y: 0 } }
+    ], {
+        dock_items: [
+            { name: "System Settings", key: "COMMAND_LEFT", screen: "1", placement: "internal_fill" }
+        ]
+    });
+
+    assert.equal(rows[0].key, "COMMAND_LEFT");
+    assert.equal(rows[0].displayKey, "⌘");
 });
 
 test("validateKeyUpdates rejects duplicate and reserved settings keys", () => {
