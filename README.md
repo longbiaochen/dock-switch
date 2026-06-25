@@ -170,7 +170,7 @@ App key/display mapping is stored in `src/config.json` under `dock_items`.
 
 ## Permissions and First Run
 - Map a key to `F20` (for example with [Karabiner-Elements](https://github.com/pqrs-org/Karabiner-Elements)).
-- SmartShadow's F3 hotkey is configured in Karabiner to run `/Users/longbiao/bin/open-smartshadow-f3.sh`, which toggles the menu-bar app and delegates only the final `external_fill` placement to dock-switch.
+- SmartShadow's F3 hotkey is configured as a direct Karabiner `shell_command`, which toggles the menu-bar app and delegates only the final `external_fill` placement to dock-switch by pid.
 - Keep the installed app in macOS `Open at Login` so the global shortcut and control socket are available after login.
 - On first use, dock-switch prompts for required macOS permissions:
   - Accessibility (control UI elements / Dock metadata)
