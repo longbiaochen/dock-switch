@@ -23,7 +23,9 @@ test("specialLauncherItemForName labels ChatGPT and Codex with symbolic UTF-8 ke
     assert.deepEqual(specialLauncherItemForName("Codex.app"), {
         name: "Codex",
         key: "SHIFT",
-        icon: "⇧"
+        icon: "⇧",
+        screen: "side_right",
+        placement: "side_right_fill"
     });
     assert.equal(specialLauncherItemForName("Finder"), null);
 });

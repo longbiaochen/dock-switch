@@ -504,12 +504,12 @@ public enum LauncherRules {
         }
     }
 
-    public static func specialItem(for name: String) -> (name: String, key: String, icon: String)? {
+    public static func specialItem(for name: String) -> (name: String, key: String, icon: String, placement: String?)? {
         switch normalizeAppName(name) {
         case "chatgpt":
-            return ("ChatGPT", "TAB", "⇥")
+            return ("ChatGPT", "TAB", "⇥", nil)
         case "codex":
-            return ("Codex", "SHIFT", "⇧")
+            return ("Codex", "SHIFT", "⇧", "side_right_fill")
         default:
             return nil
         }
@@ -530,7 +530,7 @@ public enum LauncherRules {
                     key: special.key,
                     icon: special.icon,
                     kind: nil,
-                    placement: nil,
+                    placement: special.placement,
                     openPath: nil,
                     appURL: nil,
                     dockItem: dockItem

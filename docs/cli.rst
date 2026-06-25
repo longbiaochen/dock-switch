@@ -10,7 +10,8 @@ Examples
 
    dock-switch-cli displays
    dock-switch-cli gokit5-status
-   dock-switch-cli codex-display --target external
+   dock-switch-cli codex-display --target side_right
+   dock-switch-cli place --app "SmartShadow" --placement external_fill
    dock-switch-cli place --app "Terminal" --placement side_right_fill
    dock-switch-cli place --pid 12345 --placement external_right_half
    dock-switch-cli move --app "Terminal" --x 0 --y 25 --w 1512 --h 875
@@ -35,4 +36,4 @@ Notes
 - Use ``--pid`` when you need to target one managed window from a multi-window app such as Google Chrome.
 - Use the Chrome profile commands only for lower-level profile-bound Chrome placement; normal Codex browser work should go through the official Chrome plugin or the in-app browser.
 - If the dock-switch control socket is unavailable, the CLI launches ``/Applications/dock-switch.app`` and retries automatically.
-- ``codex-display`` focuses an existing Codex window on the target display when available, but always centers the pointer on the target display work area so repeated physical key presses do not drift with window bounds.
+- ``codex-display`` focuses an existing Codex window on the target display when available, but always centers the pointer on the target display work area so repeated physical key presses do not drift with window bounds. The SmartShadow workspace convention is ``external_fill`` for SmartShadow on the primary external large display and ``side_right`` / ``side_right_fill`` for Codex debugging.

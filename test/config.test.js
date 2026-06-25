@@ -86,12 +86,12 @@ test("default config maps left command to System Settings on the internal displa
     });
 });
 
-test("default config maps F3 to SmartShadow on the left side display", () => {
+test("default config maps F3 to SmartShadow on the external large display", () => {
     assert.deepEqual(config.dock_items.find(entry => entry.name === "SmartShadow"), {
         name: "SmartShadow",
         key: "F3",
-        screen: "side_left",
-        placement: "side_left_fill"
+        screen: "0",
+        placement: "external_fill"
     });
 });
 

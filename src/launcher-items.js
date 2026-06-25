@@ -22,7 +22,9 @@ var SPECIAL_LAUNCHER_ITEMS = Object.freeze({
     codex: Object.freeze({
         name: "Codex",
         key: "SHIFT",
-        icon: "⇧"
+        icon: "⇧",
+        screen: "side_right",
+        placement: "side_right_fill"
     })
 });
 

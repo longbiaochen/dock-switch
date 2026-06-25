@@ -81,7 +81,7 @@ final class DockSwitchCoreTests: XCTestCase {
         let config = LauncherConfig(dockItems: [
             LauncherConfigItem(name: "Finder", key: "D", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil),
             LauncherConfigItem(name: "System Settings", key: "COMMAND_LEFT", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil),
-            LauncherConfigItem(name: "SmartShadow", key: "F3", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil),
+            LauncherConfigItem(name: "SmartShadow", key: "F3", screen: "0", kind: nil, placement: "external_fill", openPath: nil, appURL: nil),
             LauncherConfigItem(name: "Terminal", key: "\\", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil)
         ])
 
@@ -89,6 +89,8 @@ final class DockSwitchCoreTests: XCTestCase {
 
         XCTAssertEqual(items.map(\.key), ["D", "TAB", "SHIFT", "COMMAND_LEFT", "F3", "\\", "1"])
         XCTAssertEqual(items.map(\.displayKey), ["D", "⇥", "⇧", "⌘", "F3", "\\", "1"])
+        XCTAssertEqual(items.first { $0.name == "Codex" }?.placement, "side_right_fill")
+        XCTAssertEqual(items.first { $0.name == "SmartShadow" }?.placement, "external_fill")
     }
 
     func testBottomDockOverlaySitsAboveDock() {

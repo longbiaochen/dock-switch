@@ -18,9 +18,9 @@ Core Flow
    use the placement path, while other apps restore remembered bounds.
    ``ArrowLeft``/``ArrowRight`` move to the left/right side-display work areas,
    ``ArrowUp`` moves to the external display, ``ArrowDown`` moves to the internal
-   display, ``【``/``】`` tile the current display left/right half, ``Shift`` opens ``Codex``, ``Tab`` opens
+   display, ``【``/``】`` tile the current display left/right half, ``Shift`` opens ``Codex`` on the right side display, ``Tab`` opens
    ``ChatGPT``, left ``Command`` opens ``System Settings`` on the internal display, ``\`` opens
-   ``Terminal`` on the right side display, ``F3`` opens ``SmartShadow`` on the left side display, and right ``Command`` is
+   ``Terminal`` on the right side display, ``F3`` opens ``SmartShadow`` on the primary external large display, and right ``Command`` is
    a reserved no-op. ``Command`` shortcuts render as ``⌘`` in the HUD. ``Codex`` and ``ChatGPT`` are excluded from the ordinary HUD
    item list, while numeric keys remain available for normal launcher selection.
 6. Display-moving arrows move the pointer to the center of the target display.
