@@ -28,7 +28,7 @@ Notes
 - App names are matched exactly against Dock item names.
 - Key matching in the renderer is case-insensitive, with symbolic support for launcher keys such as ``Tab``, ``Shift``, left ``Command``, right ``Command``, and ``Space``.
 - In the current default config, Safari, Feishu, WeChat, Google Chrome, Calendar, Notes, Contacts, Mail, Sublime Text, and configured web apps are mapped to ``internal_fill`` on the internal display.
-- In the current launcher behavior, ``Shift`` opens ``Codex`` with ``side_right_fill`` for debugging, ``Tab`` opens ``ChatGPT``, left ``Command`` opens ``System Settings`` with ``internal_fill``, ``\`` opens ``Terminal`` with ``side_right_fill``, ``F3`` opens ``SmartShadow`` with ``external_fill`` on the primary external large display, and right ``Command`` is a reserved no-op. App shortcuts restore remembered window bounds when available unless an explicit placement is configured.
+- In the current launcher behavior, ``Shift`` opens ``Codex`` with ``side_right_fill`` for debugging, ``Tab`` opens ``ChatGPT``, left ``Command`` opens ``System Settings`` with ``internal_fill``, ``\`` opens ``Terminal`` with ``side_right_fill``, and right ``Command`` is a reserved no-op. App shortcuts restore remembered window bounds when available unless an explicit placement is configured. SmartShadow is intentionally not a dock-switch launcher item; Karabiner maps ``F3`` to the SmartShadow helper, which uses dock-switch only for final ``external_fill`` placement.
 - ``Codex``, ``ChatGPT``, and Command shortcuts render in the launcher HUD as symbolic shortcut labels: ``⇧`` for ``Shift`` / Codex, ``⇥`` for ``Tab`` / ChatGPT, and ``⌘`` for left/right ``Command``. They remain excluded from ordinary fallback numbering, so their symbolic keys cannot fall through to a stale generic app-placement entry.
 - ``ArrowLeft`` moves the frontmost window to the left side-display work area.
 - ``ArrowRight`` moves the frontmost window to the right side-display work area.
@@ -44,7 +44,7 @@ Notes
 - If ``kind`` is ``web_app`` and ``placement`` is not set, dock-switch places the app at ``internal_fill``.
 - If ``open_path`` is set, dock-switch launches that exact app bundle.
 - If ``app_url`` is set, dock-switch can place a Chrome app window by pid even when Accessibility exposes it as ``Google Chrome``.
-- ``external_fill`` maximizes to the primary external display work area. With multiple external displays, this is the largest external display and is the default SmartShadow workspace target.
+- ``external_fill`` maximizes to the primary external display work area. With multiple external displays, this is the largest external display and is the SmartShadow helper's workspace target.
 - ``side_fill`` remains a compatibility alias for ``side_left_fill``.
 - ``side_left_fill`` maximizes to the left side-display work area.
 - ``side_right_fill`` maximizes to the right side-display work area.

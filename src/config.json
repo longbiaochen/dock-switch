@@ -122,12 +122,6 @@
             "key": "COMMAND_LEFT",
             "screen": "1",
             "placement": "internal_fill"
-        },
-        {
-            "name": "SmartShadow",
-            "key": "F3",
-            "screen": "0",
-            "placement": "external_fill"
         }
     ]
 }

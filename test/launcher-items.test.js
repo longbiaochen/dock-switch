@@ -36,14 +36,12 @@ test("buildLauncherItems renders special app labels and preserves fallback numer
         { name: "ChatGPT", pos: { x: 20, y: 0 } },
         { name: "Codex", pos: { x: 30, y: 0 } },
         { name: "System Settings", pos: { x: 40, y: 0 } },
-        { name: "SmartShadow", pos: { x: 50, y: 0 } },
-        { name: "Terminal", pos: { x: 60, y: 0 } },
-        { name: "Temporary App", pos: { x: 70, y: 0 } }
+        { name: "Terminal", pos: { x: 50, y: 0 } },
+        { name: "Temporary App", pos: { x: 60, y: 0 } }
     ];
     const configDockItems = [
         { name: "Finder", key: "D" },
         { name: "System Settings", key: "COMMAND_LEFT" },
-        { name: "SmartShadow", key: "F3" },
         { name: "Terminal", key: "\\" }
     ];
 
@@ -56,14 +54,13 @@ test("buildLauncherItems renders special app labels and preserves fallback numer
             { name: "ChatGPT", key: "TAB" },
             { name: "Codex", key: "SHIFT" },
             { name: "System Settings", key: "COMMAND_LEFT" },
-            { name: "SmartShadow", key: "F3" },
             { name: "Terminal", key: "\\" },
             { name: "Temporary App", key: 1 }
         ]
     );
     assert.deepEqual(
         launcherItems.map(entry => entry.item.icon || entry.item.key),
-        ["D", "⇥", "⇧", "⌘", "F3", "\\", 1]
+        ["D", "⇥", "⇧", "⌘", "\\", 1]
     );
 });
 
