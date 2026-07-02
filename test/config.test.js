@@ -86,7 +86,7 @@ test("default config maps left command to System Settings on the internal displa
     });
 });
 
-test("default config leaves SmartShadow to Karabiner's direct F3 command", () => {
+test("default launcher config leaves SmartShadow out of ordinary HUD keys", () => {
     assert.equal(config.dock_items.some(entry => entry.name === "SmartShadow"), false);
     assert.equal(config.dock_items.some(entry => entry.key === "F3"), false);
 });

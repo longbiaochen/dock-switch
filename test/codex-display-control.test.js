@@ -69,8 +69,8 @@ function makeScreen(displays) {
     };
 }
 
-test("normalizeCodexDisplayTarget rejects removed hardware button aliases", () => {
-    for (const removed of ["minus", "voice", "green", "plus", "+", "add", "volume_up", "volume-up", "volume+"]) {
+test("normalizeCodexDisplayTarget rejects non-display hardware button names", () => {
+    for (const removed of ["minus", "voice", "green", "switch", "plus", "+", "add", "volume_up", "volume-up", "volume+"]) {
         assert.equal(normalizeCodexDisplayTarget(removed), "");
         assert.equal(placementForDisplayTarget(removed), "");
     }

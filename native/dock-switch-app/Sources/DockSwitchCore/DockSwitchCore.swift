@@ -1075,7 +1075,7 @@ public enum Gokit5Serial {
                 name: "Codex",
                 placement: "external_fill"
             )
-        case "switch":
+        case "switch", "green":
             return Gokit5Action(
                 name: "Claude",
                 placement: "side_right_fill",
@@ -1867,7 +1867,9 @@ public final class ControlServer {
             }
             NSWorkspace.shared.launchApplication(appName)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-                self.windowPlacement.placeProcess(name: appName, placement: placement)
+                if self.windowPlacement.placeProcess(name: appName, placement: placement) {
+                    _ = self.windowPlacement.moveMouseToApplicationWindowCenter(name: appName)
+                }
             }
             return ["ok": true]
         case "place-pid":
@@ -1875,7 +1877,11 @@ public final class ControlServer {
                   let placement = command["placement"] as? String else {
                 return ["ok": false, "error": "pid and placement are required"]
             }
-            return ["ok": windowPlacement.placePID(pid_t(pid), placement: placement)]
+            let placed = windowPlacement.placePID(pid_t(pid), placement: placement)
+            if placed {
+                _ = windowPlacement.moveMouseToPIDWindowCenter(pid_t(pid))
+            }
+            return ["ok": placed]
         case "move-app":
             guard let appName = command["appName"] as? String,
                   let rect = rectFrom(command) else {

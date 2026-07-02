@@ -16,6 +16,7 @@ test("parseGokit5ButtonLine extracts stable host button events from ESP logs", (
     assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:minus"), "minus");
     assert.equal(parseGokit5ButtonLine("I (123) Gokit5: GOKIT5_HOST_BUTTON:voice"), "voice");
     assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:plus extra"), "plus");
+    assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:green"), "green");
     assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:switch"), "switch");
     assert.equal(parseGokit5ButtonLine("I (123) VolcRTCApp: Heap Info"), "");
 });
@@ -38,6 +39,11 @@ test("mapGokit5ButtonToAction maps physical keys to app placement actions", () =
         placement: "external_fill"
     });
     assert.deepEqual(mapGokit5ButtonToAction("switch"), {
+        name: "Claude",
+        placement: "side_right_fill",
+        open_path: "/Applications/Claude.app"
+    });
+    assert.deepEqual(mapGokit5ButtonToAction("green"), {
         name: "Claude",
         placement: "side_right_fill",
         open_path: "/Applications/Claude.app"

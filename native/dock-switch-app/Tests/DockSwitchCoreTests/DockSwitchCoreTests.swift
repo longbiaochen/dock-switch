@@ -364,6 +364,7 @@ final class DockSwitchCoreTests: XCTestCase {
         XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:minus"), "minus")
         XCTAssertEqual(Gokit5Serial.parseButtonLine("I (123) Gokit5: GOKIT5_HOST_BUTTON:voice"), "voice")
         XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:plus extra"), "plus")
+        XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:green"), "green")
         XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:switch"), "switch")
         XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:+"), "")
         XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:add"), "")
@@ -384,6 +385,11 @@ final class DockSwitchCoreTests: XCTestCase {
         XCTAssertEqual(switchAction?.name, "Claude")
         XCTAssertEqual(switchAction?.placement, "side_right_fill")
         XCTAssertEqual(switchAction?.openPath, "/Applications/Claude.app")
+
+        let green = Gokit5Serial.action(for: "green")
+        XCTAssertEqual(green?.name, "Claude")
+        XCTAssertEqual(green?.placement, "side_right_fill")
+        XCTAssertEqual(green?.openPath, "/Applications/Claude.app")
 
         let plus = Gokit5Serial.action(for: "plus")
         XCTAssertEqual(plus?.name, "X")

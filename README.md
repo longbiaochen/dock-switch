@@ -12,7 +12,7 @@ dock-switch 现在可以通过串口监听连接的 GoKit5 / 机智云控制器�
 
 - dock-switch 启动后会自动开始串口监听。
 - GoKit5 USB 串口会自动识别，也可以用 `GOKIT5_SERIAL_PORT=/dev/cu.usbmodem...` 固定端口。
-- 物理按键映射到应用铺满动作：minus = SmartShadow.app 左侧边屏铺满，plus = X.app 内置屏铺满，voice = Codex.app 外接屏铺满，switch = Claude.app 右侧边屏铺满。
+- 物理按键映射到应用铺满动作：minus = SmartShadow.app 左侧边屏铺满，plus = X.app 内置屏铺满，voice = Codex.app 外接屏铺满，green/switch = Claude.app 右侧边屏铺满。
 - `dock-switch-cli gokit5-status` 可以查看监听是否启用、是否运行，以及当前使用的串口。
 - 设置 `DOCK_SWITCH_GOKIT5=0` 可以关闭串口监听。
 
@@ -36,7 +36,7 @@ often expose menu bar state, Dock contents, account badges, and workspace detail
 - Press right `Command` for a reserved no-op.
 - Press `\` to focus or open `Terminal` on the right side display, maximized to the display work area.
 - App activation moves the pointer to the center of the activated or placed window; arrow display moves keep moving the pointer to the center of the target display.
-- A connected GoKit5 controller flashed with [open-embodied](https://github.com/longbiaochen/open-embodied) can launch and place apps: minus = SmartShadow.app on the left side display, plus = X.app on the internal display, voice = Codex.app on the external display, switch = Claude.app on the right side display.
+- A connected GoKit5 controller flashed with [open-embodied](https://github.com/longbiaochen/open-embodied) can launch and place apps: minus = SmartShadow.app on the left side display, plus = X.app on the internal display, voice = Codex.app on the external display, green/switch = Claude.app on the right side display.
 - The UI closes automatically after a selection.
 
 ## Browser Fixed Placement
@@ -84,7 +84,7 @@ Xiaohongshu Web App is available on `R` in the current default config.
 Google Chrome is available on `G` in the current default config.
 GitHub Web App is available on `H` in the current default config.
 ChatGPT, Codex, and Command shortcuts render in the HUD as symbolic shortcut labels: `⇥` for `Tab` / ChatGPT, `⇧` for `Shift` / Codex, and `⌘` for left/right `Command`. They remain excluded from ordinary fallback numbering.
-Left `Command` opens System Settings on the internal display with `internal_fill`. `Shift` opens Codex on the right side display with `side_right_fill`. `\` opens Terminal on the right side display with `side_right_fill`. Right `Command` is intentionally reserved as a no-op. SmartShadow is intentionally not a dock-switch launcher item; its F3 toggle is owned by the SmartShadow Karabiner helper and still uses dock-switch only for `external_fill` placement.
+Left `Command` opens System Settings on the internal display with `internal_fill`. `Shift` opens Codex on the right side display with `side_right_fill`. `\` opens Terminal on the right side display with `side_right_fill`. Right `Command` is intentionally reserved as a no-op. GoKit5 opens SmartShadow through its product bundle and uses the same placement path as the other hardware buttons.
 If no external display is available, `external_right_half` falls back to the right half of the internal display work area.
 If no external display is available, `external_left_half` falls back to the left half of the internal display work area.
 
@@ -170,7 +170,7 @@ App key/display mapping is stored in `src/config.json` under `dock_items`.
 
 ## Permissions and First Run
 - Map a key to `F20` (for example with [Karabiner-Elements](https://github.com/pqrs-org/Karabiner-Elements)).
-- SmartShadow's F3 hotkey is configured as a direct Karabiner `shell_command`, which toggles the menu-bar app and delegates only the final `external_fill` placement to dock-switch by pid.
+- SmartShadow's own F3 path is configured as a direct Karabiner `shell_command`; GoKit5 SmartShadow placement is handled by dock-switch through the installed app bundle and `side_left_fill`.
 - Keep the installed app in macOS `Open at Login` so the global shortcut and control socket are available after login.
 - On first use, dock-switch prompts for required macOS permissions:
   - Accessibility (control UI elements / Dock metadata)

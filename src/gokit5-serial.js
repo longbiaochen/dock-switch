@@ -24,6 +24,11 @@ const BUTTON_TO_APP_ACTION = Object.freeze({
         placement: "side_right_fill",
         open_path: "/Applications/Claude.app"
     }),
+    green: Object.freeze({
+        name: "Claude",
+        placement: "side_right_fill",
+        open_path: "/Applications/Claude.app"
+    }),
     plus: Object.freeze({
         name: "X",
         kind: "web_app",

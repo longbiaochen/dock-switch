@@ -19,6 +19,7 @@ The firmware sends host-button events that map to app placement actions:
 - ``minus`` -> ``SmartShadow.app`` at ``side_left_fill``
 - ``plus`` -> ``X.app`` at ``internal_fill``
 - ``voice`` -> ``Codex.app`` at ``external_fill``
+- ``green`` -> ``Claude.app`` at ``side_right_fill``
 - ``switch`` -> ``Claude.app`` at ``side_right_fill``
 
 Firmware
