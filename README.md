@@ -12,7 +12,7 @@ dock-switch 现在可以通过串口监听连接的 GoKit5 / 机智云控制器�
 
 - dock-switch 启动后会自动开始串口监听。
 - GoKit5 USB 串口会自动识别，也可以用 `GOKIT5_SERIAL_PORT=/dev/cu.usbmodem...` 固定端口。
-- 物理按键映射到应用铺满动作：minus = SmartShadow.app 左侧边屏铺满，plus / volume_up = X.app 内置屏铺满，voice = Codex.app 外接屏铺满，switch = Claude.app 右侧边屏铺满。
+- 物理按键映射到应用铺满动作：minus = SmartShadow.app 左侧边屏铺满，plus = X.app 内置屏铺满，voice = Codex.app 外接屏铺满，switch = Claude.app 右侧边屏铺满。
 - `dock-switch-cli gokit5-status` 可以查看监听是否启用、是否运行，以及当前使用的串口。
 - 设置 `DOCK_SWITCH_GOKIT5=0` 可以关闭串口监听。
 
@@ -36,7 +36,7 @@ often expose menu bar state, Dock contents, account badges, and workspace detail
 - Press right `Command` for a reserved no-op.
 - Press `\` to focus or open `Terminal` on the right side display, maximized to the display work area.
 - App activation moves the pointer to the center of the activated or placed window; arrow display moves keep moving the pointer to the center of the target display.
-- A connected GoKit5 controller flashed with [open-embodied](https://github.com/longbiaochen/open-embodied) can launch and place apps: minus = SmartShadow.app on the left side display, plus / volume_up = X.app on the internal display, voice = Codex.app on the external display, switch = Claude.app on the right side display.
+- A connected GoKit5 controller flashed with [open-embodied](https://github.com/longbiaochen/open-embodied) can launch and place apps: minus = SmartShadow.app on the left side display, plus = X.app on the internal display, voice = Codex.app on the external display, switch = Claude.app on the right side display.
 - The UI closes automatically after a selection.
 
 ## Browser Fixed Placement

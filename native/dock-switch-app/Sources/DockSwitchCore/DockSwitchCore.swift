@@ -178,17 +178,6 @@ public enum StatusItemIconPolicy {
     public static let accessibilityLabel = "dock-switch"
 }
 
-public enum CodexDisplaySelectionPolicy {
-    public static func shouldActivateApplication(appName: String, source: String) -> Bool {
-        let normalizedAppName = LauncherRules.normalizeAppName(appName)
-        let normalizedSource = source.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        if normalizedAppName == "codex", normalizedSource.hasPrefix("gokit5:") {
-            return false
-        }
-        return true
-    }
-}
-
 public enum LauncherShortcutRules {
     public static func appName(for normalizedKey: String) -> String? {
         switch normalizedKey {
@@ -335,9 +324,6 @@ public enum DisplayGeometry {
         if let generic = parseGenericPlacement(placement) {
             guard let display = display(for: generic.target, displays: displays, primaryDisplay: primaryDisplay) else { return nil }
             return bounds(for: generic.mode, display: display)
-        }
-        if placement == "side_fill" {
-            return boundsForDisplay(display(for: "side_left", displays: displays, primaryDisplay: primaryDisplay))
         }
         if placement == "external_left_half" {
             let target = externalDisplay(displays, primaryDisplay: primaryDisplay) ?? internalDisplay(displays, primaryDisplay: primaryDisplay)
@@ -1073,14 +1059,7 @@ public enum Gokit5Serial {
         let key = button.trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
             .replacingOccurrences(of: "-", with: "_")
-        switch key {
-        case "+", "add", "plus":
-            return "plus"
-        case "volume+", "volume_plus", "volumeup", "vol_up", "volup":
-            return "volume_up"
-        default:
-            return key
-        }
+        return key
     }
 
     public static func action(for button: String) -> Gokit5Action? {
@@ -1102,7 +1081,7 @@ public enum Gokit5Serial {
                 placement: "side_right_fill",
                 openPath: "/Applications/Claude.app"
             )
-        case "plus", "volume_up":
+        case "plus":
             return Gokit5Action(
                 name: "X",
                 kind: "web_app",
@@ -1656,13 +1635,13 @@ public final class CodexDisplaySelectionService {
 
     private func normalizeTarget(_ value: String) -> String {
         switch value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased().replacingOccurrences(of: "-", with: "_") {
-        case "left", "minus", "side", "side_left":
+        case "left", "side", "side_left":
             return "side_left"
-        case "up", "top", "voice", "external":
+        case "up", "top", "external":
             return "external"
-        case "right", "green", "side_right":
+        case "right", "side_right":
             return "side_right"
-        case "down", "bottom", "+", "add", "plus", "volume+", "volume_plus", "volume_up", "internal":
+        case "down", "bottom", "internal":
             return "internal"
         default:
             return ""
@@ -1730,9 +1709,7 @@ public final class CodexDisplaySelectionService {
         guard let app = NSWorkspace.shared.runningApplications.first(where: {
             LauncherRules.normalizeAppName($0.localizedName ?? "") == normalized
         }) else { return }
-        if CodexDisplaySelectionPolicy.shouldActivateApplication(appName: appName, source: source) {
-            app.activate(options: [.activateIgnoringOtherApps])
-        }
+        app.activate(options: [.activateIgnoringOtherApps])
         let axApp = AXUIElementCreateApplication(app.processIdentifier)
         guard let win = firstWindow(in: axApp) else { return }
         AXUIElementPerformAction(win, kAXRaiseAction as CFString)

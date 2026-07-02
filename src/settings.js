@@ -56,7 +56,6 @@ function normalizeScreenValue(value) {
 }
 
 function parsePlacement(placement) {
-    if (placement === "side_fill") return { screen: "side_left", position: "fill" };
     const match = String(placement || "").match(/^(internal|external|side_left|side_right)_(fill|left_half|right_half)$/);
     if (!match) return { screen: "", position: "" };
     return {

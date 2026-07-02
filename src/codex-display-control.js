@@ -12,24 +12,15 @@ const CODEX_APP_NAME = "Codex";
 
 const TARGET_ALIASES = Object.freeze({
     left: "side_left",
-    minus: "side_left",
     side: "side_left",
     side_left: "side_left",
     up: "external",
     top: "external",
-    voice: "external",
     external: "external",
     right: "side_right",
-    green: "side_right",
     side_right: "side_right",
     down: "internal",
     bottom: "internal",
-    "+": "internal",
-    add: "internal",
-    plus: "internal",
-    "volume+": "internal",
-    volume_plus: "internal",
-    volume_up: "internal",
     internal: "internal"
 });
 

@@ -20,7 +20,7 @@ function makeDisplay({ id, label, internal, x, y, width, height, workArea }) {
     };
 }
 
-test("resolveBoundsForPlacement uses the side display work area for side_fill", () => {
+test("resolveBoundsForPlacement rejects removed side_fill placement", () => {
     const displays = [
         makeDisplay({
             id: 1,
@@ -54,13 +54,10 @@ test("resolveBoundsForPlacement uses the side display work area for side_fill", 
         })
     ];
 
-    assert.deepEqual(
-        resolveBoundsForPlacement("side_fill", displays, displays[0]),
-        { x: -2499, y: -1050, w: 1920, h: 1050 }
-    );
+    assert.equal(resolveBoundsForPlacement("side_fill", displays, displays[0]), null);
 });
 
-test("resolveBoundsForPlacement falls back to the external display when side display is offline", () => {
+test("resolveBoundsForPlacement uses side_left_fill and falls back to external when side display is offline", () => {
     const displays = [
         makeDisplay({
             id: 1,
@@ -85,7 +82,7 @@ test("resolveBoundsForPlacement falls back to the external display when side dis
     ];
 
     assert.deepEqual(
-        resolveBoundsForPlacement("side_fill", displays, displays[0]),
+        resolveBoundsForPlacement("side_left_fill", displays, displays[0]),
         { x: -579, y: -1410, w: 2560, h: 1410 }
     );
 });
@@ -282,12 +279,7 @@ test("resolveBoundsForPlacement supports side-left compatibility and side-right 
         })
     ];
 
-    assert.deepEqual(resolveBoundsForPlacement("side_fill", displays, displays[0]), {
-        x: -2444,
-        y: -1050,
-        w: 1920,
-        h: 1050
-    });
+    assert.equal(resolveBoundsForPlacement("side_fill", displays, displays[0]), null);
     assert.deepEqual(resolveBoundsForPlacement("side_left_fill", displays, displays[0]), {
         x: -2444,
         y: -1050,

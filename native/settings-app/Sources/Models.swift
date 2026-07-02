@@ -118,7 +118,6 @@ func normalizeScreenValue(_ value: String) -> String {
 }
 
 func parsePlacement(_ placement: String) -> (screen: String, position: String) {
-    if placement == "side_fill" { return ("side_left", "fill") }
     let parts = placement.split(separator: "_").map(String.init)
     guard parts.count >= 2 else { return ("", "") }
     let position: String

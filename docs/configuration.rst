@@ -15,7 +15,7 @@ The top-level key is ``dock_items``, each containing:
 
 - ``name``: app name expected from Dock metadata
 - ``key``: keyboard key used to trigger app focus/launch
-- ``screen``: legacy field retained for backward compatibility (not used by the current node-only runtime path)
+- ``screen``: display target used by settings rows and placement editing
 - ``remember_window_state`` (optional): defaults to ``true``; when enabled, dock-switch restores last known window bounds for that app (in-memory for current app session)
 - ``placement`` (optional): explicit placement policy (for example ``external_right_half`` or ``internal_fill``)
 - ``kind`` (optional): built-in launch behavior tag. ``web_app`` defaults to ``internal_fill`` unless ``placement`` overrides it.
@@ -45,10 +45,9 @@ Notes
 - If ``open_path`` is set, dock-switch launches that exact app bundle.
 - If ``app_url`` is set, dock-switch can place a Chrome app window by pid even when Accessibility exposes it as ``Google Chrome``.
 - ``external_fill`` maximizes to the primary external display work area. With multiple external displays, this is the largest external display and is the SmartShadow helper's workspace target.
-- ``side_fill`` remains a compatibility alias for ``side_left_fill``.
 - ``side_left_fill`` maximizes to the left side-display work area.
 - ``side_right_fill`` maximizes to the right side-display work area.
-- GoKit5 host-button events launch and place apps: ``minus`` -> ``SmartShadow.app`` at ``side_left_fill``, ``plus`` / ``volume_up`` -> ``X.app`` at ``internal_fill``, ``voice`` -> ``Codex.app`` at ``external_fill``, and ``switch`` -> ``Claude.app`` at ``side_right_fill``.
+- GoKit5 host-button events launch and place apps: ``minus`` -> ``SmartShadow.app`` at ``side_left_fill``, ``plus`` -> ``X.app`` at ``internal_fill``, ``voice`` -> ``Codex.app`` at ``external_fill``, and ``switch`` -> ``Claude.app`` at ``side_right_fill``.
 - If no external display is available, ``external_left_half`` falls back to the left half of the internal display work area.
 - If no external display is available, ``external_right_half`` falls back to the right half of the internal display work area.
 

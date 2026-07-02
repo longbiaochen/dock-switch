@@ -17,10 +17,14 @@ test("parseGokit5ButtonLine extracts stable host button events from ESP logs", (
     assert.equal(parseGokit5ButtonLine("I (123) Gokit5: GOKIT5_HOST_BUTTON:voice"), "voice");
     assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:plus extra"), "plus");
     assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:switch"), "switch");
-    assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:+"), "plus");
-    assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:volume_up"), "volume_up");
-    assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:volume+"), "volume_up");
     assert.equal(parseGokit5ButtonLine("I (123) VolcRTCApp: Heap Info"), "");
+});
+
+test("parseGokit5ButtonLine rejects removed plus aliases", () => {
+    assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:+"), "");
+    assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:add"), "");
+    assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:volume_up"), "");
+    assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:volume+"), "");
 });
 
 test("mapGokit5ButtonToAction maps physical keys to app placement actions", () => {
@@ -45,11 +49,11 @@ test("mapGokit5ButtonToAction maps physical keys to app placement actions", () =
         open_path: "~/Applications/Chromium Apps.localized/X.app",
         app_url: "https://x.com/?utm_source=homescreen&utm_medium=shortcut"
     });
-    assert.deepEqual(mapGokit5ButtonToAction("+"), mapGokit5ButtonToAction("plus"));
-    assert.deepEqual(mapGokit5ButtonToAction("add"), mapGokit5ButtonToAction("plus"));
-    assert.deepEqual(mapGokit5ButtonToAction("volume_up"), mapGokit5ButtonToAction("plus"));
-    assert.deepEqual(mapGokit5ButtonToAction("volume-up"), mapGokit5ButtonToAction("plus"));
-    assert.deepEqual(mapGokit5ButtonToAction("volume+"), mapGokit5ButtonToAction("plus"));
+    assert.equal(mapGokit5ButtonToAction("+"), null);
+    assert.equal(mapGokit5ButtonToAction("add"), null);
+    assert.equal(mapGokit5ButtonToAction("volume_up"), null);
+    assert.equal(mapGokit5ButtonToAction("volume-up"), null);
+    assert.equal(mapGokit5ButtonToAction("volume+"), null);
 });
 
 test("shouldDispatchButton debounces repeated events per button", () => {
@@ -165,7 +169,7 @@ test("createGokit5SerialListener keeps the serial fd open while applying stty", 
     assert.equal(events.at(-1), "destroy");
 });
 
-test("createGokit5SerialListener dispatches plus aliases to the X internal-fill action", () => {
+test("createGokit5SerialListener dispatches plus to the X internal-fill action", () => {
     const stream = new EventEmitter();
     stream.destroy = () => {};
     const actions = [];
@@ -180,12 +184,12 @@ test("createGokit5SerialListener dispatches plus aliases to the X internal-fill 
     });
 
     listener.start();
-    stream.emit("data", "I (123) Gokit5: GOKIT5_HOST_BUTTON:volume_up\n");
+    stream.emit("data", "I (123) Gokit5: GOKIT5_HOST_BUTTON:plus\n");
 
     assert.equal(actions.length, 1);
     assert.deepEqual(actions[0].action, mapGokit5ButtonToAction("plus"));
-    assert.equal(actions[0].button, "volume_up");
-    assert.match(actions[0].line, /volume_up/);
+    assert.equal(actions[0].button, "plus");
+    assert.match(actions[0].line, /plus/);
 
     listener.stop();
 });

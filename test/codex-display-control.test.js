@@ -69,16 +69,13 @@ function makeScreen(displays) {
     };
 }
 
-test("normalizeCodexDisplayTarget maps physical button names to display targets", () => {
-    assert.equal(normalizeCodexDisplayTarget("minus"), "side_left");
-    assert.equal(normalizeCodexDisplayTarget("voice"), "external");
-    assert.equal(normalizeCodexDisplayTarget("green"), "side_right");
-    assert.equal(normalizeCodexDisplayTarget("plus"), "internal");
-    assert.equal(normalizeCodexDisplayTarget("+"), "internal");
-    assert.equal(normalizeCodexDisplayTarget("add"), "internal");
-    assert.equal(normalizeCodexDisplayTarget("volume_up"), "internal");
-    assert.equal(normalizeCodexDisplayTarget("volume-up"), "internal");
-    assert.equal(normalizeCodexDisplayTarget("volume+"), "internal");
+test("normalizeCodexDisplayTarget rejects removed hardware button aliases", () => {
+    for (const removed of ["minus", "voice", "green", "plus", "+", "add", "volume_up", "volume-up", "volume+"]) {
+        assert.equal(normalizeCodexDisplayTarget(removed), "");
+        assert.equal(placementForDisplayTarget(removed), "");
+    }
+
+    assert.equal(normalizeCodexDisplayTarget("side_right"), "side_right");
     assert.equal(placementForDisplayTarget("right"), "side_right_fill");
 });
 
@@ -112,7 +109,7 @@ test("selectCodexDisplay focuses an existing Codex window on the target display"
         }
     };
 
-    const result = await selectCodexDisplay({ target: "minus" }, {
+    const result = await selectCodexDisplay({ target: "side_left" }, {
         dockQuery,
         electronScreen: makeScreen(displays),
         ensurePermissions: () => true,
@@ -195,7 +192,7 @@ test("selectCodexDisplay does not open Codex when no window exists", async () =>
         moveMouse: () => true
     };
 
-    const result = await selectCodexDisplay({ target: "plus", timeoutMs: 400 }, {
+    const result = await selectCodexDisplay({ target: "internal", timeoutMs: 400 }, {
         dockQuery,
         electronScreen: makeScreen(displays),
         ensurePermissions: () => true,

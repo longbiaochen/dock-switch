@@ -30,22 +30,11 @@ const BUTTON_TO_APP_ACTION = Object.freeze({
         placement: "internal_fill",
         open_path: "~/Applications/Chromium Apps.localized/X.app",
         app_url: X_APP_URL
-    }),
-    volume_up: Object.freeze({
-        name: "X",
-        kind: "web_app",
-        placement: "internal_fill",
-        open_path: "~/Applications/Chromium Apps.localized/X.app",
-        app_url: X_APP_URL
     })
 });
 
 function normalizeGokit5ButtonName(button) {
     const key = String(button || "").trim().toLowerCase().replace(/-/g, "_");
-    if (key === "+" || key === "add" || key === "plus") return "plus";
-    if (["volume+", "volume_plus", "volumeup", "vol_up", "volup"].includes(key)) {
-        return "volume_up";
-    }
     return key;
 }
 

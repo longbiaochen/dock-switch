@@ -270,13 +270,6 @@ final class DockSwitchCoreTests: XCTestCase {
         XCTAssertLessThan(Date().timeIntervalSince(startedAt), 5)
     }
 
-    func testCodexHardwareDisplaySelectionSkipsDockActivation() {
-        XCTAssertFalse(CodexDisplaySelectionPolicy.shouldActivateApplication(appName: "Codex", source: "gokit5:plus"))
-        XCTAssertFalse(CodexDisplaySelectionPolicy.shouldActivateApplication(appName: "codex", source: "gokit5:minus"))
-        XCTAssertTrue(CodexDisplaySelectionPolicy.shouldActivateApplication(appName: "Finder", source: "gokit5:plus"))
-        XCTAssertTrue(CodexDisplaySelectionPolicy.shouldActivateApplication(appName: "Codex", source: "manual"))
-    }
-
     func testDisplayGeometryRoutesArrowsToPhysicalDisplays() {
         let displays = fourDisplayLayout()
         let primary = displays[0]
@@ -309,7 +302,7 @@ final class DockSwitchCoreTests: XCTestCase {
         let displays = fourDisplayLayout()
         let primary = displays[0]
 
-        XCTAssertEqual(DisplayGeometry.resolveBoundsForPlacement("side_fill", displays: displays, primaryDisplay: primary), displays[1].workArea)
+        XCTAssertNil(DisplayGeometry.resolveBoundsForPlacement("side_fill", displays: displays, primaryDisplay: primary))
         XCTAssertEqual(DisplayGeometry.resolveBoundsForPlacement("side_left_fill", displays: displays, primaryDisplay: primary), displays[1].workArea)
         XCTAssertEqual(DisplayGeometry.resolveBoundsForPlacement("side_right_fill", displays: displays, primaryDisplay: primary), displays[2].workArea)
         XCTAssertEqual(
@@ -318,7 +311,7 @@ final class DockSwitchCoreTests: XCTestCase {
         )
 
         let twoDisplays = [displays[0], displays[3]]
-        XCTAssertEqual(DisplayGeometry.resolveBoundsForPlacement("side_fill", displays: twoDisplays, primaryDisplay: displays[0]), displays[3].workArea)
+        XCTAssertEqual(DisplayGeometry.resolveBoundsForPlacement("side_left_fill", displays: twoDisplays, primaryDisplay: displays[0]), displays[3].workArea)
         XCTAssertEqual(
             DisplayGeometry.resolveBoundsForPlacement("external_right_half", displays: [displays[0]], primaryDisplay: displays[0]),
             DSRect(x: 756, y: 33, width: 756, height: 875)
@@ -372,9 +365,10 @@ final class DockSwitchCoreTests: XCTestCase {
         XCTAssertEqual(Gokit5Serial.parseButtonLine("I (123) Gokit5: GOKIT5_HOST_BUTTON:voice"), "voice")
         XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:plus extra"), "plus")
         XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:switch"), "switch")
-        XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:+"), "plus")
-        XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:volume-up"), "volume_up")
-        XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:volume+"), "volume_up")
+        XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:+"), "")
+        XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:add"), "")
+        XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:volume-up"), "")
+        XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:volume+"), "")
         XCTAssertEqual(Gokit5Serial.parseButtonLine("I (123) VolcRTCApp: Heap Info"), "")
 
         let minus = Gokit5Serial.action(for: "minus")
@@ -397,10 +391,10 @@ final class DockSwitchCoreTests: XCTestCase {
         XCTAssertEqual(plus?.placement, "internal_fill")
         XCTAssertEqual(plus?.openPath, "~/Applications/Chromium Apps.localized/X.app")
         XCTAssertEqual(plus?.appURL, "https://x.com/?utm_source=homescreen&utm_medium=shortcut")
-        XCTAssertEqual(Gokit5Serial.action(for: "+"), plus)
-        XCTAssertEqual(Gokit5Serial.action(for: "add"), plus)
-        XCTAssertEqual(Gokit5Serial.action(for: "volume-up"), plus)
-        XCTAssertEqual(Gokit5Serial.action(for: "volume+"), plus)
+        XCTAssertNil(Gokit5Serial.action(for: "+"))
+        XCTAssertNil(Gokit5Serial.action(for: "add"))
+        XCTAssertNil(Gokit5Serial.action(for: "volume-up"))
+        XCTAssertNil(Gokit5Serial.action(for: "volume+"))
     }
 
     func testGokit5DiagnosticLineDetection() {

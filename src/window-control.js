@@ -272,7 +272,7 @@ function resolveBoundsForPlacement(placement, displays, primaryDisplay) {
         return boundsForDisplay(getDisplayForTarget("external", displays, primaryDisplay));
     }
 
-    if (placement === "side_fill" || placement === "side_left_fill") {
+    if (placement === "side_left_fill") {
         return boundsForDisplay(getDisplayForTarget("side_left", displays, primaryDisplay));
     }
 
