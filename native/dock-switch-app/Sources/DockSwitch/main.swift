@@ -142,14 +142,10 @@ final class DockSwitchApp: NSObject, NSApplicationDelegate {
         if ProcessInfo.processInfo.environment["DOCK_SWITCH_GOKIT5"] == "0" {
             return
         }
-        let listener = Gokit5SerialListener { [weak self] target, button, _ in
-            guard let self, !target.isEmpty else { return }
+        let listener = Gokit5SerialListener { [weak self] action, _, _ in
+            guard let self else { return }
             DispatchQueue.main.async {
-                _ = self.codexDisplaySelectionService.select(
-                    target: target,
-                    appName: "Codex",
-                    source: "gokit5:\(button)"
-                )
+                self.launcherService.activate(action)
             }
         }
         gokit5SerialListener = listener

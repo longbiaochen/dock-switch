@@ -7,7 +7,7 @@ const {
     createConfiguredSerialReadStream,
     extractGokit5PortPathsFromIoregText,
     findGokit5SerialPort,
-    mapGokit5ButtonToTarget,
+    mapGokit5ButtonToAction,
     parseGokit5ButtonLine,
     shouldDispatchButton
 } = require("../src/gokit5-serial");
@@ -15,24 +15,41 @@ const {
 test("parseGokit5ButtonLine extracts stable host button events from ESP logs", () => {
     assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:minus"), "minus");
     assert.equal(parseGokit5ButtonLine("I (123) Gokit5: GOKIT5_HOST_BUTTON:voice"), "voice");
-    assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:green\r"), "green");
     assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:plus extra"), "plus");
+    assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:switch"), "switch");
     assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:+"), "plus");
     assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:volume_up"), "volume_up");
     assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:volume+"), "volume_up");
     assert.equal(parseGokit5ButtonLine("I (123) VolcRTCApp: Heap Info"), "");
 });
 
-test("mapGokit5ButtonToTarget maps physical keys and firmware aliases to display targets", () => {
-    assert.equal(mapGokit5ButtonToTarget("minus"), "side_left");
-    assert.equal(mapGokit5ButtonToTarget("voice"), "external");
-    assert.equal(mapGokit5ButtonToTarget("green"), "side_right");
-    assert.equal(mapGokit5ButtonToTarget("plus"), "internal");
-    assert.equal(mapGokit5ButtonToTarget("+"), "internal");
-    assert.equal(mapGokit5ButtonToTarget("add"), "internal");
-    assert.equal(mapGokit5ButtonToTarget("volume_up"), "internal");
-    assert.equal(mapGokit5ButtonToTarget("volume-up"), "internal");
-    assert.equal(mapGokit5ButtonToTarget("volume+"), "internal");
+test("mapGokit5ButtonToAction maps physical keys to app placement actions", () => {
+    assert.deepEqual(mapGokit5ButtonToAction("minus"), {
+        name: "SmartShadow",
+        placement: "side_left_fill",
+        open_path: "/Applications/SmartShadow.app"
+    });
+    assert.deepEqual(mapGokit5ButtonToAction("voice"), {
+        name: "Codex",
+        placement: "external_fill"
+    });
+    assert.deepEqual(mapGokit5ButtonToAction("switch"), {
+        name: "Claude",
+        placement: "side_right_fill",
+        open_path: "/Applications/Claude.app"
+    });
+    assert.deepEqual(mapGokit5ButtonToAction("plus"), {
+        name: "X",
+        kind: "web_app",
+        placement: "internal_fill",
+        open_path: "~/Applications/Chromium Apps.localized/X.app",
+        app_url: "https://x.com/?utm_source=homescreen&utm_medium=shortcut"
+    });
+    assert.deepEqual(mapGokit5ButtonToAction("+"), mapGokit5ButtonToAction("plus"));
+    assert.deepEqual(mapGokit5ButtonToAction("add"), mapGokit5ButtonToAction("plus"));
+    assert.deepEqual(mapGokit5ButtonToAction("volume_up"), mapGokit5ButtonToAction("plus"));
+    assert.deepEqual(mapGokit5ButtonToAction("volume-up"), mapGokit5ButtonToAction("plus"));
+    assert.deepEqual(mapGokit5ButtonToAction("volume+"), mapGokit5ButtonToAction("plus"));
 });
 
 test("shouldDispatchButton debounces repeated events per button", () => {
@@ -148,27 +165,27 @@ test("createGokit5SerialListener keeps the serial fd open while applying stty", 
     assert.equal(events.at(-1), "destroy");
 });
 
-test("createGokit5SerialListener dispatches volume_up to the internal target", () => {
+test("createGokit5SerialListener dispatches plus aliases to the X internal-fill action", () => {
     const stream = new EventEmitter();
     stream.destroy = () => {};
-    const targets = [];
+    const actions = [];
 
     const listener = createGokit5SerialListener({
         debounceMs: 0,
         findPort: () => "/dev/cu.usbmodem13101",
         createReadStream: () => stream,
-        onTarget: (target, event) => {
-            targets.push({ target, button: event.button, line: event.line });
+        onAction: (action, event) => {
+            actions.push({ action, button: event.button, line: event.line });
         }
     });
 
     listener.start();
     stream.emit("data", "I (123) Gokit5: GOKIT5_HOST_BUTTON:volume_up\n");
 
-    assert.equal(targets.length, 1);
-    assert.equal(targets[0].target, "internal");
-    assert.equal(targets[0].button, "volume_up");
-    assert.match(targets[0].line, /volume_up/);
+    assert.equal(actions.length, 1);
+    assert.deepEqual(actions[0].action, mapGokit5ButtonToAction("plus"));
+    assert.equal(actions[0].button, "volume_up");
+    assert.match(actions[0].line, /volume_up/);
 
     listener.stop();
 });

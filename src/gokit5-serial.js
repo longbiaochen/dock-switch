@@ -7,12 +7,37 @@ const DEFAULT_DEBOUNCE_MS = 0;
 const DEFAULT_SERIAL_NUMBER = "94:A9:90:10:E5:F4";
 const HOST_BUTTON_PREFIX = "GOKIT5_HOST_BUTTON:";
 
-const BUTTON_TO_DISPLAY_TARGET = Object.freeze({
-    minus: "side_left",
-    voice: "external",
-    green: "side_right",
-    plus: "internal",
-    volume_up: "internal"
+const X_APP_URL = "https://x.com/?utm_source=homescreen&utm_medium=shortcut";
+
+const BUTTON_TO_APP_ACTION = Object.freeze({
+    minus: Object.freeze({
+        name: "SmartShadow",
+        placement: "side_left_fill",
+        open_path: "/Applications/SmartShadow.app"
+    }),
+    voice: Object.freeze({
+        name: "Codex",
+        placement: "external_fill"
+    }),
+    switch: Object.freeze({
+        name: "Claude",
+        placement: "side_right_fill",
+        open_path: "/Applications/Claude.app"
+    }),
+    plus: Object.freeze({
+        name: "X",
+        kind: "web_app",
+        placement: "internal_fill",
+        open_path: "~/Applications/Chromium Apps.localized/X.app",
+        app_url: X_APP_URL
+    }),
+    volume_up: Object.freeze({
+        name: "X",
+        kind: "web_app",
+        placement: "internal_fill",
+        open_path: "~/Applications/Chromium Apps.localized/X.app",
+        app_url: X_APP_URL
+    })
 });
 
 function normalizeGokit5ButtonName(button) {
@@ -24,8 +49,9 @@ function normalizeGokit5ButtonName(button) {
     return key;
 }
 
-function mapGokit5ButtonToTarget(button) {
-    return BUTTON_TO_DISPLAY_TARGET[normalizeGokit5ButtonName(button)] || "";
+function mapGokit5ButtonToAction(button) {
+    const action = BUTTON_TO_APP_ACTION[normalizeGokit5ButtonName(button)];
+    return action ? Object.assign({}, action) : null;
 }
 
 function parseGokit5ButtonLine(line) {
@@ -40,7 +66,7 @@ function parseGokit5ButtonLine(line) {
         .split(/\s+/)[0]
         .replace(/[^A-Za-z0-9_+-].*$/, "");
     const button = normalizeGokit5ButtonName(rawButton);
-    return mapGokit5ButtonToTarget(button) ? button : "";
+    return mapGokit5ButtonToAction(button) ? button : "";
 }
 
 function shouldDispatchButton(button, nowMs, lastDispatchByButton, debounceMs) {
@@ -181,7 +207,7 @@ function createGokit5SerialListener(options = {}) {
     const reconnectMs = options.reconnectMs || DEFAULT_RECONNECT_MS;
     const debounceMs = options.debounceMs || DEFAULT_DEBOUNCE_MS;
     const onButton = typeof options.onButton === "function" ? options.onButton : () => {};
-    const onTarget = typeof options.onTarget === "function" ? options.onTarget : () => {};
+    const onAction = typeof options.onAction === "function" ? options.onAction : () => {};
     const onStatus = typeof options.onStatus === "function" ? options.onStatus : () => {};
     const findPort = options.findPort || (() => findGokit5SerialPort(options));
     const createReadStream = options.createReadStream
@@ -227,9 +253,9 @@ function createGokit5SerialListener(options = {}) {
         if (!shouldDispatchButton(button, Date.now(), lastDispatchByButton, debounceMs)) {
             return;
         }
-        const target = mapGokit5ButtonToTarget(button);
-        onButton(button, target, line);
-        onTarget(target, { button, line, portPath: currentPort });
+        const action = mapGokit5ButtonToAction(button);
+        onButton(button, action, line);
+        onAction(action, { button, line, portPath: currentPort });
     }
 
     function handleChunk(chunk) {
@@ -299,11 +325,11 @@ function createGokit5SerialListener(options = {}) {
 }
 
 module.exports = {
-    BUTTON_TO_DISPLAY_TARGET,
+    BUTTON_TO_APP_ACTION,
     DEFAULT_SERIAL_NUMBER,
     HOST_BUTTON_PREFIX,
     normalizeGokit5ButtonName,
-    mapGokit5ButtonToTarget,
+    mapGokit5ButtonToAction,
     parseGokit5ButtonLine,
     shouldDispatchButton,
     extractGokit5PortPathsFromIoregText,

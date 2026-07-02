@@ -48,7 +48,7 @@ Notes
 - ``side_fill`` remains a compatibility alias for ``side_left_fill``.
 - ``side_left_fill`` maximizes to the left side-display work area.
 - ``side_right_fill`` maximizes to the right side-display work area.
-- GoKit5 host-button events select Codex display focus with ``minus`` -> ``side_left``, ``voice`` -> ``external``, ``green`` -> ``side_right``, and ``plus`` / ``volume_up`` -> ``internal``.
+- GoKit5 host-button events launch and place apps: ``minus`` -> ``SmartShadow.app`` at ``side_left_fill``, ``plus`` / ``volume_up`` -> ``X.app`` at ``internal_fill``, ``voice`` -> ``Codex.app`` at ``external_fill``, and ``switch`` -> ``Claude.app`` at ``side_right_fill``.
 - If no external display is available, ``external_left_half`` falls back to the left half of the internal display work area.
 - If no external display is available, ``external_right_half`` falls back to the right half of the internal display work area.
 

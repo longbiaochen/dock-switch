@@ -370,43 +370,59 @@ final class DockSwitchCoreTests: XCTestCase {
     func testGokit5ButtonParsingAndTargetMapping() {
         XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:minus"), "minus")
         XCTAssertEqual(Gokit5Serial.parseButtonLine("I (123) Gokit5: GOKIT5_HOST_BUTTON:voice"), "voice")
-        XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:green\r"), "green")
         XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:plus extra"), "plus")
+        XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:switch"), "switch")
         XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:+"), "plus")
         XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:volume-up"), "volume_up")
         XCTAssertEqual(Gokit5Serial.parseButtonLine("GOKIT5_HOST_BUTTON:volume+"), "volume_up")
         XCTAssertEqual(Gokit5Serial.parseButtonLine("I (123) VolcRTCApp: Heap Info"), "")
 
-        XCTAssertEqual(Gokit5Serial.displayTarget(for: "minus"), "side_left")
-        XCTAssertEqual(Gokit5Serial.displayTarget(for: "voice"), "external")
-        XCTAssertEqual(Gokit5Serial.displayTarget(for: "green"), "side_right")
-        XCTAssertEqual(Gokit5Serial.displayTarget(for: "plus"), "internal")
-        XCTAssertEqual(Gokit5Serial.displayTarget(for: "+"), "internal")
-        XCTAssertEqual(Gokit5Serial.displayTarget(for: "add"), "internal")
-        XCTAssertEqual(Gokit5Serial.displayTarget(for: "volume-up"), "internal")
-        XCTAssertEqual(Gokit5Serial.displayTarget(for: "volume+"), "internal")
+        let minus = Gokit5Serial.action(for: "minus")
+        XCTAssertEqual(minus?.name, "SmartShadow")
+        XCTAssertEqual(minus?.placement, "side_left_fill")
+        XCTAssertEqual(minus?.openPath, "/Applications/SmartShadow.app")
+
+        let voice = Gokit5Serial.action(for: "voice")
+        XCTAssertEqual(voice?.name, "Codex")
+        XCTAssertEqual(voice?.placement, "external_fill")
+
+        let switchAction = Gokit5Serial.action(for: "switch")
+        XCTAssertEqual(switchAction?.name, "Claude")
+        XCTAssertEqual(switchAction?.placement, "side_right_fill")
+        XCTAssertEqual(switchAction?.openPath, "/Applications/Claude.app")
+
+        let plus = Gokit5Serial.action(for: "plus")
+        XCTAssertEqual(plus?.name, "X")
+        XCTAssertEqual(plus?.kind, "web_app")
+        XCTAssertEqual(plus?.placement, "internal_fill")
+        XCTAssertEqual(plus?.openPath, "~/Applications/Chromium Apps.localized/X.app")
+        XCTAssertEqual(plus?.appURL, "https://x.com/?utm_source=homescreen&utm_medium=shortcut")
+        XCTAssertEqual(Gokit5Serial.action(for: "+"), plus)
+        XCTAssertEqual(Gokit5Serial.action(for: "add"), plus)
+        XCTAssertEqual(Gokit5Serial.action(for: "volume-up"), plus)
+        XCTAssertEqual(Gokit5Serial.action(for: "volume+"), plus)
     }
 
     func testGokit5DiagnosticLineDetection() {
         XCTAssertTrue(Gokit5Serial.isDiagnosticLine("GOKIT5_ADC_PROBE:8:603"))
-        XCTAssertTrue(Gokit5Serial.isDiagnosticLine("I (123) Gokit5: GOKIT5_HOST_BUTTON:green"))
+        XCTAssertTrue(Gokit5Serial.isDiagnosticLine("I (123) Gokit5: GOKIT5_HOST_BUTTON:switch"))
         XCTAssertFalse(Gokit5Serial.isDiagnosticLine("I (123) WifiBoard: Free internal"))
     }
 
     func testGokit5StatusClearsStaleConnectionTelemetry() {
         var status = Gokit5Status(enabled: true, status: "connected", portPath: "/dev/cu.usbmodem13101", running: true, updatedAt: "now", error: nil)
-        status.lastButton = "green"
-        status.lastTarget = "side_right"
-        status.lastLine = "GOKIT5_HOST_BUTTON:green"
+        status.lastButton = "switch"
+        status.lastTarget = "side_right_fill"
+        status.lastLine = "GOKIT5_HOST_BUTTON:switch"
         status.lastEventAt = "event-time"
-        status.lastSerialLine = "GOKIT5_HOST_BUTTON:green"
+        status.lastSerialLine = "GOKIT5_HOST_BUTTON:switch"
         status.lastSerialLineAt = "serial-time"
         status.serialLineCount = 12
         status.helperStdoutChunkCount = 3
         status.helperStdoutByteCount = 120
         status.helperStdoutLfCount = 12
-        status.helperStdoutPreview = "GOKIT5_HOST_BUTTON:green"
-        status.recentLines = ["GOKIT5_HOST_BUTTON:green"]
+        status.helperStdoutPreview = "GOKIT5_HOST_BUTTON:switch"
+        status.recentLines = ["GOKIT5_HOST_BUTTON:switch"]
         status.readPollCount = 4
         status.lastReadErrno = 35
         status.resetInfo = "get:0"

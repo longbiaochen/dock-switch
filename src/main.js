@@ -74,7 +74,7 @@ const app_launch_place_timeout_ms = 1600;
 var control_server_handle = null;
 var gokit5_serial_handle = null;
 var settings_window = null;
-var codex_display_select_inflight = Promise.resolve();
+var gokit5_action_inflight = Promise.resolve();
 var mouse_feedback_window = null;
 var mouse_feedback_hide_timer = null;
 var gokit5_status = {
@@ -983,14 +983,11 @@ function setup_gokit5_serial_listener(controlDeps) {
                 updatedAt: new Date().toISOString()
             }, status || {});
         },
-        onTarget: (target, event) => {
-            if (!target) return;
-            codex_display_select_inflight = codex_display_select_inflight
+        onAction: (action, event) => {
+            if (!action) return;
+            gokit5_action_inflight = gokit5_action_inflight
                 .catch(() => {})
-                .then(() => selectCodexDisplay({
-                    target,
-                    source: `gokit5:${event && event.button ? event.button : ""}`
-                }, controlDeps))
+                .then(() => launch_app_with_placement(action))
                 .catch(() => {});
         }
     });

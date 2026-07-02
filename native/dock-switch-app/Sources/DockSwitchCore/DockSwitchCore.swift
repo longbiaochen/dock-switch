@@ -137,6 +137,22 @@ public struct LauncherItem: Equatable, Identifiable {
     }
 }
 
+public struct Gokit5Action: Equatable {
+    public var name: String
+    public var kind: String?
+    public var placement: String
+    public var openPath: String?
+    public var appURL: String?
+
+    public init(name: String, kind: String? = nil, placement: String, openPath: String? = nil, appURL: String? = nil) {
+        self.name = name
+        self.kind = kind
+        self.placement = placement
+        self.openPath = openPath
+        self.appURL = appURL
+    }
+}
+
 public struct OverlayTarget: Equatable, Identifiable {
     public var id: String { item.id }
     public var item: LauncherItem
@@ -888,6 +904,19 @@ public final class LauncherService {
         }
     }
 
+    public func activate(_ action: Gokit5Action) {
+        let item = LauncherItem(
+            name: action.name,
+            key: "",
+            kind: action.kind,
+            placement: action.placement,
+            openPath: action.openPath,
+            appURL: action.appURL,
+            dockItem: DockItemSnapshot(name: action.name, pos: .zero, size: .zero)
+        )
+        activate(item)
+    }
+
     private func open(_ item: LauncherItem) {
         if let raw = item.openPath, !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             let expanded = WebAppRuntime.resolveOpenPath(raw)
@@ -1038,6 +1067,7 @@ public enum Gokit5Serial {
     public static let defaultSerialNumber = "94:A9:90:10:E5:F4"
     public static let hostButtonPrefix = "GOKIT5_HOST_BUTTON:"
     public static let diagnosticPrefix = "GOKIT5_"
+    private static let xAppURL = "https://x.com/?utm_source=homescreen&utm_medium=shortcut"
 
     public static func normalizeButton(_ button: String) -> String {
         let key = button.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1053,18 +1083,35 @@ public enum Gokit5Serial {
         }
     }
 
-    public static func displayTarget(for button: String) -> String {
+    public static func action(for button: String) -> Gokit5Action? {
         switch normalizeButton(button) {
         case "minus":
-            return "side_left"
+            return Gokit5Action(
+                name: "SmartShadow",
+                placement: "side_left_fill",
+                openPath: "/Applications/SmartShadow.app"
+            )
         case "voice":
-            return "external"
-        case "green":
-            return "side_right"
+            return Gokit5Action(
+                name: "Codex",
+                placement: "external_fill"
+            )
+        case "switch":
+            return Gokit5Action(
+                name: "Claude",
+                placement: "side_right_fill",
+                openPath: "/Applications/Claude.app"
+            )
         case "plus", "volume_up":
-            return "internal"
+            return Gokit5Action(
+                name: "X",
+                kind: "web_app",
+                placement: "internal_fill",
+                openPath: "~/Applications/Chromium Apps.localized/X.app",
+                appURL: xAppURL
+            )
         default:
-            return ""
+            return nil
         }
     }
 
@@ -1079,7 +1126,7 @@ public enum Gokit5Serial {
             char.isLetter || char.isNumber || char == "_" || char == "-" || char == "+"
         })
         let button = normalizeButton(cleaned)
-        return displayTarget(for: button).isEmpty ? "" : button
+        return action(for: button) == nil ? "" : button
     }
 
     public static func isDiagnosticLine(_ line: String) -> Bool {
@@ -1191,7 +1238,7 @@ public final class Gokit5SerialListener {
     private let queue = DispatchQueue(label: "dock-switch.gokit5-serial")
     private let debounceMs: Int
     private let reconnectMs: Int
-    private let onTarget: (String, String, String) -> Void
+    private let onAction: (Gokit5Action, String, String) -> Void
     private var serialFD: Int32 = -1
     private var helperProcess: Process?
     private var helperPipe: Pipe?
@@ -1201,10 +1248,10 @@ public final class Gokit5SerialListener {
     private var status = Gokit5Status(enabled: true, status: "starting", portPath: "", running: false, updatedAt: isoNow(), error: nil)
     private var readLoopGeneration = 0
 
-    public init(debounceMs: Int = 0, reconnectMs: Int = 2000, onTarget: @escaping (String, String, String) -> Void) {
+    public init(debounceMs: Int = 0, reconnectMs: Int = 2000, onAction: @escaping (Gokit5Action, String, String) -> Void) {
         self.debounceMs = debounceMs
         self.reconnectMs = reconnectMs
-        self.onTarget = onTarget
+        self.onAction = onAction
     }
 
     public func start() {
@@ -1429,12 +1476,12 @@ public final class Gokit5SerialListener {
             }
             let button = Gokit5Serial.parseButtonLine(line)
             guard !button.isEmpty, shouldDispatch(button) else { continue }
-            let target = Gokit5Serial.displayTarget(for: button)
+            guard let action = Gokit5Serial.action(for: button) else { continue }
             status.lastButton = button
-            status.lastTarget = target
+            status.lastTarget = action.placement
             status.lastLine = line
             status.lastEventAt = Self.isoNow()
-            onTarget(target, button, line)
+            onAction(action, button, line)
         }
     }
 
