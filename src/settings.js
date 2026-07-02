@@ -180,7 +180,7 @@ function validateRows() {
     for (const update of collectUpdates()) {
         if (!update.key) continue;
         if (
-            ["TAB", "SHIFT", "COMMAND_RIGHT"].includes(update.key) ||
+            ["TAB", "SHIFT", "F3", "F6", "COMMAND_RIGHT"].includes(update.key) ||
             (update.key === "COMMAND_LEFT" && String(update.name || "").trim().toLowerCase() !== "system settings")
         ) {
             errors.push(`${update.key} 是系统保留键`);

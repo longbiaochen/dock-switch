@@ -185,6 +185,10 @@ public enum LauncherShortcutRules {
             return "ChatGPT"
         case "SHIFT":
             return "Codex"
+        case "F3":
+            return "SmartShadow"
+        case "F6":
+            return "Claude"
         case "COMMAND_LEFT":
             return "System Settings"
         default:
@@ -193,7 +197,7 @@ public enum LauncherShortcutRules {
     }
 
     public static func isReserved(_ normalizedKey: String) -> Bool {
-        ["TAB", "SHIFT", "COMMAND_LEFT", "COMMAND_RIGHT"].contains(normalizedKey)
+        ["TAB", "SHIFT", "F3", "F6", "COMMAND_LEFT", "COMMAND_RIGHT"].contains(normalizedKey)
     }
 
     public static func windowAction(key: String, code: String = "") -> String? {
@@ -506,12 +510,16 @@ public enum LauncherRules {
         }
     }
 
-    public static func specialItem(for name: String) -> (name: String, key: String, icon: String, placement: String?)? {
+    public static func specialItem(for name: String) -> (name: String, key: String, icon: String, placement: String?, openPath: String?)? {
         switch normalizeAppName(name) {
         case "chatgpt":
-            return ("ChatGPT", "TAB", "⇥", nil)
+            return ("ChatGPT", "TAB", "⇥", nil, nil)
         case "codex":
-            return ("Codex", "SHIFT", "⇧", "side_right_fill")
+            return ("Codex", "SHIFT", "⇧", "side_right_fill", nil)
+        case "smartshadow":
+            return ("SmartShadow", "F3", "F3", "side_left_fill", "/Applications/SmartShadow.app")
+        case "claude":
+            return ("Claude", "F6", "F6", "side_right_fill", "/Applications/Claude.app")
         default:
             return nil
         }
@@ -533,7 +541,7 @@ public enum LauncherRules {
                     icon: special.icon,
                     kind: nil,
                     placement: special.placement,
-                    openPath: nil,
+                    openPath: special.openPath,
                     appURL: nil,
                     dockItem: dockItem
                 )

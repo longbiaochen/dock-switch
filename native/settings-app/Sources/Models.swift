@@ -109,6 +109,12 @@ func reservedItem(for name: String) -> SettingsRow? {
     if normalized == "codex" {
         return SettingsRow(id: name, name: "Codex", key: "SHIFT", displayKey: "⇧", screen: "", position: "", placement: "", status: .reserved, readonly: true, configured: false, fallback: false)
     }
+    if normalized == "smartshadow" {
+        return SettingsRow(id: name, name: "SmartShadow", key: "F3", displayKey: "F3", screen: "", position: "", placement: "", status: .reserved, readonly: true, configured: false, fallback: false)
+    }
+    if normalized == "claude" {
+        return SettingsRow(id: name, name: "Claude", key: "F6", displayKey: "F6", screen: "", position: "", placement: "", status: .reserved, readonly: true, configured: false, fallback: false)
+    }
     return nil
 }
 

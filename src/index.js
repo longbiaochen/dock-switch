@@ -316,10 +316,13 @@ $(function() {
             hideLauncher();
             var shortcutApp = resolveAppShortcut(normalizedKey);
             if (shortcutApp) {
+                var dockShortcut = DOCK_ITEMS.find(entry =>
+                    normalizeAppName(entry.name) === normalizeAppName(shortcutApp)
+                );
                 var configuredShortcut = (CONFIG.dock_items || []).find(entry =>
                     normalizeAppName(entry.name) === normalizeAppName(shortcutApp)
                 );
-                activateLauncherItem(configuredShortcut || { name: shortcutApp });
+                activateLauncherItem(dockShortcut || configuredShortcut || { name: shortcutApp });
                 return;
             }
             if (isReservedLauncherShortcut(normalizedKey)) {
@@ -350,7 +353,13 @@ $(function() {
 
     electron.ipcRenderer.on("activate-app-shortcut", (event, appName) => {
         hideLauncher();
-        openAndRestoreItem({ name: appName });
+        var dockShortcut = DOCK_ITEMS.find(entry =>
+            normalizeAppName(entry.name) === normalizeAppName(appName)
+        );
+        var configuredShortcut = (CONFIG.dock_items || []).find(entry =>
+            normalizeAppName(entry.name) === normalizeAppName(appName)
+        );
+        activateLauncherItem(dockShortcut || configuredShortcut || { name: appName });
     });
 
 

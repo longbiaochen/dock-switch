@@ -20,7 +20,7 @@ Core Flow
    ``ArrowUp`` moves to the external display, ``ArrowDown`` moves to the internal
    display, ``【``/``】`` tile the current display left/right half, ``Shift`` opens ``Codex`` on the right side display, ``Tab`` opens
    ``ChatGPT``, left ``Command`` opens ``System Settings`` on the internal display, ``\`` opens
-   ``Terminal`` on the right side display, and right ``Command`` is a reserved no-op. ``Command`` shortcuts render as ``⌘`` in the HUD. ``Codex`` and ``ChatGPT`` are excluded from the ordinary HUD
+   ``Terminal`` on the right side display, and right ``Command`` is a reserved no-op. ``Command`` shortcuts render as ``⌘`` in the HUD. ``Codex``, ``ChatGPT``, ``SmartShadow``, and ``Claude`` are excluded from the ordinary HUD
    item list, while numeric keys remain available for normal launcher selection.
 6. Display-moving arrows move the pointer to the center of the target display.
    App activation shortcuts move it to the center of the activated or placed window.

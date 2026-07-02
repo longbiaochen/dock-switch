@@ -12,7 +12,10 @@ test("buildSettingsRows merges visible Dock apps with configured, reserved, and 
     const dockItems = [
         { name: "Finder", pos: { x: 10, y: 0 } },
         { name: "ChatGPT", pos: { x: 20, y: 0 } },
-        { name: "Temporary App", pos: { x: 30, y: 0 } }
+        { name: "Codex", pos: { x: 30, y: 0 } },
+        { name: "SmartShadow", pos: { x: 40, y: 0 } },
+        { name: "Claude", pos: { x: 50, y: 0 } },
+        { name: "Temporary App", pos: { x: 60, y: 0 } }
     ];
     const config = {
         dock_items: [
@@ -32,6 +35,9 @@ test("buildSettingsRows merges visible Dock apps with configured, reserved, and 
     })), [
         { name: "Finder", key: "D", screen: "0", placement: "internal_fill", status: "configured", readonly: false },
         { name: "ChatGPT", key: "TAB", screen: "", placement: "", status: "reserved", readonly: true },
+        { name: "Codex", key: "SHIFT", screen: "", placement: "", status: "reserved", readonly: true },
+        { name: "SmartShadow", key: "F3", screen: "", placement: "", status: "reserved", readonly: true },
+        { name: "Claude", key: "F6", screen: "", placement: "", status: "reserved", readonly: true },
         { name: "Temporary App", key: "1", screen: "", placement: "", status: "fallback", readonly: false }
     ]);
 });
@@ -74,11 +80,15 @@ test("validateKeyUpdates rejects duplicate and reserved settings keys", () => {
     const errors = validateKeyUpdates([
         { name: "Finder", key: "D" },
         { name: "Safari", key: "d" },
-        { name: "Codex Override", key: "shift" }
+        { name: "Codex Override", key: "shift" },
+        { name: "SmartShadow Override", key: "f3" },
+        { name: "Claude Override", key: "f6" }
     ]);
 
     assert.equal(errors.some(error => error.type === "duplicate" && error.key === "D"), true);
     assert.equal(errors.some(error => error.type === "reserved" && error.key === "SHIFT"), true);
+    assert.equal(errors.some(error => error.type === "reserved" && error.key === "F3"), true);
+    assert.equal(errors.some(error => error.type === "reserved" && error.key === "F6"), true);
 });
 
 test("saveDockItemSettings writes command icon input as COMMAND_LEFT", () => {

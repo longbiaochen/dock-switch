@@ -83,7 +83,7 @@ The `X`, `小红书`, and `GitHub` web app bundles can target the signed-in Chro
 Xiaohongshu Web App is available on `R` in the current default config.
 Google Chrome is available on `G` in the current default config.
 GitHub Web App is available on `H` in the current default config.
-ChatGPT, Codex, and Command shortcuts render in the HUD as symbolic shortcut labels: `⇥` for `Tab` / ChatGPT, `⇧` for `Shift` / Codex, and `⌘` for left/right `Command`. They remain excluded from ordinary fallback numbering.
+ChatGPT, Codex, SmartShadow, Claude, and Command shortcuts render in the HUD with fixed Dock labels: `⇥` for `Tab` / ChatGPT, `⇧` for `Shift` / Codex, `F3` for SmartShadow, `F6` for Claude, and `⌘` for left/right `Command`. They remain excluded from ordinary fallback numbering.
 Left `Command` opens System Settings on the internal display with `internal_fill`. `Shift` opens Codex on the right side display with `side_right_fill`. `\` opens Terminal on the right side display with `side_right_fill`. Right `Command` is intentionally reserved as a no-op. GoKit5 opens SmartShadow through its product bundle and uses the same placement path as the other hardware buttons.
 If no external display is available, `external_right_half` falls back to the right half of the internal display work area.
 If no external display is available, `external_left_half` falls back to the left half of the internal display work area.

@@ -25,12 +25,27 @@ var SPECIAL_LAUNCHER_ITEMS = Object.freeze({
         icon: "⇧",
         screen: "side_right",
         placement: "side_right_fill"
+    }),
+    smartshadow: Object.freeze({
+        name: "SmartShadow",
+        key: "F3",
+        icon: "F3",
+        screen: "side_left",
+        placement: "side_left_fill",
+        open_path: "/Applications/SmartShadow.app"
+    }),
+    claude: Object.freeze({
+        name: "Claude",
+        key: "F6",
+        icon: "F6",
+        screen: "side_right",
+        placement: "side_right_fill",
+        open_path: "/Applications/Claude.app"
     })
 });
 
 function isExcludedLauncherApp(name) {
-    var normalized = normalizeAppName(name);
-    return normalized === "chatgpt" || normalized === "codex";
+    return !!SPECIAL_LAUNCHER_ITEMS[normalizeAppName(name)];
 }
 
 function specialLauncherItemForName(name) {
