@@ -8,11 +8,11 @@ Quickly switch among applications in the macOS Dock with one global hotkey.
 <a id="release-record-gokit5-serial-button-control"></a>
 
 ## 发版更新：GoKit5 串口按键控制
-dock-switch 现在可以通过串口监听连接的 GoKit5 / 机智云控制器，把硬件按键信息转换成应用打开和窗口铺满动作。刷入匹配固件后，控制器可以向 dock-switch 发送主机按键消息，让常用应用直接落到指定屏幕。
+dock-switch 现在可以通过串口监听连接的 GoKit5 / 机智云控制器，把硬件按键信息转换成 Codex 屏幕选择动作。刷入匹配固件后，控制器可以向 dock-switch 发送主机按键消息，激活指定屏幕上的 Codex 窗口。
 
 - dock-switch 启动后会自动开始串口监听。
 - GoKit5 USB 串口会自动识别，也可以用 `GOKIT5_SERIAL_PORT=/dev/cu.usbmodem...` 固定端口。
-- 物理按键映射到 Codex 四屏铺满：minus = 左侧边屏，plus = 内置屏，voice = 外接屏，green/switch = 右侧边屏；目标外屏未连接时退回内置主屏铺满。
+- 物理按键映射到 Codex 四屏：minus = 左侧边屏，plus = 内置屏，voice = 外接屏，green/switch = 右侧边屏；目标屏已有 Codex 窗口时只前置该窗口，没有时新建一个 Codex 窗口并铺满目标屏；目标外屏未连接时退回内置主屏。
 - `dock-switch-cli gokit5-status` 可以查看监听是否启用、是否运行，以及当前使用的串口。
 - 设置 `DOCK_SWITCH_GOKIT5=0` 可以关闭串口监听。
 
@@ -38,7 +38,7 @@ often expose menu bar state, Dock contents, account badges, and workspace detail
 - Press right `Command` for a reserved no-op.
 - Press `\` to focus or open `Terminal` on the right side display, maximized to the display work area.
 - App activation moves the pointer to the center of the activated or placed window; arrow display moves keep moving the pointer to the center of the target display.
-- A connected GoKit5 controller flashed with [open-embodied](https://github.com/longbiaochen/open-embodied) can launch Codex on four displays: minus = left side, plus = internal, voice = external, green/switch = right side. Missing external targets fall back to the internal main display.
+- A connected GoKit5 controller flashed with [open-embodied](https://github.com/longbiaochen/open-embodied) can select Codex on four displays: minus = left side, plus = internal, voice = external, green/switch = right side. Existing Codex windows on the selected display are brought forward; if that display has no Codex window, dock-switch creates one there without moving windows from other displays. Missing external targets fall back to the internal main display.
 - The UI closes automatically after a selection.
 
 ## Browser Fixed Placement
@@ -153,7 +153,7 @@ Notes:
 - If the dock-switch control socket is not running, the CLI launches `/Applications/dock-switch.app` and retries automatically.
 - `displays` prints JSON with Electron display bounds and work areas.
 - `gokit5-status` prints the runtime serial listener state and selected port.
-- `codex-display` focuses an existing Codex window on the target display when available, but always centers the pointer on the target display work area so repeated physical key presses do not drift with window bounds.
+- `codex-display` focuses an existing Codex window on the target display when available. If no Codex window exists on that display, it creates one there without moving windows from other displays. It always centers the pointer on the target display work area so repeated physical key presses do not drift with window bounds.
 - The GoKit5 serial listener auto-detects the Espressif USB JTAG/serial device and can be pinned with `GOKIT5_SERIAL_PORT=/dev/cu.usbmodem...`; set `DOCK_SWITCH_GOKIT5=0` to disable it. The matching firmware lives at [longbiaochen/open-embodied](https://github.com/longbiaochen/open-embodied).
 
 ## Managed Chrome Windows

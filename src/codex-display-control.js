@@ -1,3 +1,4 @@
+const childProcess = require("child_process");
 const {
     getDisplayForRect,
     moveMouseToBoundsCenter,
@@ -9,6 +10,8 @@ const {
 } = require("./display-targets");
 
 const CODEX_APP_NAME = "Codex";
+const DEFAULT_CREATE_TIMEOUT_MS = 1600;
+const CREATE_POLL_MS = 60;
 
 const TARGET_ALIASES = Object.freeze({
     left: "side_left",
@@ -106,6 +109,102 @@ function focusCodexWindow(dockQuery, win) {
     }
 }
 
+function windowIdentity(win) {
+    if (!isUsableWindow(win)) return "";
+    return `${Math.round(win.pid)}:${Math.round(win.windowIndex)}`;
+}
+
+function displayWorkArea(display) {
+    return display && (display.workArea || display.bounds);
+}
+
+function moveCodexWindowToDisplay(dockQuery, win, display) {
+    const area = displayWorkArea(display);
+    if (!dockQuery ||
+        !isUsableWindow(win) ||
+        !area ||
+        typeof dockQuery.moveApplicationWindowByPidAndIndex !== "function") {
+        return false;
+    }
+    try {
+        return !!dockQuery.moveApplicationWindowByPidAndIndex({
+            pid: Math.round(win.pid),
+            windowIndex: Math.round(win.windowIndex),
+            x: Math.round(area.x),
+            y: Math.round(area.y),
+            w: Math.round(area.width),
+            h: Math.round(area.height)
+        });
+    } catch (e) {
+        return false;
+    }
+}
+
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function defaultOpenApplication(appName, targetDisplay) {
+    const area = displayWorkArea(targetDisplay);
+    if (area) {
+        const bounds = [
+            Math.round(area.x),
+            Math.round(area.y),
+            Math.round(area.x + area.width),
+            Math.round(area.y + area.height)
+        ].join(", ");
+        return new Promise(resolve => {
+            childProcess.execFile("osascript", [
+                "-e",
+                `tell application "${String(appName).replace(/"/g, '\\"')}" to make new window with properties {bounds:{${bounds}}}`
+            ], () => resolve());
+        });
+    }
+    return new Promise(resolve => {
+        childProcess.execFile("open", ["-na", appName], () => resolve());
+    });
+}
+
+function findNewCodexWindow(previousIdentities, windows) {
+    return (Array.isArray(windows) ? windows : [])
+        .filter(isUsableWindow)
+        .filter(win => !previousIdentities.has(windowIdentity(win)))
+        .slice()
+        .sort((a, b) => windowSortScore(b) - windowSortScore(a))[0] || null;
+}
+
+async function createCodexWindowForDisplay(appName, targetDisplay, displays, deps, existingWindows, command) {
+    const previousIdentities = new Set((Array.isArray(existingWindows) ? existingWindows : [])
+        .filter(isUsableWindow)
+        .map(windowIdentity));
+    const openApplication = typeof deps.openApplication === "function"
+        ? deps.openApplication
+        : defaultOpenApplication;
+    await openApplication(appName, targetDisplay);
+
+    const timeoutMs = Math.max(0, Number(command && command.timeoutMs) || DEFAULT_CREATE_TIMEOUT_MS);
+    const deadline = Date.now() + timeoutMs;
+    let latestWindows = [];
+    do {
+        latestWindows = getCodexWindows(deps.dockQuery, appName);
+        const targetWindow = chooseCodexWindowForDisplay(latestWindows, targetDisplay, displays);
+        if (targetWindow && !previousIdentities.has(windowIdentity(targetWindow))) {
+            return { window: targetWindow, moved: false };
+        }
+
+        const newWindow = findNewCodexWindow(previousIdentities, latestWindows);
+        if (newWindow) {
+            const alreadyOnTarget = sameDisplay(getDisplayForRect(displays, newWindow), targetDisplay);
+            const moved = alreadyOnTarget ? false : moveCodexWindowToDisplay(deps.dockQuery, newWindow, targetDisplay);
+            return { window: newWindow, moved };
+        }
+        await delay(CREATE_POLL_MS);
+    } while (Date.now() < deadline);
+
+    const targetWindow = chooseCodexWindowForDisplay(latestWindows, targetDisplay, displays);
+    return { window: targetWindow, moved: false };
+}
+
 function clickMouseAtPoint(dockQuery, point) {
     if (!dockQuery ||
         !point ||
@@ -154,14 +253,25 @@ async function selectCodexDisplay(command, deps) {
         return { ok: false, target, error: `No display found for ${target}` };
     }
 
-    const windows = getCodexWindows(deps.dockQuery, appName);
-    const targetWindow = chooseCodexWindowForDisplay(windows, targetDisplay, displays);
-    const focused = targetWindow ? focusCodexWindow(deps.dockQuery, targetWindow) : false;
     const mouseMoved = moveMouseToDisplayCenter(deps.dockQuery, targetDisplay);
     const feedbackPoint = mouseMoved
         ? resolveDisplayCenterPoint(targetDisplay)
         : null;
     const mouseClicked = mouseMoved && clickMouseAtPoint(deps.dockQuery, feedbackPoint);
+
+    const windows = getCodexWindows(deps.dockQuery, appName);
+    let targetWindow = chooseCodexWindowForDisplay(windows, targetDisplay, displays);
+    const reusedExistingTargetWindow = !!targetWindow;
+    let createdNewWindow = false;
+    let moved = false;
+    if (!targetWindow) {
+        const created = await createCodexWindowForDisplay(appName, targetDisplay, displays, deps, windows, command);
+        targetWindow = created.window;
+        moved = !!created.moved;
+        createdNewWindow = !!targetWindow;
+    }
+    const focused = targetWindow ? focusCodexWindow(deps.dockQuery, targetWindow) : false;
+
     if (feedbackPoint && typeof deps.showMouseFeedback === "function") {
         deps.showMouseFeedback(feedbackPoint);
     }
@@ -177,8 +287,9 @@ async function selectCodexDisplay(command, deps) {
             pid: Math.round(targetWindow.pid),
             windowIndex: Math.round(targetWindow.windowIndex)
         } : null,
-        reusedExistingTargetWindow: !!targetWindow,
-        moved: false,
+        reusedExistingTargetWindow,
+        createdNewWindow,
+        moved,
         focused,
         mouseMoved,
         mouseClicked,

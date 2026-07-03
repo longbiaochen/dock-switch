@@ -140,14 +140,16 @@ public struct LauncherItem: Equatable, Identifiable {
 public struct Gokit5Action: Equatable {
     public var name: String
     public var kind: String?
-    public var placement: String
+    public var placement: String?
+    public var codexTarget: String?
     public var openPath: String?
     public var appURL: String?
 
-    public init(name: String, kind: String? = nil, placement: String, openPath: String? = nil, appURL: String? = nil) {
+    public init(name: String, kind: String? = nil, placement: String? = nil, codexTarget: String? = nil, openPath: String? = nil, appURL: String? = nil) {
         self.name = name
         self.kind = kind
         self.placement = placement
+        self.codexTarget = codexTarget
         self.openPath = openPath
         self.appURL = appURL
     }
@@ -1119,27 +1121,27 @@ public enum Gokit5Serial {
         case "minus":
             return Gokit5Action(
                 name: "Codex",
-                placement: "side_left_fill"
+                codexTarget: "side_left"
             )
         case "voice":
             return Gokit5Action(
                 name: "Codex",
-                placement: "external_fill"
+                codexTarget: "external"
             )
         case "switch":
             return Gokit5Action(
                 name: "Codex",
-                placement: "side_right_fill"
+                codexTarget: "side_right"
             )
         case "green":
             return Gokit5Action(
                 name: "Codex",
-                placement: "side_right_fill"
+                codexTarget: "side_right"
             )
         case "plus":
             return Gokit5Action(
                 name: "Codex",
-                placement: "internal_fill"
+                codexTarget: "internal"
             )
         default:
             return nil
@@ -1621,6 +1623,20 @@ public final class Gokit5SerialListener {
 }
 
 public final class CodexDisplaySelectionService {
+    private struct CodexWindowRef {
+        var element: AXUIElement
+        var bounds: DSRect
+
+        var identity: String {
+            [
+                round(bounds.x),
+                round(bounds.y),
+                round(bounds.width),
+                round(bounds.height)
+            ].map { String(Int($0)) }.joined(separator: ":")
+        }
+    }
+
     private let displayService: DisplayService
     private let showMouseFeedback: (CGPoint) -> Void
 
@@ -1649,18 +1665,35 @@ public final class CodexDisplaySelectionService {
             return ["ok": false, "target": target, "error": "No display found for \(target)"]
         }
 
-        let window = codexWindows(appName: appName).filter { rect in
-            sameDisplay(self.display(containing: rect, displays: displays), targetDisplay)
-        }
-        .sorted { $0.width * $0.height > $1.width * $1.height }
-        .first
-
-        if let window {
-            focus(appName: appName, source: source, windowBounds: window)
-        }
         let point = CGPoint(x: targetDisplay.workArea.centerX, y: targetDisplay.workArea.centerY)
         let actualPoint = moveMouse(to: point, display: targetDisplay)
         clickMouse(at: actualPoint)
+
+        let existingWindows = codexWindows(appName: appName)
+        var window = existingWindows.filter { ref in
+            sameDisplay(self.display(containing: ref.bounds, displays: displays), targetDisplay)
+        }
+        .sorted { $0.bounds.width * $0.bounds.height > $1.bounds.width * $1.bounds.height }
+        .first
+        let reusedExistingTargetWindow = window != nil
+        var createdNewWindow = false
+        var moved = false
+
+        if window == nil {
+            let created = createCodexWindowOnTarget(
+                appName: appName,
+                targetDisplay: targetDisplay,
+                displays: displays,
+                existingWindows: existingWindows
+            )
+            window = created.window
+            createdNewWindow = created.window != nil
+            moved = created.moved
+        }
+
+        if let window {
+            focus(appName: appName, source: source, window: window)
+        }
         showMouseFeedback(actualPoint)
 
         return [
@@ -1675,9 +1708,10 @@ public final class CodexDisplaySelectionService {
                 "bounds": rectJSON(targetDisplay.bounds),
                 "workArea": rectJSON(targetDisplay.workArea)
             ],
-            "selectedWindow": window.map { rectJSON($0) } as Any,
-            "reusedExistingTargetWindow": window != nil,
-            "moved": false,
+            "selectedWindow": window.map { rectJSON($0.bounds) } as Any,
+            "reusedExistingTargetWindow": reusedExistingTargetWindow,
+            "createdNewWindow": createdNewWindow,
+            "moved": moved,
             "focused": window != nil,
             "mouseMoved": true,
             "mouseClicked": true,
@@ -1738,7 +1772,7 @@ public final class CodexDisplaySelectionService {
         return a.id == b.id || (!a.label.isEmpty && a.label == b.label)
     }
 
-    private func codexWindows(appName: String) -> [DSRect] {
+    private func codexWindows(appName: String) -> [CodexWindowRef] {
         let normalized = LauncherRules.normalizeAppName(appName)
         guard let app = NSWorkspace.shared.runningApplications.first(where: {
             LauncherRules.normalizeAppName($0.localizedName ?? "") == normalized
@@ -1747,24 +1781,135 @@ public final class CodexDisplaySelectionService {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &value) == .success,
               let windows = value as? [AXUIElement] else { return [] }
-        return windows.compactMap { window -> DSRect? in
+        return windows.compactMap { window -> CodexWindowRef? in
             guard let point = axPoint(window, kAXPositionAttribute as CFString),
                   let size = axSize(window, kAXSizeAttribute as CFString),
                   size.width > 0,
                   size.height > 0 else { return nil }
-            return DSRect(x: point.x, y: point.y, width: size.width, height: size.height)
+            return CodexWindowRef(
+                element: window,
+                bounds: DSRect(x: point.x, y: point.y, width: size.width, height: size.height)
+            )
         }
     }
 
-    private func focus(appName: String, source: String, windowBounds: DSRect) {
+    private func focus(appName: String, source: String, window: CodexWindowRef) {
         let normalized = LauncherRules.normalizeAppName(appName)
         guard let app = NSWorkspace.shared.runningApplications.first(where: {
             LauncherRules.normalizeAppName($0.localizedName ?? "") == normalized
         }) else { return }
         app.activate(options: [.activateIgnoringOtherApps])
-        let axApp = AXUIElementCreateApplication(app.processIdentifier)
-        guard let win = firstWindow(in: axApp) else { return }
-        AXUIElementPerformAction(win, kAXRaiseAction as CFString)
+        AXUIElementPerformAction(window.element, kAXRaiseAction as CFString)
+    }
+
+    private func createCodexWindowOnTarget(
+        appName: String,
+        targetDisplay: DisplaySnapshot,
+        displays: [DisplaySnapshot],
+        existingWindows: [CodexWindowRef]
+    ) -> (window: CodexWindowRef?, moved: Bool) {
+        let existingIdentities = Set(existingWindows.map(\.identity))
+        requestNewCodexWindow(appName: appName, targetDisplay: targetDisplay)
+        let deadline = Date().addingTimeInterval(1.6)
+        let newInstanceDeadline = Date().addingTimeInterval(0.45)
+        var requestedNewInstance = false
+        var latestWindows: [CodexWindowRef] = []
+        repeat {
+            RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.06))
+            latestWindows = codexWindows(appName: appName)
+            if let targetWindow = latestWindows.first(where: { ref in
+                !existingIdentities.contains(ref.identity) &&
+                    sameDisplay(display(containing: ref.bounds, displays: displays), targetDisplay)
+            }) {
+                return (targetWindow, false)
+            }
+            if let newWindow = latestWindows.first(where: { !existingIdentities.contains($0.identity) }) {
+                let alreadyOnTarget = sameDisplay(display(containing: newWindow.bounds, displays: displays), targetDisplay)
+                let moved = alreadyOnTarget ? false : moveWindow(newWindow.element, bounds: targetDisplay.workArea)
+                let refreshed = windowBounds(newWindow.element)
+                    .map { CodexWindowRef(element: newWindow.element, bounds: $0) } ?? newWindow
+                return (refreshed, moved)
+            }
+            if !requestedNewInstance && Date() >= newInstanceDeadline {
+                openNewCodexInstance(appName: appName)
+                requestedNewInstance = true
+            }
+        } while Date() < deadline
+
+        let targetWindow = latestWindows.first { ref in
+            sameDisplay(display(containing: ref.bounds, displays: displays), targetDisplay)
+        }
+        return (targetWindow, false)
+    }
+
+    private func requestNewCodexWindow(appName: String, targetDisplay: DisplaySnapshot) {
+        if createCodexWindowWithScripting(appName: appName, bounds: targetDisplay.workArea) {
+            return
+        }
+        let normalized = LauncherRules.normalizeAppName(appName)
+        if let app = NSWorkspace.shared.runningApplications.first(where: {
+            LauncherRules.normalizeAppName($0.localizedName ?? "") == normalized
+        }) {
+            app.activate(options: [.activateIgnoringOtherApps])
+            postCommandN()
+            return
+        }
+        openCodexApplication(appName: appName)
+    }
+
+    private func createCodexWindowWithScripting(appName: String, bounds: DSRect) -> Bool {
+        let escapedName = appName.replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+        let left = Int(round(bounds.x))
+        let top = Int(round(bounds.y))
+        let right = Int(round(bounds.x + bounds.width))
+        let bottom = Int(round(bounds.y + bounds.height))
+        let source = """
+        tell application "\(escapedName)" to make new window with properties {bounds:{\(left), \(top), \(right), \(bottom)}}
+        """
+        var error: NSDictionary?
+        guard let script = NSAppleScript(source: source) else { return false }
+        script.executeAndReturnError(&error)
+        if let error {
+            NSLog("dock-switch: failed to create \(appName) window via scripting: \(error)")
+            return false
+        }
+        return true
+    }
+
+    private func openCodexApplication(appName: String) {
+        let candidates = [
+            "/Applications/\(appName).app",
+            "\(NSHomeDirectory())/Applications/\(appName).app"
+        ]
+        let path = candidates.first { FileManager.default.fileExists(atPath: $0) } ?? "/Applications/\(appName).app"
+        NSWorkspace.shared.open(URL(fileURLWithPath: path))
+    }
+
+    private func openNewCodexInstance(appName: String) {
+        let candidates = [
+            "/Applications/\(appName).app",
+            "\(NSHomeDirectory())/Applications/\(appName).app"
+        ]
+        guard let path = candidates.first(where: { FileManager.default.fileExists(atPath: $0) }) else { return }
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.createsNewApplicationInstance = true
+        NSWorkspace.shared.openApplication(at: URL(fileURLWithPath: path), configuration: configuration) { _, error in
+            if let error {
+                NSLog("dock-switch: failed to open new \(appName) instance: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func postCommandN() {
+        guard let down = CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(kVK_ANSI_N), keyDown: true),
+              let up = CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(kVK_ANSI_N), keyDown: false) else {
+            return
+        }
+        down.flags = .maskCommand
+        up.flags = .maskCommand
+        down.post(tap: .cghidEventTap)
+        up.post(tap: .cghidEventTap)
     }
 
     private func moveMouse(to point: CGPoint, display: DisplaySnapshot? = nil) -> CGPoint {

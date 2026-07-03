@@ -1001,7 +1001,16 @@ function setup_gokit5_serial_listener(controlDeps) {
             if (!action) return;
             gokit5_action_inflight = gokit5_action_inflight
                 .catch(() => {})
-                .then(() => launch_app_with_placement(action))
+                .then(() => {
+                    if (action.codex_target) {
+                        return selectCodexDisplay({
+                            target: action.codex_target,
+                            appName: action.name || "Codex",
+                            source: `gokit5:${event && event.button || ""}`
+                        }, controlDeps);
+                    }
+                    return launch_app_with_placement(action);
+                })
                 .catch(() => {});
         }
     });

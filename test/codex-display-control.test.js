@@ -128,17 +128,28 @@ test("selectCodexDisplay focuses an existing Codex window on the target display"
     assert.deepEqual(moves, []);
 });
 
-test("selectCodexDisplay only moves the mouse when target display has no Codex window", async () => {
+test("selectCodexDisplay creates a new Codex window on the target display without moving existing windows", async () => {
     const displays = makeDisplays();
     const moves = [];
     const focused = [];
     const mouseMoves = [];
     const mouseClicks = [];
     const feedbackPoints = [];
+    let opens = 0;
+    let calls = 0;
     const dockQuery = {
-        getApplicationWindows: () => [
-            { pid: 20, windowIndex: 3, x: 20, y: 80, w: 900, h: 700, focused: true, main: true }
-        ],
+        getApplicationWindows: () => {
+            calls += 1;
+            if (calls === 1) {
+                return [
+                    { pid: 20, windowIndex: 3, x: 20, y: 80, w: 900, h: 700, focused: true, main: true }
+                ];
+            }
+            return [
+                { pid: 20, windowIndex: 3, x: 20, y: 80, w: 900, h: 700, focused: true, main: true },
+                { pid: 21, windowIndex: 0, x: 30, y: 90, w: 900, h: 700, focused: false, main: false }
+            ];
+        },
         moveApplicationWindowByPidAndIndex: payload => {
             moves.push(payload);
             return true;
@@ -161,22 +172,35 @@ test("selectCodexDisplay only moves the mouse when target display has no Codex w
         dockQuery,
         electronScreen: makeScreen(displays),
         ensurePermissions: () => true,
+        openApplication: async appName => {
+            assert.equal(appName, "Codex");
+            opens += 1;
+        },
         showMouseFeedback: point => feedbackPoints.push(point)
     });
 
     assert.equal(result.ok, true);
-    assert.equal(result.moved, false);
-    assert.equal(result.focused, false);
-    assert.equal(result.selectedWindow, null);
-    assert.deepEqual(moves, []);
-    assert.deepEqual(focused, []);
+    assert.equal(result.createdNewWindow, true);
+    assert.equal(result.reusedExistingTargetWindow, false);
+    assert.equal(result.moved, true);
+    assert.equal(result.focused, true);
+    assert.equal(opens, 1);
+    assert.deepEqual(moves, [{
+        pid: 21,
+        windowIndex: 0,
+        x: -524,
+        y: -1410,
+        w: 2560,
+        h: 1410
+    }]);
+    assert.deepEqual(focused, [{ pid: 21, windowIndex: 0 }]);
     assert.deepEqual(mouseMoves[0], { x: 756, y: -705 });
     assert.deepEqual(mouseClicks[0], { x: 756, y: -705 });
     assert.deepEqual(result.feedbackPoint, { x: 756, y: -705 });
     assert.deepEqual(feedbackPoints[0], { x: 756, y: -705 });
 });
 
-test("selectCodexDisplay does not open Codex when no window exists", async () => {
+test("selectCodexDisplay opens Codex when no windows exist", async () => {
     const displays = makeDisplays();
     let calls = 0;
     let opens = 0;
@@ -196,16 +220,18 @@ test("selectCodexDisplay does not open Codex when no window exists", async () =>
         dockQuery,
         electronScreen: makeScreen(displays),
         ensurePermissions: () => true,
-        openApplication: async () => {
+        openApplication: async appName => {
+            assert.equal(appName, "Codex");
             opens += 1;
         }
     });
 
     assert.equal(result.ok, true);
-    assert.equal(opens, 0);
-    assert.equal(calls, 1);
-    assert.equal(result.selectedWindow, null);
-    assert.equal(result.focused, false);
+    assert.equal(opens, 1);
+    assert.equal(calls, 2);
+    assert.deepEqual(result.selectedWindow, { pid: 30, windowIndex: 0 });
+    assert.equal(result.focused, true);
+    assert.equal(result.createdNewWindow, true);
 });
 
 test("selectCodexDisplay rejects invalid targets", async () => {

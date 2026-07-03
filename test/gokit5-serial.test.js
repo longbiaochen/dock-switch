@@ -28,26 +28,26 @@ test("parseGokit5ButtonLine rejects removed plus aliases", () => {
     assert.equal(parseGokit5ButtonLine("GOKIT5_HOST_BUTTON:volume+"), "");
 });
 
-test("mapGokit5ButtonToAction maps physical keys to app placement actions", () => {
+test("mapGokit5ButtonToAction maps physical keys to Codex display actions", () => {
     assert.deepEqual(mapGokit5ButtonToAction("minus"), {
         name: "Codex",
-        placement: "side_left_fill"
+        codex_target: "side_left"
     });
     assert.deepEqual(mapGokit5ButtonToAction("voice"), {
         name: "Codex",
-        placement: "external_fill"
+        codex_target: "external"
     });
     assert.deepEqual(mapGokit5ButtonToAction("switch"), {
         name: "Codex",
-        placement: "side_right_fill"
+        codex_target: "side_right"
     });
     assert.deepEqual(mapGokit5ButtonToAction("green"), {
         name: "Codex",
-        placement: "side_right_fill"
+        codex_target: "side_right"
     });
     assert.deepEqual(mapGokit5ButtonToAction("plus"), {
         name: "Codex",
-        placement: "internal_fill"
+        codex_target: "internal"
     });
     assert.equal(mapGokit5ButtonToAction("+"), null);
     assert.equal(mapGokit5ButtonToAction("add"), null);
@@ -169,7 +169,7 @@ test("createGokit5SerialListener keeps the serial fd open while applying stty", 
     assert.equal(events.at(-1), "destroy");
 });
 
-test("createGokit5SerialListener dispatches plus to the Codex internal-fill action", () => {
+test("createGokit5SerialListener dispatches plus to the Codex internal display action", () => {
     const stream = new EventEmitter();
     stream.destroy = () => {};
     const actions = [];

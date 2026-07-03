@@ -25,8 +25,10 @@ Core Flow
 6. Display-moving arrows move the pointer to the center of the target display.
    App activation shortcuts move it to the center of the activated or placed window.
 7. The optional GoKit5 serial listener maps host-button events from
-   ``longbiaochen/open-embodied`` firmware to Codex placement actions across
-   the left side, internal, external, and right side displays.
+   ``longbiaochen/open-embodied`` firmware to Codex display-selection actions
+   across the left side, internal, external, and right side displays. It brings
+   forward a Codex window already on the selected display, or creates a new one
+   there without moving existing Codex windows from other displays.
 
 Startup
 -------

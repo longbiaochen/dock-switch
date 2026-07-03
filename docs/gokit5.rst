@@ -1,7 +1,7 @@
 GoKit5 Serial Control
 =====================
 
-``dock-switch`` can optionally listen to a connected GoKit5 / 机智云 controller over serial and convert host-button events into app launch and window placement actions.
+``dock-switch`` can optionally listen to a connected GoKit5 / 机智云 controller over serial and convert host-button events into Codex display-selection actions.
 
 Behavior
 --------
@@ -14,15 +14,15 @@ Behavior
 Button mapping
 --------------
 
-The firmware sends host-button events that map to Codex placement actions:
+The firmware sends host-button events that map to Codex display targets:
 
-- ``minus`` -> ``Codex.app`` at ``side_left_fill``
-- ``plus`` -> ``Codex.app`` at ``internal_fill``
-- ``voice`` -> ``Codex.app`` at ``external_fill``
-- ``green`` -> ``Codex.app`` at ``side_right_fill``
-- ``switch`` -> ``Codex.app`` at ``side_right_fill``
+- ``minus`` -> left side display
+- ``plus`` -> internal display
+- ``voice`` -> external display
+- ``green`` -> right side display
+- ``switch`` -> right side display
 
-If a requested external or side display is not connected, dock-switch falls back to the internal main display work area.
+If the selected display already has a Codex window, dock-switch brings that window forward. If not, it creates a new Codex window on that display and fills the display work area without moving existing Codex windows from other displays. If a requested external or side display is not connected, dock-switch falls back to the internal main display work area.
 
 Firmware
 --------
