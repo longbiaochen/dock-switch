@@ -30,7 +30,7 @@
         },
         {
             "name": "X",
-            "key": "X",
+            "key": "plus",
             "screen": "1",
             "kind": "web_app",
             "placement": "internal_fill",
@@ -108,7 +108,7 @@
         },
         {
             "name": "Terminal",
-            "key": "plus",
+            "key": "green",
             "screen": "side_right",
             "placement": "side_right_fill"
         },

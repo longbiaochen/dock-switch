@@ -43,12 +43,14 @@ test("default config maps requested apps and web apps to internal fill", () => {
 
 test("default config maps Terminal to right screen fill", () => {
     const terminal = config.dock_items.find(entry => entry.name === "Terminal");
+    const x = config.dock_items.find(entry => entry.name === "X");
     const sublimeText = config.dock_items.find(entry => entry.name === "Sublime Text");
 
     assert.equal(sublimeText && sublimeText.key, "T");
+    assert.equal(x && x.key, "plus");
     assert.deepEqual(terminal, {
         name: "Terminal",
-        key: "plus",
+        key: "green",
         screen: "side_right",
         placement: "side_right_fill"
     });

@@ -44,13 +44,15 @@ test("mapGokit5ButtonToAction maps physical keys to app placement actions", () =
         open_path: "/Applications/Claude.app"
     });
     assert.deepEqual(mapGokit5ButtonToAction("green"), {
-        name: "Claude",
-        placement: "side_right_fill",
-        open_path: "/Applications/Claude.app"
-    });
-    assert.deepEqual(mapGokit5ButtonToAction("plus"), {
         name: "Terminal",
         placement: "side_right_fill"
+    });
+    assert.deepEqual(mapGokit5ButtonToAction("plus"), {
+        name: "X",
+        kind: "web_app",
+        placement: "internal_fill",
+        open_path: "~/Applications/Chromium Apps.localized/X.app",
+        app_url: "https://x.com/?utm_source=homescreen&utm_medium=shortcut"
     });
     assert.equal(mapGokit5ButtonToAction("+"), null);
     assert.equal(mapGokit5ButtonToAction("add"), null);
@@ -172,7 +174,7 @@ test("createGokit5SerialListener keeps the serial fd open while applying stty", 
     assert.equal(events.at(-1), "destroy");
 });
 
-test("createGokit5SerialListener dispatches plus to the Terminal right-fill action", () => {
+test("createGokit5SerialListener dispatches plus to the X internal-fill action", () => {
     const stream = new EventEmitter();
     stream.destroy = () => {};
     const actions = [];

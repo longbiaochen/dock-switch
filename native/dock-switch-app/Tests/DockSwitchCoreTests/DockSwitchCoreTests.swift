@@ -108,13 +108,13 @@ final class DockSwitchCoreTests: XCTestCase {
             LauncherConfigItem(name: "Finder", key: "D", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil),
             LauncherConfigItem(name: "System Settings", key: "COMMAND_LEFT", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil),
             LauncherConfigItem(name: "SmartShadow", key: "F3", screen: "0", kind: nil, placement: "external_fill", openPath: nil, appURL: nil),
-            LauncherConfigItem(name: "Terminal", key: "plus", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil)
+            LauncherConfigItem(name: "Terminal", key: "green", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil)
         ])
 
         let items = LauncherRules.buildLauncherItems(dockItems: dockItems, config: config)
 
-        XCTAssertEqual(items.map(\.key), ["D", "TAB", "SHIFT", "COMMAND_LEFT", "F3", "F6", "PLUS", "1"])
-        XCTAssertEqual(items.map(\.displayKey), ["D", "⇥", "⇧", "⌘", "F3", "F6", "PLUS", "1"])
+        XCTAssertEqual(items.map(\.key), ["D", "TAB", "SHIFT", "COMMAND_LEFT", "F3", "F6", "GREEN", "1"])
+        XCTAssertEqual(items.map(\.displayKey), ["D", "⇥", "⇧", "⌘", "F3", "F6", "GREEN", "1"])
         XCTAssertEqual(items.first { $0.name == "Codex" }?.placement, "side_right_fill")
         XCTAssertEqual(items.first { $0.name == "SmartShadow" }?.placement, "side_left_fill")
         XCTAssertEqual(items.first { $0.name == "Claude" }?.placement, "side_right_fill")
@@ -481,16 +481,18 @@ final class DockSwitchCoreTests: XCTestCase {
         XCTAssertEqual(switchAction?.openPath, "/Applications/Claude.app")
 
         let green = Gokit5Serial.action(for: "green")
-        XCTAssertEqual(green?.name, "Claude")
+        XCTAssertEqual(green?.name, "Terminal")
         XCTAssertEqual(green?.placement, "side_right_fill")
-        XCTAssertEqual(green?.openPath, "/Applications/Claude.app")
+        XCTAssertNil(green?.kind)
+        XCTAssertNil(green?.openPath)
+        XCTAssertNil(green?.appURL)
 
         let plus = Gokit5Serial.action(for: "plus")
-        XCTAssertEqual(plus?.name, "Terminal")
-        XCTAssertEqual(plus?.placement, "side_right_fill")
-        XCTAssertNil(plus?.kind)
-        XCTAssertNil(plus?.openPath)
-        XCTAssertNil(plus?.appURL)
+        XCTAssertEqual(plus?.name, "X")
+        XCTAssertEqual(plus?.kind, "web_app")
+        XCTAssertEqual(plus?.placement, "internal_fill")
+        XCTAssertEqual(plus?.openPath, "~/Applications/Chromium Apps.localized/X.app")
+        XCTAssertEqual(plus?.appURL, "https://x.com/?utm_source=homescreen&utm_medium=shortcut")
         XCTAssertNil(Gokit5Serial.action(for: "+"))
         XCTAssertNil(Gokit5Serial.action(for: "add"))
         XCTAssertNil(Gokit5Serial.action(for: "volume-up"))

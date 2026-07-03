@@ -1120,16 +1120,24 @@ public enum Gokit5Serial {
                 name: "Codex",
                 placement: "external_fill"
             )
-        case "switch", "green":
+        case "switch":
             return Gokit5Action(
                 name: "Claude",
                 placement: "side_right_fill",
                 openPath: "/Applications/Claude.app"
             )
-        case "plus":
+        case "green":
             return Gokit5Action(
                 name: "Terminal",
                 placement: "side_right_fill"
+            )
+        case "plus":
+            return Gokit5Action(
+                name: "X",
+                kind: "web_app",
+                placement: "internal_fill",
+                openPath: "~/Applications/Chromium Apps.localized/X.app",
+                appURL: "https://x.com/?utm_source=homescreen&utm_medium=shortcut"
             )
         default:
             return nil
