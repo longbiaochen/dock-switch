@@ -1099,7 +1099,6 @@ public enum Gokit5Serial {
     public static let defaultSerialNumber = "94:A9:90:10:E5:F4"
     public static let hostButtonPrefix = "GOKIT5_HOST_BUTTON:"
     public static let diagnosticPrefix = "GOKIT5_"
-    private static let xAppURL = "https://x.com/?utm_source=homescreen&utm_medium=shortcut"
 
     public static func normalizeButton(_ button: String) -> String {
         let key = button.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1129,11 +1128,8 @@ public enum Gokit5Serial {
             )
         case "plus":
             return Gokit5Action(
-                name: "X",
-                kind: "web_app",
-                placement: "internal_fill",
-                openPath: "~/Applications/Chromium Apps.localized/X.app",
-                appURL: xAppURL
+                name: "Terminal",
+                placement: "side_right_fill"
             )
         default:
             return nil

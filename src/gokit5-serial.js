@@ -7,8 +7,6 @@ const DEFAULT_DEBOUNCE_MS = 0;
 const DEFAULT_SERIAL_NUMBER = "94:A9:90:10:E5:F4";
 const HOST_BUTTON_PREFIX = "GOKIT5_HOST_BUTTON:";
 
-const X_APP_URL = "https://x.com/?utm_source=homescreen&utm_medium=shortcut";
-
 const BUTTON_TO_APP_ACTION = Object.freeze({
     minus: Object.freeze({
         name: "SmartShadow",
@@ -30,11 +28,8 @@ const BUTTON_TO_APP_ACTION = Object.freeze({
         open_path: "/Applications/Claude.app"
     }),
     plus: Object.freeze({
-        name: "X",
-        kind: "web_app",
-        placement: "internal_fill",
-        open_path: "~/Applications/Chromium Apps.localized/X.app",
-        app_url: X_APP_URL
+        name: "Terminal",
+        placement: "side_right_fill"
     })
 });
 
