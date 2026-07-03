@@ -108,13 +108,13 @@ final class DockSwitchCoreTests: XCTestCase {
             LauncherConfigItem(name: "Finder", key: "D", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil),
             LauncherConfigItem(name: "System Settings", key: "COMMAND_LEFT", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil),
             LauncherConfigItem(name: "SmartShadow", key: "F3", screen: "0", kind: nil, placement: "external_fill", openPath: nil, appURL: nil),
-            LauncherConfigItem(name: "Terminal", key: "\\", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil)
+            LauncherConfigItem(name: "Terminal", key: "plus", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil)
         ])
 
         let items = LauncherRules.buildLauncherItems(dockItems: dockItems, config: config)
 
-        XCTAssertEqual(items.map(\.key), ["D", "TAB", "SHIFT", "COMMAND_LEFT", "F3", "F6", "\\", "1"])
-        XCTAssertEqual(items.map(\.displayKey), ["D", "⇥", "⇧", "⌘", "F3", "F6", "\\", "1"])
+        XCTAssertEqual(items.map(\.key), ["D", "TAB", "SHIFT", "COMMAND_LEFT", "F3", "F6", "PLUS", "1"])
+        XCTAssertEqual(items.map(\.displayKey), ["D", "⇥", "⇧", "⌘", "F3", "F6", "PLUS", "1"])
         XCTAssertEqual(items.first { $0.name == "Codex" }?.placement, "side_right_fill")
         XCTAssertEqual(items.first { $0.name == "SmartShadow" }?.placement, "side_left_fill")
         XCTAssertEqual(items.first { $0.name == "Claude" }?.placement, "side_right_fill")

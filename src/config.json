@@ -108,7 +108,7 @@
         },
         {
             "name": "Terminal",
-            "key": "\\",
+            "key": "plus",
             "screen": "side_right",
             "placement": "side_right_fill"
         },

@@ -64,7 +64,7 @@ test("buildLauncherItems renders special app labels and preserves fallback numer
     const configDockItems = [
         { name: "Finder", key: "D" },
         { name: "System Settings", key: "COMMAND_LEFT" },
-        { name: "Terminal", key: "\\" }
+        { name: "Terminal", key: "plus" }
     ];
 
     const launcherItems = buildLauncherItems(dockItems, configDockItems);
@@ -78,13 +78,13 @@ test("buildLauncherItems renders special app labels and preserves fallback numer
             { name: "System Settings", key: "COMMAND_LEFT" },
             { name: "SmartShadow", key: "F3" },
             { name: "Claude", key: "F6" },
-            { name: "Terminal", key: "\\" },
+            { name: "Terminal", key: "plus" },
             { name: "Temporary App", key: 1 }
         ]
     );
     assert.deepEqual(
         launcherItems.map(entry => entry.item.icon || entry.item.key),
-        ["D", "⇥", "⇧", "⌘", "F3", "F6", "\\", 1]
+        ["D", "⇥", "⇧", "⌘", "F3", "F6", "plus", 1]
     );
 });
 

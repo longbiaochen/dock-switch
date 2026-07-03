@@ -48,7 +48,7 @@ test("default config maps Terminal to right screen fill", () => {
     assert.equal(sublimeText && sublimeText.key, "T");
     assert.deepEqual(terminal, {
         name: "Terminal",
-        key: "\\",
+        key: "plus",
         screen: "side_right",
         placement: "side_right_fill"
     });
