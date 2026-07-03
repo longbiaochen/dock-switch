@@ -1,13 +1,13 @@
 var APP_SHORTCUTS = Object.freeze({
-    TAB: "ChatGPT",
-    SHIFT: "Codex",
+    LEFT_SHIFT: "Codex",
+    RIGHT_SHIFT: "Claude",
     F3: "SmartShadow",
-    F6: "Claude",
+    F6: "ChatGPT",
     COMMAND_LEFT: "System Settings"
 });
 var RESERVED_LAUNCHER_SHORTCUTS = Object.freeze({
-    TAB: true,
-    SHIFT: true,
+    LEFT_SHIFT: true,
+    RIGHT_SHIFT: true,
     F3: true,
     F6: true,
     COMMAND_LEFT: true,

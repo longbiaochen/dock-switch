@@ -335,7 +335,11 @@ final class DockSwitchApp: NSObject, NSApplicationDelegate {
 
     private func handleFlagsChanged(_ event: NSEvent) -> NSEvent? {
         if event.keyCode == UInt16(kVK_Shift), event.modifierFlags.contains(.shift) {
-            activateShortcut("SHIFT")
+            activateShortcut("LEFT_SHIFT")
+            return nil
+        }
+        if event.keyCode == UInt16(kVK_RightShift), event.modifierFlags.contains(.shift) {
+            activateShortcut("RIGHT_SHIFT")
             return nil
         }
         if event.keyCode == UInt16(kVK_Command), event.modifierFlags.contains(.command) {

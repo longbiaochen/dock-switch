@@ -66,8 +66,11 @@ func normalizeLauncherKey(_ value: String) -> String {
         .replacingOccurrences(of: " ", with: "_")
     if lower == "space" { return "SPACE" }
     if lower == "tab" { return "TAB" }
-    if lower == "shift" { return "SHIFT" }
+    if lower == "left_shift" || lower == "shift_left" { return "LEFT_SHIFT" }
+    if lower == "right_shift" || lower == "shift_right" { return "RIGHT_SHIFT" }
     if trimmed == "⌘" { return "COMMAND_LEFT" }
+    if trimmed == "L⇧" || trimmed == "⇧L" { return "LEFT_SHIFT" }
+    if trimmed == "R⇧" || trimmed == "⇧R" { return "RIGHT_SHIFT" }
     if ["cmd", "command", "cmd_left", "left_cmd", "command_left", "left_command", "meta_left", "left_meta"].contains(lower) {
         return "COMMAND_LEFT"
     }
@@ -87,8 +90,10 @@ func launcherKeyIcon(_ value: String) -> String? {
     switch normalizeLauncherKey(value) {
     case "TAB":
         return "⇥"
-    case "SHIFT":
-        return "⇧"
+    case "LEFT_SHIFT":
+        return "L⇧"
+    case "RIGHT_SHIFT":
+        return "R⇧"
     case "COMMAND", "COMMAND_LEFT", "COMMAND_RIGHT":
         return "⌘"
     default:
@@ -104,16 +109,16 @@ func displayLauncherKey(_ value: String) -> String {
 func reservedItem(for name: String) -> SettingsRow? {
     let normalized = normalizeAppName(name)
     if normalized == "chatgpt" {
-        return SettingsRow(id: name, name: "ChatGPT", key: "TAB", displayKey: "⇥", screen: "", position: "", placement: "", status: .reserved, readonly: true, configured: false, fallback: false)
+        return SettingsRow(id: name, name: "ChatGPT", key: "F6", displayKey: "F6", screen: "", position: "", placement: "", status: .reserved, readonly: true, configured: false, fallback: false)
     }
     if normalized == "codex" {
-        return SettingsRow(id: name, name: "Codex", key: "SHIFT", displayKey: "⇧", screen: "", position: "", placement: "", status: .reserved, readonly: true, configured: false, fallback: false)
+        return SettingsRow(id: name, name: "Codex", key: "LEFT_SHIFT", displayKey: "L⇧", screen: "", position: "", placement: "", status: .reserved, readonly: true, configured: false, fallback: false)
     }
     if normalized == "smartshadow" {
         return SettingsRow(id: name, name: "SmartShadow", key: "F3", displayKey: "F3", screen: "", position: "", placement: "", status: .reserved, readonly: true, configured: false, fallback: false)
     }
     if normalized == "claude" {
-        return SettingsRow(id: name, name: "Claude", key: "F6", displayKey: "F6", screen: "", position: "", placement: "", status: .reserved, readonly: true, configured: false, fallback: false)
+        return SettingsRow(id: name, name: "Claude", key: "RIGHT_SHIFT", displayKey: "R⇧", screen: "", position: "", placement: "", status: .reserved, readonly: true, configured: false, fallback: false)
     }
     return nil
 }

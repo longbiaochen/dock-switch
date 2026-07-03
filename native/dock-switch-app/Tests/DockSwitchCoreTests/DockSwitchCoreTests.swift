@@ -108,14 +108,15 @@ final class DockSwitchCoreTests: XCTestCase {
             LauncherConfigItem(name: "Finder", key: "D", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil),
             LauncherConfigItem(name: "System Settings", key: "COMMAND_LEFT", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil),
             LauncherConfigItem(name: "SmartShadow", key: "F3", screen: "0", kind: nil, placement: "external_fill", openPath: nil, appURL: nil),
-            LauncherConfigItem(name: "Terminal", key: "green", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil)
+            LauncherConfigItem(name: "Terminal", key: "\\", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil)
         ])
 
         let items = LauncherRules.buildLauncherItems(dockItems: dockItems, config: config)
 
-        XCTAssertEqual(items.map(\.key), ["D", "TAB", "SHIFT", "COMMAND_LEFT", "F3", "F6", "GREEN", "1"])
-        XCTAssertEqual(items.map(\.displayKey), ["D", "⇥", "⇧", "⌘", "F3", "F6", "GREEN", "1"])
-        XCTAssertEqual(items.first { $0.name == "Codex" }?.placement, "side_right_fill")
+        XCTAssertEqual(items.map(\.key), ["D", "F6", "LEFT_SHIFT", "COMMAND_LEFT", "F3", "RIGHT_SHIFT", "\\", "1"])
+        XCTAssertEqual(items.map(\.displayKey), ["D", "F6", "L⇧", "⌘", "F3", "R⇧", "\\", "1"])
+        XCTAssertEqual(items.first { $0.name == "ChatGPT" }?.placement, "side_right_fill")
+        XCTAssertEqual(items.first { $0.name == "Codex" }?.placement, "external_fill")
         XCTAssertEqual(items.first { $0.name == "SmartShadow" }?.placement, "side_left_fill")
         XCTAssertEqual(items.first { $0.name == "Claude" }?.placement, "side_right_fill")
         XCTAssertEqual(items.first { $0.name == "SmartShadow" }?.openPath, "/Applications/SmartShadow.app")
@@ -246,6 +247,10 @@ final class DockSwitchCoreTests: XCTestCase {
         XCTAssertEqual(LauncherRules.normalizeKey("tab"), "TAB")
         XCTAssertEqual(LauncherRules.normalizeKey("f20"), "F20")
         XCTAssertEqual(LauncherRules.normalizeKey("d"), "D")
+        XCTAssertEqual(LauncherRules.normalizeKey("left_shift"), "LEFT_SHIFT")
+        XCTAssertEqual(LauncherRules.normalizeKey("right-shift"), "RIGHT_SHIFT")
+        XCTAssertEqual(LauncherRules.keyIcon(for: "LEFT_SHIFT"), "L⇧")
+        XCTAssertEqual(LauncherRules.keyIcon(for: "RIGHT_SHIFT"), "R⇧")
         XCTAssertEqual(LauncherRules.normalizeKey("cmd_left"), "COMMAND_LEFT")
         XCTAssertEqual(LauncherRules.normalizeKey("left_cmd"), "COMMAND_LEFT")
         XCTAssertEqual(LauncherRules.normalizeKey("cmd-right"), "COMMAND_RIGHT")
@@ -256,18 +261,24 @@ final class DockSwitchCoreTests: XCTestCase {
         XCTAssertEqual(LauncherRules.normalizeEventKey(characters: "", keyCode: UInt16(kVK_ANSI_Backslash)), "\\")
         XCTAssertEqual(LauncherRules.normalizeEventKey(characters: "¥", keyCode: UInt16(kVK_ANSI_Backslash)), "\\")
         XCTAssertEqual(LauncherRules.normalizeEventKey(characters: "", keyCode: UInt16(kVK_Tab)), "TAB")
+        XCTAssertEqual(LauncherRules.normalizeEventKey(characters: "", keyCode: UInt16(kVK_Shift)), "LEFT_SHIFT")
+        XCTAssertEqual(LauncherRules.normalizeEventKey(characters: "", keyCode: UInt16(kVK_RightShift)), "RIGHT_SHIFT")
     }
 
     func testShortcutRulesMapReservedAppsAndWindowActions() {
-        XCTAssertEqual(LauncherShortcutRules.appName(for: "TAB"), "ChatGPT")
-        XCTAssertEqual(LauncherShortcutRules.appName(for: "SHIFT"), "Codex")
+        XCTAssertEqual(LauncherShortcutRules.appName(for: "F6"), "ChatGPT")
+        XCTAssertEqual(LauncherShortcutRules.appName(for: "LEFT_SHIFT"), "Codex")
+        XCTAssertEqual(LauncherShortcutRules.appName(for: "RIGHT_SHIFT"), "Claude")
         XCTAssertEqual(LauncherShortcutRules.appName(for: "F3"), "SmartShadow")
-        XCTAssertEqual(LauncherShortcutRules.appName(for: "F6"), "Claude")
         XCTAssertEqual(LauncherShortcutRules.appName(for: "COMMAND_LEFT"), "System Settings")
+        XCTAssertNil(LauncherShortcutRules.appName(for: "TAB"))
         XCTAssertNil(LauncherShortcutRules.appName(for: "COMMAND_RIGHT"))
         XCTAssertTrue(LauncherShortcutRules.isReserved("COMMAND_RIGHT"))
+        XCTAssertTrue(LauncherShortcutRules.isReserved("LEFT_SHIFT"))
+        XCTAssertTrue(LauncherShortcutRules.isReserved("RIGHT_SHIFT"))
         XCTAssertTrue(LauncherShortcutRules.isReserved("F3"))
         XCTAssertTrue(LauncherShortcutRules.isReserved("F6"))
+        XCTAssertFalse(LauncherShortcutRules.isReserved("TAB"))
         XCTAssertEqual(LauncherShortcutRules.windowAction(key: "ArrowUp"), "up")
         XCTAssertEqual(LauncherShortcutRules.windowAction(key: "【"), "current_left")
         XCTAssertEqual(LauncherShortcutRules.windowAction(key: "]"), "current_right")
@@ -405,7 +416,8 @@ final class DockSwitchCoreTests: XCTestCase {
         )
 
         let twoDisplays = [displays[0], displays[3]]
-        XCTAssertEqual(DisplayGeometry.resolveBoundsForPlacement("side_left_fill", displays: twoDisplays, primaryDisplay: displays[0]), displays[3].workArea)
+        XCTAssertEqual(DisplayGeometry.resolveBoundsForPlacement("side_left_fill", displays: twoDisplays, primaryDisplay: displays[0]), displays[0].workArea)
+        XCTAssertEqual(DisplayGeometry.resolveBoundsForPlacement("side_right_fill", displays: twoDisplays, primaryDisplay: displays[0]), displays[0].workArea)
         XCTAssertEqual(
             DisplayGeometry.resolveBoundsForPlacement("external_right_half", displays: [displays[0]], primaryDisplay: displays[0]),
             DSRect(x: 756, y: 33, width: 756, height: 875)
@@ -467,32 +479,32 @@ final class DockSwitchCoreTests: XCTestCase {
         XCTAssertEqual(Gokit5Serial.parseButtonLine("I (123) VolcRTCApp: Heap Info"), "")
 
         let minus = Gokit5Serial.action(for: "minus")
-        XCTAssertEqual(minus?.name, "SmartShadow")
+        XCTAssertEqual(minus?.name, "Codex")
         XCTAssertEqual(minus?.placement, "side_left_fill")
-        XCTAssertEqual(minus?.openPath, "/Applications/SmartShadow.app")
+        XCTAssertNil(minus?.openPath)
 
         let voice = Gokit5Serial.action(for: "voice")
         XCTAssertEqual(voice?.name, "Codex")
         XCTAssertEqual(voice?.placement, "external_fill")
 
         let switchAction = Gokit5Serial.action(for: "switch")
-        XCTAssertEqual(switchAction?.name, "Claude")
+        XCTAssertEqual(switchAction?.name, "Codex")
         XCTAssertEqual(switchAction?.placement, "side_right_fill")
-        XCTAssertEqual(switchAction?.openPath, "/Applications/Claude.app")
+        XCTAssertNil(switchAction?.openPath)
 
         let green = Gokit5Serial.action(for: "green")
-        XCTAssertEqual(green?.name, "Terminal")
+        XCTAssertEqual(green?.name, "Codex")
         XCTAssertEqual(green?.placement, "side_right_fill")
         XCTAssertNil(green?.kind)
         XCTAssertNil(green?.openPath)
         XCTAssertNil(green?.appURL)
 
         let plus = Gokit5Serial.action(for: "plus")
-        XCTAssertEqual(plus?.name, "X")
-        XCTAssertEqual(plus?.kind, "web_app")
+        XCTAssertEqual(plus?.name, "Codex")
         XCTAssertEqual(plus?.placement, "internal_fill")
-        XCTAssertEqual(plus?.openPath, "~/Applications/Chromium Apps.localized/X.app")
-        XCTAssertEqual(plus?.appURL, "https://x.com/?utm_source=homescreen&utm_medium=shortcut")
+        XCTAssertNil(plus?.kind)
+        XCTAssertNil(plus?.openPath)
+        XCTAssertNil(plus?.appURL)
         XCTAssertNil(Gokit5Serial.action(for: "+"))
         XCTAssertNil(Gokit5Serial.action(for: "add"))
         XCTAssertNil(Gokit5Serial.action(for: "volume-up"))

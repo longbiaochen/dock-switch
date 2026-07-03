@@ -90,7 +90,7 @@ test("getDisplayForTarget returns the largest external display", () => {
     assert.equal(getDisplayForTarget("external", displays, displays[0]), displays[2]);
 });
 
-test("getDisplayForTarget returns the side display and falls back to external", () => {
+test("getDisplayForTarget returns side displays and falls back to internal when targets are offline", () => {
     const withSide = [
         makeDisplay({
             id: 1,
@@ -124,10 +124,13 @@ test("getDisplayForTarget returns the side display and falls back to external", 
         })
     ];
     const withoutSide = withSide.slice(0, 2);
+    const internalOnly = withSide.slice(0, 1);
 
     assert.equal(getDisplayForTarget("side_left", withSide, withSide[0]), withSide[2]);
-    assert.equal(getDisplayForTarget("side_left", withoutSide, withoutSide[0]), withoutSide[1]);
+    assert.equal(getDisplayForTarget("side_left", withoutSide, withoutSide[0]), withoutSide[0]);
+    assert.equal(getDisplayForTarget("side_right", withoutSide, withoutSide[0]), withoutSide[0]);
     assert.equal(getDisplayForTarget("side", withSide, withSide[0]), withSide[2]);
+    assert.equal(getDisplayForTarget("external", internalOnly, internalOnly[0]), internalOnly[0]);
 });
 
 test("getDisplayForTarget maps the current four-display layout", () => {

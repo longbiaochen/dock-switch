@@ -66,6 +66,6 @@ test("displayName truncates long app names for visual reading", () => {
 });
 
 test("readableKey prefers configured icons over raw keys", () => {
-    assert.equal(readableKey({ icon: "⇧", key: "SHIFT" }), "⇧");
+    assert.equal(readableKey({ icon: "L⇧", key: "LEFT_SHIFT" }), "L⇧");
     assert.equal(readableKey({ key: "A" }), "A");
 });

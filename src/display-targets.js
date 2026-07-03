@@ -109,13 +109,22 @@ function getDisplayForTarget(target, displays, primaryDisplay) {
         return getInternalDisplay(displays, primaryDisplay) || primaryDisplay || displays[0];
     }
     if (normalizedTarget === "external") {
-        return getExternalDisplay(displays, primaryDisplay, null);
+        return getExternalDisplay(displays, primaryDisplay, null) ||
+            getInternalDisplay(displays, primaryDisplay) ||
+            primaryDisplay ||
+            displays[0];
     }
     if (normalizedTarget === "side_left") {
-        return getSideLeftDisplay(displays) || getExternalDisplay(displays, primaryDisplay, null);
+        return getSideLeftDisplay(displays) ||
+            getInternalDisplay(displays, primaryDisplay) ||
+            primaryDisplay ||
+            displays[0];
     }
     if (normalizedTarget === "side_right") {
-        return getSideRightDisplay(displays) || getExternalDisplay(displays, primaryDisplay, null);
+        return getSideRightDisplay(displays) ||
+            getInternalDisplay(displays, primaryDisplay) ||
+            primaryDisplay ||
+            displays[0];
     }
 
     return null;

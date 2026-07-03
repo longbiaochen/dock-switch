@@ -21,15 +21,17 @@ test("isExcludedLauncherApp marks fixed-key apps as excluded from ordinary fallb
 test("specialLauncherItemForName labels fixed Dock apps with synced key names", () => {
     assert.deepEqual(specialLauncherItemForName("ChatGPT"), {
         name: "ChatGPT",
-        key: "TAB",
-        icon: "⇥"
+        key: "F6",
+        icon: "F6",
+        screen: "side_right",
+        placement: "side_right_fill"
     });
     assert.deepEqual(specialLauncherItemForName("Codex.app"), {
         name: "Codex",
-        key: "SHIFT",
-        icon: "⇧",
-        screen: "side_right",
-        placement: "side_right_fill"
+        key: "LEFT_SHIFT",
+        icon: "L⇧",
+        screen: "external",
+        placement: "external_fill"
     });
     assert.deepEqual(specialLauncherItemForName("SmartShadow.app"), {
         name: "SmartShadow",
@@ -41,8 +43,8 @@ test("specialLauncherItemForName labels fixed Dock apps with synced key names", 
     });
     assert.deepEqual(specialLauncherItemForName("Claude.app"), {
         name: "Claude",
-        key: "F6",
-        icon: "F6",
+        key: "RIGHT_SHIFT",
+        icon: "R⇧",
         screen: "side_right",
         placement: "side_right_fill",
         open_path: "/Applications/Claude.app"
@@ -64,7 +66,7 @@ test("buildLauncherItems renders special app labels and preserves fallback numer
     const configDockItems = [
         { name: "Finder", key: "D" },
         { name: "System Settings", key: "COMMAND_LEFT" },
-        { name: "Terminal", key: "green" }
+        { name: "Terminal", key: "\\" }
     ];
 
     const launcherItems = buildLauncherItems(dockItems, configDockItems);
@@ -73,18 +75,18 @@ test("buildLauncherItems renders special app labels and preserves fallback numer
         launcherItems.map(entry => ({ name: entry.item.name, key: entry.item.key })),
         [
             { name: "Finder", key: "D" },
-            { name: "ChatGPT", key: "TAB" },
-            { name: "Codex", key: "SHIFT" },
+            { name: "ChatGPT", key: "F6" },
+            { name: "Codex", key: "LEFT_SHIFT" },
             { name: "System Settings", key: "COMMAND_LEFT" },
             { name: "SmartShadow", key: "F3" },
-            { name: "Claude", key: "F6" },
-            { name: "Terminal", key: "green" },
+            { name: "Claude", key: "RIGHT_SHIFT" },
+            { name: "Terminal", key: "\\" },
             { name: "Temporary App", key: 1 }
         ]
     );
     assert.deepEqual(
         launcherItems.map(entry => entry.item.icon || entry.item.key),
-        ["D", "⇥", "⇧", "⌘", "F3", "F6", "green", 1]
+        ["D", "F6", "L⇧", "⌘", "F3", "R⇧", "\\", 1]
     );
 });
 

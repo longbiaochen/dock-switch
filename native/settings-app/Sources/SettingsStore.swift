@@ -215,7 +215,7 @@ final class SettingsStore: ObservableObject {
         if key == "COMMAND_LEFT", normalizeAppName(appName) == "system settings" {
             return false
         }
-        return ["TAB", "SHIFT", "F3", "F6", "COMMAND_LEFT", "COMMAND_RIGHT"].contains(key)
+        return ["LEFT_SHIFT", "RIGHT_SHIFT", "F3", "F6", "COMMAND_LEFT", "COMMAND_RIGHT"].contains(key)
     }
 
     private func visibleDockItems(_ dockItems: [[String: Any]]) -> [[String: Any]] {

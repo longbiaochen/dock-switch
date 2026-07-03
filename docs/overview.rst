@@ -11,22 +11,22 @@ Core Flow
 ---------
 
 1. A global shortcut (`F20`) toggles the launcher window.
-2. In the current default config, Safari, Feishu, WeChat, Google Chrome, Calendar, Notes, Contacts, Mail, Sublime Text, and configured web apps target ``internal_fill`` on the internal display, while symbolic shortcuts target ChatGPT, Codex, System Settings, Terminal, and SmartShadow.
+2. In the current default config, Safari, Feishu, WeChat, Google Chrome, Calendar, Notes, Contacts, Mail, Sublime Text, and configured web apps target ``internal_fill`` on the internal display, while symbolic shortcuts target ChatGPT, Codex, System Settings, Terminal, SmartShadow, and Claude.
 3. The main process calls the native ``dock-query`` addon to fetch Dock app metadata.
 4. The renderer builds a compact key map UI.
 5. Key presses launch/focus apps; items with explicit placement or ``kind: "web_app"``
    use the placement path, while other apps restore remembered bounds.
    ``ArrowLeft``/``ArrowRight`` move to the left/right side-display work areas,
    ``ArrowUp`` moves to the external display, ``ArrowDown`` moves to the internal
-   display, ``【``/``】`` tile the current display left/right half, ``Shift`` opens ``Codex`` on the right side display, ``Tab`` opens
-   ``ChatGPT``, left ``Command`` opens ``System Settings`` on the internal display, ``\`` opens
+   display, ``【``/``】`` tile the current display left/right half, ``left_shift`` opens ``Codex`` on the external display, ``right_shift`` opens ``Claude`` on the right side display, ``F6`` opens
+   ``ChatGPT`` on the right side display, ``F3`` opens ``SmartShadow`` on the left side display, left ``Command`` opens ``System Settings`` on the internal display, ``\`` opens
    ``Terminal`` on the right side display, and right ``Command`` is a reserved no-op. ``Command`` shortcuts render as ``⌘`` in the HUD. ``Codex``, ``ChatGPT``, ``SmartShadow``, and ``Claude`` are excluded from the ordinary HUD
    item list, while numeric keys remain available for normal launcher selection.
 6. Display-moving arrows move the pointer to the center of the target display.
    App activation shortcuts move it to the center of the activated or placed window.
 7. The optional GoKit5 serial listener maps host-button events from
-   ``longbiaochen/open-embodied`` firmware to app launch and placement actions
-   for SmartShadow, X, Codex, and Claude.
+   ``longbiaochen/open-embodied`` firmware to Codex placement actions across
+   the left side, internal, external, and right side displays.
 
 Startup
 -------

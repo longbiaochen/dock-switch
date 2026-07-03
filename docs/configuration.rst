@@ -26,10 +26,10 @@ Notes
 -----
 
 - App names are matched exactly against Dock item names.
-- Key matching in the renderer is case-insensitive, with symbolic support for launcher keys such as ``Tab``, ``Shift``, left ``Command``, right ``Command``, and ``Space``.
+- Key matching in the renderer is case-insensitive, with symbolic support for launcher keys such as ``left_shift``, ``right_shift``, left ``Command``, right ``Command``, and ``Space``.
 - In the current default config, Safari, Feishu, WeChat, Google Chrome, Calendar, Notes, Contacts, Mail, Sublime Text, and configured web apps are mapped to ``internal_fill`` on the internal display.
-- In the current launcher behavior, ``Shift`` opens ``Codex`` with ``side_right_fill`` for debugging, ``Tab`` opens ``ChatGPT``, left ``Command`` opens ``System Settings`` with ``internal_fill``, ``\`` opens ``Terminal`` with ``side_right_fill``, and right ``Command`` is a reserved no-op. App shortcuts restore remembered window bounds when available unless an explicit placement is configured. GoKit5 opens SmartShadow through its product bundle and uses the same placement path as the other hardware buttons.
-- ``Codex``, ``ChatGPT``, ``SmartShadow``, ``Claude``, and Command shortcuts render in the launcher HUD as fixed Dock labels: ``⇧`` for ``Shift`` / Codex, ``⇥`` for ``Tab`` / ChatGPT, ``F3`` for SmartShadow, ``F6`` for Claude, and ``⌘`` for left/right ``Command``. They remain excluded from ordinary fallback numbering, so their keys cannot fall through to a stale generic app-placement entry.
+- In the current launcher behavior, ``F6`` opens ``ChatGPT`` with ``side_right_fill``, ``F3`` opens ``SmartShadow`` with ``side_left_fill``, ``left_shift`` opens ``Codex`` with ``external_fill``, ``right_shift`` opens ``Claude`` with ``side_right_fill``, left ``Command`` opens ``System Settings`` with ``internal_fill``, ``\`` opens ``Terminal`` with ``side_right_fill``, and right ``Command`` is a reserved no-op.
+- ``Codex``, ``ChatGPT``, ``SmartShadow``, ``Claude``, and Command shortcuts render in the launcher HUD as fixed Dock labels: ``L⇧`` for left Shift / Codex, ``F6`` for ChatGPT, ``F3`` for SmartShadow, ``R⇧`` for right Shift / Claude, and ``⌘`` for left/right ``Command``. They remain excluded from ordinary fallback numbering, so their keys cannot fall through to a stale generic app-placement entry.
 - ``ArrowLeft`` moves the frontmost window to the left side-display work area.
 - ``ArrowRight`` moves the frontmost window to the right side-display work area.
 - ``ArrowUp`` moves the frontmost window to the external display work area.
@@ -44,10 +44,11 @@ Notes
 - If ``kind`` is ``web_app`` and ``placement`` is not set, dock-switch places the app at ``internal_fill``.
 - If ``open_path`` is set, dock-switch launches that exact app bundle.
 - If ``app_url`` is set, dock-switch can place a Chrome app window by pid even when Accessibility exposes it as ``Google Chrome``.
-- ``external_fill`` maximizes to the primary external display work area. With multiple external displays, this is the largest external display and is the SmartShadow helper's workspace target.
+- ``external_fill`` maximizes to the primary external display work area. With multiple external displays, this is the largest external display.
 - ``side_left_fill`` maximizes to the left side-display work area.
 - ``side_right_fill`` maximizes to the right side-display work area.
-- GoKit5 host-button events launch and place apps: ``minus`` -> ``SmartShadow.app`` at ``side_left_fill``, ``plus`` -> ``X.app`` at ``internal_fill``, ``voice`` -> ``Codex.app`` at ``external_fill``, and ``green``/``switch`` -> ``Claude.app`` at ``side_right_fill``.
+- If a requested external or side display is not connected, ``external_fill``, ``side_left_fill``, and ``side_right_fill`` fall back to the internal main display work area.
+- GoKit5 host-button events launch and place Codex on four displays: ``minus`` -> ``side_left_fill``, ``plus`` -> ``internal_fill``, ``voice`` -> ``external_fill``, and ``green``/``switch`` -> ``side_right_fill``.
 - If no external display is available, ``external_left_half`` falls back to the left half of the internal display work area.
 - If no external display is available, ``external_right_half`` falls back to the right half of the internal display work area.
 

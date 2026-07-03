@@ -181,14 +181,14 @@ public enum StatusItemIconPolicy {
 public enum LauncherShortcutRules {
     public static func appName(for normalizedKey: String) -> String? {
         switch normalizedKey {
-        case "TAB":
+        case "F6":
             return "ChatGPT"
-        case "SHIFT":
+        case "LEFT_SHIFT":
             return "Codex"
+        case "RIGHT_SHIFT":
+            return "Claude"
         case "F3":
             return "SmartShadow"
-        case "F6":
-            return "Claude"
         case "COMMAND_LEFT":
             return "System Settings"
         default:
@@ -197,7 +197,7 @@ public enum LauncherShortcutRules {
     }
 
     public static func isReserved(_ normalizedKey: String) -> Bool {
-        ["TAB", "SHIFT", "F3", "F6", "COMMAND_LEFT", "COMMAND_RIGHT"].contains(normalizedKey)
+        ["LEFT_SHIFT", "RIGHT_SHIFT", "F3", "F6", "COMMAND_LEFT", "COMMAND_RIGHT"].contains(normalizedKey)
     }
 
     public static func windowAction(key: String, code: String = "") -> String? {
@@ -254,13 +254,13 @@ public enum DisplayGeometry {
     public static func sideLeftDisplay(_ displays: [DisplaySnapshot], primaryDisplay: DisplaySnapshot?) -> DisplaySnapshot? {
         sideCandidates(displays, primaryDisplay: primaryDisplay)
             .sorted { $0.bounds.x < $1.bounds.x }
-            .first ?? externalDisplay(displays, primaryDisplay: primaryDisplay)
+            .first
     }
 
     public static func sideRightDisplay(_ displays: [DisplaySnapshot], primaryDisplay: DisplaySnapshot?) -> DisplaySnapshot? {
         sideCandidates(displays, primaryDisplay: primaryDisplay)
             .sorted { $0.bounds.x > $1.bounds.x }
-            .first ?? externalDisplay(displays, primaryDisplay: primaryDisplay)
+            .first
     }
 
     public static func display(for target: String, displays: [DisplaySnapshot], primaryDisplay: DisplaySnapshot?) -> DisplaySnapshot? {
@@ -268,11 +268,11 @@ public enum DisplayGeometry {
         case "internal":
             return internalDisplay(displays, primaryDisplay: primaryDisplay)
         case "external":
-            return externalDisplay(displays, primaryDisplay: primaryDisplay)
+            return externalDisplay(displays, primaryDisplay: primaryDisplay) ?? internalDisplay(displays, primaryDisplay: primaryDisplay)
         case "side_left":
-            return sideLeftDisplay(displays, primaryDisplay: primaryDisplay)
+            return sideLeftDisplay(displays, primaryDisplay: primaryDisplay) ?? internalDisplay(displays, primaryDisplay: primaryDisplay)
         case "side_right":
-            return sideRightDisplay(displays, primaryDisplay: primaryDisplay)
+            return sideRightDisplay(displays, primaryDisplay: primaryDisplay) ?? internalDisplay(displays, primaryDisplay: primaryDisplay)
         default:
             return nil
         }
@@ -472,7 +472,8 @@ public enum LauncherRules {
             .replacingOccurrences(of: " ", with: "_")
         if lower == "space" { return "SPACE" }
         if lower == "tab" { return "TAB" }
-        if lower == "shift" { return "SHIFT" }
+        if lower == "left_shift" || lower == "shift_left" { return "LEFT_SHIFT" }
+        if lower == "right_shift" || lower == "shift_right" { return "RIGHT_SHIFT" }
         if ["cmd", "command", "cmd_left", "left_cmd", "command_left", "left_command", "meta_left", "left_meta"].contains(lower) {
             return "COMMAND_LEFT"
         }
@@ -490,6 +491,10 @@ public enum LauncherRules {
         switch Int(keyCode) {
         case kVK_Tab:
             return "TAB"
+        case kVK_Shift:
+            return "LEFT_SHIFT"
+        case kVK_RightShift:
+            return "RIGHT_SHIFT"
         case kVK_ANSI_Backslash:
             return "\\"
         default:
@@ -501,8 +506,10 @@ public enum LauncherRules {
         switch normalizeKey(key) {
         case "TAB":
             return "⇥"
-        case "SHIFT":
-            return "⇧"
+        case "LEFT_SHIFT":
+            return "L⇧"
+        case "RIGHT_SHIFT":
+            return "R⇧"
         case "COMMAND", "COMMAND_LEFT", "COMMAND_RIGHT":
             return "⌘"
         default:
@@ -513,13 +520,13 @@ public enum LauncherRules {
     public static func specialItem(for name: String) -> (name: String, key: String, icon: String, placement: String?, openPath: String?)? {
         switch normalizeAppName(name) {
         case "chatgpt":
-            return ("ChatGPT", "TAB", "⇥", nil, nil)
+            return ("ChatGPT", "F6", "F6", "side_right_fill", nil)
         case "codex":
-            return ("Codex", "SHIFT", "⇧", "side_right_fill", nil)
+            return ("Codex", "LEFT_SHIFT", "L⇧", "external_fill", nil)
         case "smartshadow":
             return ("SmartShadow", "F3", "F3", "side_left_fill", "/Applications/SmartShadow.app")
         case "claude":
-            return ("Claude", "F6", "F6", "side_right_fill", "/Applications/Claude.app")
+            return ("Claude", "RIGHT_SHIFT", "R⇧", "side_right_fill", "/Applications/Claude.app")
         default:
             return nil
         }
@@ -1111,9 +1118,8 @@ public enum Gokit5Serial {
         switch normalizeButton(button) {
         case "minus":
             return Gokit5Action(
-                name: "SmartShadow",
-                placement: "side_left_fill",
-                openPath: "/Applications/SmartShadow.app"
+                name: "Codex",
+                placement: "side_left_fill"
             )
         case "voice":
             return Gokit5Action(
@@ -1122,22 +1128,18 @@ public enum Gokit5Serial {
             )
         case "switch":
             return Gokit5Action(
-                name: "Claude",
-                placement: "side_right_fill",
-                openPath: "/Applications/Claude.app"
+                name: "Codex",
+                placement: "side_right_fill"
             )
         case "green":
             return Gokit5Action(
-                name: "Terminal",
+                name: "Codex",
                 placement: "side_right_fill"
             )
         case "plus":
             return Gokit5Action(
-                name: "X",
-                kind: "web_app",
-                placement: "internal_fill",
-                openPath: "~/Applications/Chromium Apps.localized/X.app",
-                appURL: "https://x.com/?utm_source=homescreen&utm_medium=shortcut"
+                name: "Codex",
+                placement: "internal_fill"
             )
         default:
             return nil
@@ -1717,11 +1719,11 @@ public final class CodexDisplaySelectionService {
         case "internal":
             return primary
         case "external":
-            return largestExternal
+            return largestExternal ?? primary
         case "side_left":
-            return sideCandidates.min { $0.bounds.x < $1.bounds.x } ?? largestExternal
+            return sideCandidates.min { $0.bounds.x < $1.bounds.x } ?? primary
         case "side_right":
-            return sideCandidates.max { $0.bounds.x < $1.bounds.x } ?? largestExternal
+            return sideCandidates.max { $0.bounds.x < $1.bounds.x } ?? primary
         default:
             return nil
         }

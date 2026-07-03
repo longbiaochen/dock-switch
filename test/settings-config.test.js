@@ -34,10 +34,10 @@ test("buildSettingsRows merges visible Dock apps with configured, reserved, and 
         readonly: row.readonly
     })), [
         { name: "Finder", key: "D", screen: "0", placement: "internal_fill", status: "configured", readonly: false },
-        { name: "ChatGPT", key: "TAB", screen: "", placement: "", status: "reserved", readonly: true },
-        { name: "Codex", key: "SHIFT", screen: "", placement: "", status: "reserved", readonly: true },
+        { name: "ChatGPT", key: "F6", screen: "", placement: "", status: "reserved", readonly: true },
+        { name: "Codex", key: "LEFT_SHIFT", screen: "", placement: "", status: "reserved", readonly: true },
         { name: "SmartShadow", key: "F3", screen: "", placement: "", status: "reserved", readonly: true },
-        { name: "Claude", key: "F6", screen: "", placement: "", status: "reserved", readonly: true },
+        { name: "Claude", key: "RIGHT_SHIFT", screen: "", placement: "", status: "reserved", readonly: true },
         { name: "Temporary App", key: "1", screen: "", placement: "", status: "fallback", readonly: false }
     ]);
 });
@@ -45,6 +45,8 @@ test("buildSettingsRows merges visible Dock apps with configured, reserved, and 
 test("normalizeEditableKey uses launcher key normalization for settings input", () => {
     assert.equal(normalizeEditableKey(" f3 "), "F3");
     assert.equal(normalizeEditableKey("space"), "SPACE");
+    assert.equal(normalizeEditableKey("left_shift"), "LEFT_SHIFT");
+    assert.equal(normalizeEditableKey("right-shift"), "RIGHT_SHIFT");
     assert.equal(normalizeEditableKey("⌘"), "COMMAND_LEFT");
     assert.equal(normalizeEditableKey("cmd_left"), "COMMAND_LEFT");
     assert.equal(normalizeEditableKey("left_cmd"), "COMMAND_LEFT");
@@ -80,13 +82,15 @@ test("validateKeyUpdates rejects duplicate and reserved settings keys", () => {
     const errors = validateKeyUpdates([
         { name: "Finder", key: "D" },
         { name: "Safari", key: "d" },
-        { name: "Codex Override", key: "shift" },
+        { name: "Codex Override", key: "left_shift" },
         { name: "SmartShadow Override", key: "f3" },
-        { name: "Claude Override", key: "f6" }
+        { name: "Claude Override", key: "right_shift" },
+        { name: "ChatGPT Override", key: "f6" }
     ]);
 
     assert.equal(errors.some(error => error.type === "duplicate" && error.key === "D"), true);
-    assert.equal(errors.some(error => error.type === "reserved" && error.key === "SHIFT"), true);
+    assert.equal(errors.some(error => error.type === "reserved" && error.key === "LEFT_SHIFT"), true);
+    assert.equal(errors.some(error => error.type === "reserved" && error.key === "RIGHT_SHIFT"), true);
     assert.equal(errors.some(error => error.type === "reserved" && error.key === "F3"), true);
     assert.equal(errors.some(error => error.type === "reserved" && error.key === "F6"), true);
 });

@@ -16,15 +16,17 @@ function normalizeAppName(name) {
 var SPECIAL_LAUNCHER_ITEMS = Object.freeze({
     chatgpt: Object.freeze({
         name: "ChatGPT",
-        key: "TAB",
-        icon: "⇥"
+        key: "F6",
+        icon: "F6",
+        screen: "side_right",
+        placement: "side_right_fill"
     }),
     codex: Object.freeze({
         name: "Codex",
-        key: "SHIFT",
-        icon: "⇧",
-        screen: "side_right",
-        placement: "side_right_fill"
+        key: "LEFT_SHIFT",
+        icon: "L⇧",
+        screen: "external",
+        placement: "external_fill"
     }),
     smartshadow: Object.freeze({
         name: "SmartShadow",
@@ -36,8 +38,8 @@ var SPECIAL_LAUNCHER_ITEMS = Object.freeze({
     }),
     claude: Object.freeze({
         name: "Claude",
-        key: "F6",
-        icon: "F6",
+        key: "RIGHT_SHIFT",
+        icon: "R⇧",
         screen: "side_right",
         placement: "side_right_fill",
         open_path: "/Applications/Claude.app"

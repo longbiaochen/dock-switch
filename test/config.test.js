@@ -47,10 +47,10 @@ test("default config maps Terminal to right screen fill", () => {
     const sublimeText = config.dock_items.find(entry => entry.name === "Sublime Text");
 
     assert.equal(sublimeText && sublimeText.key, "T");
-    assert.equal(x && x.key, "plus");
+    assert.equal(x && x.key, "X");
     assert.deepEqual(terminal, {
         name: "Terminal",
-        key: "green",
+        key: "\\",
         screen: "side_right",
         placement: "side_right_fill"
     });
@@ -91,6 +91,9 @@ test("default config maps left command to System Settings on the internal displa
 test("default launcher config leaves SmartShadow out of ordinary HUD keys", () => {
     assert.equal(config.dock_items.some(entry => entry.name === "SmartShadow"), false);
     assert.equal(config.dock_items.some(entry => entry.key === "F3"), false);
+    assert.equal(config.dock_items.some(entry => entry.key === "F6"), false);
+    assert.equal(config.dock_items.some(entry => entry.key === "LEFT_SHIFT"), false);
+    assert.equal(config.dock_items.some(entry => entry.key === "RIGHT_SHIFT"), false);
 });
 
 test("default config does not assign duplicate launcher keys", () => {

@@ -57,7 +57,7 @@ test("resolveBoundsForPlacement rejects removed side_fill placement", () => {
     assert.equal(resolveBoundsForPlacement("side_fill", displays, displays[0]), null);
 });
 
-test("resolveBoundsForPlacement uses side_left_fill and falls back to external when side display is offline", () => {
+test("resolveBoundsForPlacement uses side_left_fill and falls back to internal when side display is offline", () => {
     const displays = [
         makeDisplay({
             id: 1,
@@ -83,7 +83,7 @@ test("resolveBoundsForPlacement uses side_left_fill and falls back to external w
 
     assert.deepEqual(
         resolveBoundsForPlacement("side_left_fill", displays, displays[0]),
-        { x: -579, y: -1410, w: 2560, h: 1410 }
+        { x: 0, y: 33, w: 1512, h: 875 }
     );
 });
 

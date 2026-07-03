@@ -36,4 +36,4 @@ Notes
 - Use ``--pid`` when you need to target one managed window from a multi-window app such as Google Chrome.
 - Use the Chrome profile commands only for lower-level profile-bound Chrome placement; normal Codex browser work should go through the official Chrome plugin or the in-app browser.
 - If the dock-switch control socket is unavailable, the CLI launches ``/Applications/dock-switch.app`` and retries automatically.
-- ``codex-display`` focuses an existing Codex window on the target display when available, but always centers the pointer on the target display work area so repeated physical key presses do not drift with window bounds. The SmartShadow Karabiner helper uses ``external_fill`` for SmartShadow on the primary external large display; Codex debugging uses ``side_right`` / ``side_right_fill``.
+- ``codex-display`` focuses an existing Codex window on the target display when available, but always centers the pointer on the target display work area so repeated physical key presses do not drift with window bounds. If a requested external target is offline, Codex display selection falls back to the internal main display.

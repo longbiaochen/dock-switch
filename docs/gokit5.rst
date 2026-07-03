@@ -14,13 +14,15 @@ Behavior
 Button mapping
 --------------
 
-The firmware sends host-button events that map to app placement actions:
+The firmware sends host-button events that map to Codex placement actions:
 
-- ``minus`` -> ``SmartShadow.app`` at ``side_left_fill``
-- ``plus`` -> ``X.app`` at ``internal_fill``
+- ``minus`` -> ``Codex.app`` at ``side_left_fill``
+- ``plus`` -> ``Codex.app`` at ``internal_fill``
 - ``voice`` -> ``Codex.app`` at ``external_fill``
-- ``green`` -> ``Claude.app`` at ``side_right_fill``
-- ``switch`` -> ``Claude.app`` at ``side_right_fill``
+- ``green`` -> ``Codex.app`` at ``side_right_fill``
+- ``switch`` -> ``Codex.app`` at ``side_right_fill``
+
+If a requested external or side display is not connected, dock-switch falls back to the internal main display work area.
 
 Firmware
 --------
