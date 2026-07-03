@@ -3,6 +3,31 @@ import XCTest
 @testable import DockSwitchCore
 
 final class DockSwitchCoreTests: XCTestCase {
+    private final class FakeLauncherWindowPlacement: LauncherWindowPlacement {
+        var placeProcessResult = false
+        var moveMouseResult = false
+        var placedProcesses: [(name: String, placement: String)] = []
+        var movedApps: [String] = []
+
+        func placePID(_ pid: pid_t, placement: String) -> Bool {
+            false
+        }
+
+        func placeProcess(name: String, placement: String) -> Bool {
+            placedProcesses.append((name, placement))
+            return placeProcessResult
+        }
+
+        func moveMouseToPIDWindowCenter(_ pid: pid_t) -> Bool {
+            false
+        }
+
+        func moveMouseToApplicationWindowCenter(name: String) -> Bool {
+            movedApps.append(name)
+            return moveMouseResult
+        }
+    }
+
     private func display(
         id: UInt32,
         label: String,
@@ -249,6 +274,67 @@ final class DockSwitchCoreTests: XCTestCase {
         XCTAssertNil(LauncherShortcutRules.windowAction(key: "\\"))
         XCTAssertTrue(LauncherShortcutRules.shouldCenterMouse(for: "right"))
         XCTAssertFalse(LauncherShortcutRules.shouldCenterMouse(for: "current_right"))
+    }
+
+    func testLauncherServiceShowsMouseFeedbackAfterPlacedAppMouseMove() {
+        let placement = FakeLauncherWindowPlacement()
+        placement.placeProcessResult = true
+        placement.moveMouseResult = true
+        var feedbackPoints: [CGPoint] = []
+        let expectation = expectation(description: "feedback shown")
+        let service = LauncherService(
+            windowPlacement: placement,
+            placeRetryDeadline: 0.1,
+            placeRetryDelay: 0,
+            showMouseFeedback: { point in
+                feedbackPoints.append(point)
+                expectation.fulfill()
+            },
+            currentMouseLocation: { CGPoint(x: 420, y: 240) },
+            openItem: { _ in }
+        )
+
+        service.activate(LauncherItem(
+            name: "Claude",
+            key: "F6",
+            placement: "side_right_fill",
+            dockItem: DockItemSnapshot(name: "Claude", pos: .zero, size: .zero)
+        ))
+
+        wait(for: [expectation], timeout: 1)
+        XCTAssertEqual(placement.placedProcesses.map(\.name), ["Claude"])
+        XCTAssertEqual(placement.placedProcesses.map(\.placement), ["side_right_fill"])
+        XCTAssertEqual(placement.movedApps, ["Claude"])
+        XCTAssertEqual(feedbackPoints, [CGPoint(x: 420, y: 240)])
+    }
+
+    func testLauncherServiceShowsMouseFeedbackAfterUnplacedAppMouseMove() {
+        let placement = FakeLauncherWindowPlacement()
+        placement.moveMouseResult = true
+        var feedbackPoints: [CGPoint] = []
+        let expectation = expectation(description: "feedback shown")
+        let service = LauncherService(
+            windowPlacement: placement,
+            placeRetryDeadline: 0.1,
+            placeRetryDelay: 0,
+            showMouseFeedback: { point in
+                feedbackPoints.append(point)
+                expectation.fulfill()
+            },
+            currentMouseLocation: { CGPoint(x: -100, y: 50) },
+            openItem: { _ in }
+        )
+
+        service.activate(LauncherItem(
+            name: "Finder",
+            key: "D",
+            dockItem: DockItemSnapshot(name: "Finder", pos: .zero, size: .zero)
+        ))
+
+        wait(for: [expectation], timeout: 1)
+        XCTAssertEqual(placement.placedProcesses.count, 0)
+        XCTAssertEqual(placement.movedApps, ["Finder"])
+        XCTAssertEqual(feedbackPoints, [CGPoint(x: -100, y: 50)])
     }
 
     func testOverlayAnimationPolicyShowsInstantlyAndHidesSwiftly() {

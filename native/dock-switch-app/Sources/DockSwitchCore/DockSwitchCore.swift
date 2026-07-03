@@ -878,19 +878,32 @@ public enum WebAppRuntime {
 }
 
 public final class LauncherService {
-    private let windowPlacement: WindowPlacementService
+    private let windowPlacement: any LauncherWindowPlacement
     private let placeRetryDeadline: TimeInterval
     private let placeRetryDelay: TimeInterval
+    private let showMouseFeedback: (CGPoint) -> Void
+    private let currentMouseLocation: () -> CGPoint?
+    private let openItem: (LauncherItem) -> Void
 
-    public init(windowPlacement: WindowPlacementService = WindowPlacementService(), placeRetryDeadline: TimeInterval = 1.6, placeRetryDelay: TimeInterval = 0.08) {
+    public init(
+        windowPlacement: any LauncherWindowPlacement = WindowPlacementService(),
+        placeRetryDeadline: TimeInterval = 1.6,
+        placeRetryDelay: TimeInterval = 0.08,
+        showMouseFeedback: @escaping (CGPoint) -> Void = { _ in },
+        currentMouseLocation: @escaping () -> CGPoint? = { CGEvent(source: nil)?.location },
+        openItem: ((LauncherItem) -> Void)? = nil
+    ) {
         self.windowPlacement = windowPlacement
         self.placeRetryDeadline = placeRetryDeadline
         self.placeRetryDelay = placeRetryDelay
+        self.showMouseFeedback = showMouseFeedback
+        self.currentMouseLocation = currentMouseLocation
+        self.openItem = openItem ?? Self.open
     }
 
     public func activate(_ item: LauncherItem) {
         let placement = item.placement ?? (item.kind == "web_app" ? "internal_fill" : nil)
-        open(item)
+        openItem(item)
         if let placement {
             retryPlace(item: item, placement: placement, until: Date().addingTimeInterval(placeRetryDeadline))
         } else {
@@ -911,7 +924,7 @@ public final class LauncherService {
         activate(item)
     }
 
-    private func open(_ item: LauncherItem) {
+    private static func open(_ item: LauncherItem) {
         if let raw = item.openPath, !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             let expanded = WebAppRuntime.resolveOpenPath(raw)
             NSWorkspace.shared.open(URL(fileURLWithPath: expanded))
@@ -924,16 +937,22 @@ public final class LauncherService {
         DispatchQueue.main.asyncAfter(deadline: .now() + placeRetryDelay) {
             if let pid = WebAppRuntime.findAppProcessPID(openPath: item.openPath),
                self.windowPlacement.placePID(pid, placement: placement) {
-                _ = self.windowPlacement.moveMouseToPIDWindowCenter(pid)
+                if self.windowPlacement.moveMouseToPIDWindowCenter(pid) {
+                    self.showMouseFeedbackAtCurrentLocation()
+                }
                 return
             }
             if let pid = WebAppRuntime.findChromeAppProcessPID(appURL: item.appURL),
                self.windowPlacement.placePID(pid, placement: placement) {
-                _ = self.windowPlacement.moveMouseToPIDWindowCenter(pid)
+                if self.windowPlacement.moveMouseToPIDWindowCenter(pid) {
+                    self.showMouseFeedbackAtCurrentLocation()
+                }
                 return
             }
             if self.windowPlacement.placeProcess(name: item.name, placement: placement) {
-                _ = self.windowPlacement.moveMouseToApplicationWindowCenter(name: item.name)
+                if self.windowPlacement.moveMouseToApplicationWindowCenter(name: item.name) {
+                    self.showMouseFeedbackAtCurrentLocation()
+                }
                 return
             }
             if Date() < deadline {
@@ -945,6 +964,7 @@ public final class LauncherService {
     private func retryMoveMouseToApplicationWindowCenter(appName: String, until deadline: Date) {
         DispatchQueue.main.asyncAfter(deadline: .now() + placeRetryDelay) {
             if self.windowPlacement.moveMouseToApplicationWindowCenter(name: appName) {
+                self.showMouseFeedbackAtCurrentLocation()
                 return
             }
             if Date() < deadline {
@@ -952,6 +972,22 @@ public final class LauncherService {
             }
         }
     }
+
+    private func showMouseFeedbackAtCurrentLocation() {
+        guard let point = currentMouseLocation(),
+              point.x.isFinite,
+              point.y.isFinite else {
+            return
+        }
+        showMouseFeedback(point)
+    }
+}
+
+public protocol LauncherWindowPlacement {
+    func placePID(_ pid: pid_t, placement: String) -> Bool
+    func placeProcess(name: String, placement: String) -> Bool
+    func moveMouseToPIDWindowCenter(_ pid: pid_t) -> Bool
+    func moveMouseToApplicationWindowCenter(name: String) -> Bool
 }
 
 public final class WindowPlacementService {
@@ -1056,6 +1092,8 @@ public final class WindowPlacementService {
         return (window, bounds)
     }
 }
+
+extension WindowPlacementService: LauncherWindowPlacement {}
 
 public enum Gokit5Serial {
     public static let defaultSerialNumber = "94:A9:90:10:E5:F4"

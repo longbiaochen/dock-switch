@@ -19,7 +19,12 @@ final class DockSwitchApp: NSObject, NSApplicationDelegate {
             self?.mouseFeedbackPresenter.show(at: point)
         }
     )
-    private lazy var launcherService = LauncherService(windowPlacement: windowPlacementService)
+    private lazy var launcherService = LauncherService(
+        windowPlacement: windowPlacementService,
+        showMouseFeedback: { [weak self] point in
+            self?.mouseFeedbackPresenter.show(at: point)
+        }
+    )
     private var controlServer: ControlServer?
     private var gokit5SerialListener: Gokit5SerialListener?
     private var statusItem: NSStatusItem?
@@ -444,7 +449,8 @@ final class DockSwitchApp: NSObject, NSApplicationDelegate {
 }
 
 private final class MouseFeedbackPresenter {
-    private let size = CGSize(width: 96, height: 96)
+    private let size = CGSize(width: 132, height: 132)
+    private let hideDelay: TimeInterval = MouseFeedbackView.pulseDuration + 0.04
     private var panel: NSPanel?
     private var hideWorkItem: DispatchWorkItem?
 
@@ -509,7 +515,7 @@ private final class MouseFeedbackPresenter {
             self?.panel?.orderOut(nil)
         }
         hideWorkItem = item
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.82, execute: item)
+        DispatchQueue.main.asyncAfter(deadline: .now() + hideDelay, execute: item)
     }
 
     private static func appKitWindowOrigin(forQuartzPoint point: CGPoint, windowSize: CGSize) -> CGPoint {
@@ -534,7 +540,8 @@ private final class MouseFeedbackPresenter {
 }
 
 private final class MouseFeedbackView: NSView {
-    private let duration: TimeInterval = 0.82
+    static let pulseDuration: TimeInterval = 0.82
+    private let duration: TimeInterval = MouseFeedbackView.pulseDuration
     private var startedAt = Date.distantPast
     private var timer: Timer?
 
@@ -575,12 +582,10 @@ private final class MouseFeedbackView: NSView {
         let eased = 1 - pow(1 - CGFloat(t), 3)
         let scale = 0.72 + (1.58 - 0.72) * eased
         let fadeStart = 0.42
-        let opacity: CGFloat
-        if t <= fadeStart {
-            opacity = 0.96
-        } else {
-            opacity = max(0.12, 0.96 * (1 - CGFloat((t - fadeStart) / (1 - fadeStart))))
-        }
+        let fadeProgress = t <= fadeStart ? 0 : CGFloat((t - fadeStart) / (1 - fadeStart))
+        let fade = 1 - min(max(fadeProgress, 0), 1)
+        let opacity = 0.96 * fade * fade
+        guard opacity > 0.005 else { return }
 
         let center = CGPoint(x: bounds.midX, y: bounds.midY)
         let baseDiameter: CGFloat = 54
@@ -598,6 +603,7 @@ private final class MouseFeedbackView: NSView {
     }
 
     private func drawRing(in rect: CGRect, color: NSColor, alpha: CGFloat, lineWidth: CGFloat) {
+        guard alpha > 0.005 else { return }
         let path = NSBezierPath(ovalIn: rect)
         path.lineWidth = lineWidth
         color.withAlphaComponent(alpha).setStroke()

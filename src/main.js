@@ -372,6 +372,17 @@ function show_mouse_feedback(point) {
     return true;
 }
 
+function show_mouse_feedback_at_current_mouse() {
+    if (!dock_query || typeof dock_query.getMousePosition !== "function") {
+        return false;
+    }
+    try {
+        return show_mouse_feedback(dock_query.getMousePosition());
+    } catch (e) {
+        return false;
+    }
+}
+
 function reload_config() {
     CONFIG = readConfig(DEFAULT_CONFIG_PATH);
     return CONFIG;
@@ -846,6 +857,7 @@ function launch_app_with_placement(item) {
                 );
                 if (directPidOk) {
                     move_mouse_to_placed_window_center(String(item.name), String(item.placement));
+                    show_mouse_feedback_at_current_mouse();
                     return;
                 }
             }
@@ -860,6 +872,7 @@ function launch_app_with_placement(item) {
                 );
                 if (pidOk) {
                     move_mouse_to_placed_window_center(String(item.name), String(item.placement));
+                    show_mouse_feedback_at_current_mouse();
                     return;
                 }
             }
@@ -872,6 +885,7 @@ function launch_app_with_placement(item) {
             );
             if (ok) {
                 move_mouse_to_placed_window_center(String(item.name), String(item.placement));
+                show_mouse_feedback_at_current_mouse();
                 return;
             }
         } catch (e) {
