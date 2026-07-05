@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const {
     DOCK_SWITCH_RULE_DESCRIPTION,
     F20_HOLD_MILLISECONDS,
+    SMARTSHADOW_DIRECT_COMMAND,
     applyDockSwitchKarabinerProfile
 } = require("../src/karabiner-config");
 
@@ -47,7 +48,7 @@ function directLegacyRule() {
     };
 }
 
-test("applyDockSwitchKarabinerProfile replaces legacy direct launcher mappings with F20 key sequences", () => {
+test("applyDockSwitchKarabinerProfile keeps F3 direct while routing other launchers through F20", () => {
     const profile = {
         simple_modifications: [
             { from: { key_code: "left_shift" }, to: [{ key_code: "left_shift" }] },
@@ -108,10 +109,7 @@ test("applyDockSwitchKarabinerProfile replaces legacy direct launcher mappings w
     assert.equal(dockSwitchRule.manipulators.length, 6);
 
     const f3 = dockSwitchRule.manipulators.find(manipulator => manipulator.from.key_code === "f3");
-    assert.deepEqual(f3.to, [
-        { key_code: "f20", hold_down_milliseconds: F20_HOLD_MILLISECONDS },
-        { key_code: "f3" }
-    ]);
+    assert.deepEqual(f3.to, [{ shell_command: SMARTSHADOW_DIRECT_COMMAND }]);
 
     const missionControl = dockSwitchRule.manipulators.filter(manipulator =>
         manipulator.from.consumer_key_code === "mission_control" ||
@@ -119,14 +117,8 @@ test("applyDockSwitchKarabinerProfile replaces legacy direct launcher mappings w
     );
     assert.equal(missionControl.length, 2);
     assert.deepEqual(missionControl.map(manipulator => manipulator.to), [
-        [
-            { key_code: "f20", hold_down_milliseconds: F20_HOLD_MILLISECONDS },
-            { key_code: "f3" }
-        ],
-        [
-            { key_code: "f20", hold_down_milliseconds: F20_HOLD_MILLISECONDS },
-            { key_code: "f3" }
-        ]
+        [{ shell_command: SMARTSHADOW_DIRECT_COMMAND }],
+        [{ shell_command: SMARTSHADOW_DIRECT_COMMAND }]
     ]);
 
     const f6 = dockSwitchRule.manipulators.find(manipulator => manipulator.from.key_code === "f6");

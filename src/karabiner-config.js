@@ -2,8 +2,19 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
-const DOCK_SWITCH_RULE_DESCRIPTION = "dock-switch launcher shortcuts via F20";
+const DOCK_SWITCH_RULE_DESCRIPTION = "dock-switch launcher shortcuts with direct SmartShadow F3";
 const F20_HOLD_MILLISECONDS = 260;
+const SMARTSHADOW_DIRECT_COMMAND = [
+    "/bin/zsh",
+    "-lc",
+    [
+        "APP=/Applications/SmartShadow.app",
+        "NODE=/opt/homebrew/bin/node",
+        "CLI=/Applications/dock-switch.app/Contents/Resources/app/bin/dock-switch-cli.js",
+        "/usr/bin/open \"$APP\" >/dev/null 2>&1",
+        "[[ -x \"$NODE\" && -f \"$CLI\" ]] && \"$NODE\" \"$CLI\" place --app SmartShadow --placement side_left_fill >/dev/null 2>&1 &"
+    ].join("; ")
+].map(part => `'${part.replace(/'/g, "'\\''")}'`).join(" ");
 
 function f20Sequence(keyCode) {
     return [
@@ -26,7 +37,7 @@ function buildDockSwitchKarabinerRule() {
             {
                 type: "basic",
                 from: fromKeyCode("f3"),
-                to: f20Sequence("f3")
+                to: [{ shell_command: SMARTSHADOW_DIRECT_COMMAND }]
             },
             {
                 type: "basic",
@@ -34,7 +45,7 @@ function buildDockSwitchKarabinerRule() {
                     consumer_key_code: "mission_control",
                     modifiers: { optional: ["any"] }
                 },
-                to: f20Sequence("f3")
+                to: [{ shell_command: SMARTSHADOW_DIRECT_COMMAND }]
             },
             {
                 type: "basic",
@@ -42,7 +53,7 @@ function buildDockSwitchKarabinerRule() {
                     apple_vendor_keyboard_key_code: "mission_control",
                     modifiers: { optional: ["any"] }
                 },
-                to: f20Sequence("f3")
+                to: [{ shell_command: SMARTSHADOW_DIRECT_COMMAND }]
             },
             {
                 type: "basic",
@@ -160,6 +171,7 @@ function writeKarabinerConfig(config, configPath = defaultKarabinerConfigPath())
 module.exports = {
     DOCK_SWITCH_RULE_DESCRIPTION,
     F20_HOLD_MILLISECONDS,
+    SMARTSHADOW_DIRECT_COMMAND,
     applyDockSwitchKarabinerConfig,
     applyDockSwitchKarabinerProfile,
     buildDockSwitchKarabinerRule,

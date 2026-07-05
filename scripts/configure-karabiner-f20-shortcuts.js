@@ -11,8 +11,9 @@ function usage() {
     return [
         "usage: configure-karabiner-f20-shortcuts.js [--config <path>] [--check]",
         "",
-        "Installs the dock-switch F20 launcher shortcut rule into the selected Karabiner profile.",
-        "The rule removes legacy direct F3/F6/left_shift/right_shift mappings first."
+        "Installs the dock-switch launcher shortcut rule into the selected Karabiner profile.",
+        "F3 opens SmartShadow directly; F6/left_shift/right_shift send F20 plus the launcher key.",
+        "The rule removes conflicting legacy mappings first."
     ].join("\n");
 }
 

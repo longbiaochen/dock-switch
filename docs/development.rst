@@ -61,6 +61,6 @@ Troubleshooting
 ---------------
 
 - If the app does not respond to `F20`, verify your key remapping.
-- If the single-key launchers stop working, run ``yarn karabiner:f20`` and then ``yarn karabiner:f20:check``. Karabiner should send ``F20`` plus the launcher key; it should not call app-placement shell helpers directly.
+- If the single-key launchers stop working, run ``yarn karabiner:f20`` and then ``yarn karabiner:f20:check``. Karabiner should open SmartShadow directly for ``F3``; ``F6`` and Shift launchers should send ``F20`` plus the launcher key.
 - If helper actions fail, re-check Accessibility/Privacy permissions.
 - If the app does not relaunch after build scripts, close existing instances and retry.
