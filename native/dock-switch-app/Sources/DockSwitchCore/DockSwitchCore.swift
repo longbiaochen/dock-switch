@@ -198,6 +198,32 @@ public enum LauncherShortcutRules {
         }
     }
 
+    public static func launcherItem(for normalizedKey: String) -> LauncherItem? {
+        guard let appName = appName(for: normalizedKey) else { return nil }
+        guard let special = LauncherRules.specialItem(for: appName) else {
+            return LauncherItem(
+                name: appName,
+                key: normalizedKey,
+                icon: nil,
+                kind: nil,
+                placement: nil,
+                openPath: nil,
+                appURL: nil,
+                dockItem: DockItemSnapshot(name: appName, pos: .zero, size: .zero)
+            )
+        }
+        return LauncherItem(
+            name: special.name,
+            key: special.key,
+            icon: special.icon,
+            kind: nil,
+            placement: special.placement,
+            openPath: special.openPath,
+            appURL: nil,
+            dockItem: DockItemSnapshot(name: special.name, pos: .zero, size: .zero)
+        )
+    }
+
     public static func isReserved(_ normalizedKey: String) -> Bool {
         ["LEFT_SHIFT", "RIGHT_SHIFT", "F3", "F6", "COMMAND_LEFT", "COMMAND_RIGHT"].contains(normalizedKey)
     }

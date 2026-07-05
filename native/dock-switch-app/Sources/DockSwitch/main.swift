@@ -379,19 +379,9 @@ final class DockSwitchApp: NSObject, NSApplicationDelegate {
         }
         lastModifierShortcut = (normalizedKey, Date())
         hideLauncher()
-        guard let appName = LauncherShortcutRules.appName(for: normalizedKey) else {
+        guard let item = LauncherShortcutRules.launcherItem(for: normalizedKey) else {
             return
         }
-        let item = LauncherItem(
-            name: appName,
-            key: normalizedKey,
-            icon: nil,
-            kind: nil,
-            placement: nil,
-            openPath: nil,
-            appURL: nil,
-            dockItem: DockItemSnapshot(name: appName, pos: .zero, size: .zero)
-        )
         launcherService.activate(item)
     }
 
