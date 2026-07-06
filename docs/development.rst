@@ -61,6 +61,6 @@ Troubleshooting
 ---------------
 
 - If the app does not respond to `F20`, verify your key remapping.
-- If the single-key launchers stop working, run ``yarn karabiner:f20`` and then ``yarn karabiner:f20:check``. Karabiner should open SmartShadow directly for ``F3`` and ChatGPT directly for ``F6``; Shift launchers should send ``F20`` plus the launcher key.
+- If the single-key launchers stop working, run ``yarn karabiner:f20`` and then ``yarn karabiner:f20:check``. Karabiner should open SmartShadow directly for ``F3`` and ChatGPT directly for ``F6``; legacy left/right Shift launcher mappings should be removed so Shift returns to the default system behavior.
 - If helper actions fail, re-check Accessibility/Privacy permissions.
 - If the app does not relaunch after build scripts, close existing instances and retry.

@@ -3,7 +3,6 @@ const os = require("os");
 const path = require("path");
 
 const DOCK_SWITCH_RULE_DESCRIPTION = "dock-switch launcher shortcuts with direct F3/F6 apps";
-const F20_HOLD_MILLISECONDS = 260;
 function shellCommand(parts) {
     return parts.map(part => `'${part.replace(/'/g, "'\\''")}'`).join(" ");
 }
@@ -34,13 +33,6 @@ const SMARTSHADOW_DIRECT_COMMAND = shellCommand([
     ].join("; ")
 ]);
 const CHATGPT_DIRECT_COMMAND = directAppCommand("ChatGPT", "side_right_fill");
-
-function f20Sequence(keyCode) {
-    return [
-        { key_code: "f20", hold_down_milliseconds: F20_HOLD_MILLISECONDS },
-        { key_code: keyCode }
-    ];
-}
 
 function fromKeyCode(keyCode) {
     return {
@@ -78,18 +70,6 @@ function buildDockSwitchKarabinerRule() {
                 type: "basic",
                 from: fromKeyCode("f6"),
                 to: [{ shell_command: CHATGPT_DIRECT_COMMAND }]
-            },
-            {
-                type: "basic",
-                from: fromKeyCode("left_shift"),
-                to: [{ key_code: "left_shift" }],
-                to_if_alone: f20Sequence("left_shift")
-            },
-            {
-                type: "basic",
-                from: fromKeyCode("right_shift"),
-                to: [{ key_code: "right_shift" }],
-                to_if_alone: f20Sequence("right_shift")
             }
         ]
     };
@@ -189,7 +169,6 @@ function writeKarabinerConfig(config, configPath = defaultKarabinerConfigPath())
 
 module.exports = {
     DOCK_SWITCH_RULE_DESCRIPTION,
-    F20_HOLD_MILLISECONDS,
     CHATGPT_DIRECT_COMMAND,
     SMARTSHADOW_DIRECT_COMMAND,
     applyDockSwitchKarabinerConfig,

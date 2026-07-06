@@ -12,7 +12,8 @@ function usage() {
         "usage: configure-karabiner-f20-shortcuts.js [--config <path>] [--check]",
         "",
         "Installs the dock-switch launcher shortcut rule into the selected Karabiner profile.",
-        "F3 opens SmartShadow directly; F6 opens ChatGPT directly; left_shift/right_shift send F20 plus the launcher key.",
+        "F3 opens SmartShadow directly; F6 opens ChatGPT directly.",
+        "Legacy left_shift/right_shift launcher mappings are removed so Shift returns to the default behavior.",
         "The rule removes conflicting legacy mappings first."
     ].join("\n");
 }

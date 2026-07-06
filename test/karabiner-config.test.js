@@ -3,7 +3,6 @@ const assert = require("node:assert/strict");
 
 const {
     DOCK_SWITCH_RULE_DESCRIPTION,
-    F20_HOLD_MILLISECONDS,
     CHATGPT_DIRECT_COMMAND,
     SMARTSHADOW_DIRECT_COMMAND,
     applyDockSwitchKarabinerProfile
@@ -49,7 +48,7 @@ function directLegacyRule() {
     };
 }
 
-test("applyDockSwitchKarabinerProfile keeps F3 and F6 direct while routing modifier launchers through F20", () => {
+test("applyDockSwitchKarabinerProfile keeps F3 and F6 direct while removing Shift launcher mappings", () => {
     const profile = {
         simple_modifications: [
             { from: { key_code: "left_shift" }, to: [{ key_code: "left_shift" }] },
@@ -107,7 +106,7 @@ test("applyDockSwitchKarabinerProfile keeps F3 and F6 direct while routing modif
 
     const dockSwitchRule = profile.complex_modifications.rules[0];
     assert.equal(dockSwitchRule.description, DOCK_SWITCH_RULE_DESCRIPTION);
-    assert.equal(dockSwitchRule.manipulators.length, 6);
+    assert.equal(dockSwitchRule.manipulators.length, 4);
 
     const f3 = dockSwitchRule.manipulators.find(manipulator => manipulator.from.key_code === "f3");
     assert.deepEqual(f3.to, [{ shell_command: SMARTSHADOW_DIRECT_COMMAND }]);
@@ -126,16 +125,8 @@ test("applyDockSwitchKarabinerProfile keeps F3 and F6 direct while routing modif
     assert.deepEqual(f6.to, [{ shell_command: CHATGPT_DIRECT_COMMAND }]);
 
     const leftShift = dockSwitchRule.manipulators.find(manipulator => manipulator.from.key_code === "left_shift");
-    assert.deepEqual(leftShift.to, [{ key_code: "left_shift" }]);
-    assert.deepEqual(leftShift.to_if_alone, [
-        { key_code: "f20", hold_down_milliseconds: F20_HOLD_MILLISECONDS },
-        { key_code: "left_shift" }
-    ]);
+    assert.equal(leftShift, undefined);
 
     const rightShift = dockSwitchRule.manipulators.find(manipulator => manipulator.from.key_code === "right_shift");
-    assert.deepEqual(rightShift.to, [{ key_code: "right_shift" }]);
-    assert.deepEqual(rightShift.to_if_alone, [
-        { key_code: "f20", hold_down_milliseconds: F20_HOLD_MILLISECONDS },
-        { key_code: "right_shift" }
-    ]);
+    assert.equal(rightShift, undefined);
 });
