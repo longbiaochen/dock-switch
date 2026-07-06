@@ -2,9 +2,27 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
-const DOCK_SWITCH_RULE_DESCRIPTION = "dock-switch launcher shortcuts with direct SmartShadow F3";
+const DOCK_SWITCH_RULE_DESCRIPTION = "dock-switch launcher shortcuts with direct F3/F6 apps";
 const F20_HOLD_MILLISECONDS = 260;
-const SMARTSHADOW_DIRECT_COMMAND = [
+function shellCommand(parts) {
+    return parts.map(part => `'${part.replace(/'/g, "'\\''")}'`).join(" ");
+}
+
+function directAppCommand(appName, placement) {
+    return shellCommand([
+        "/bin/zsh",
+        "-lc",
+        [
+            `APP_NAME=${appName}`,
+            "NODE=/opt/homebrew/bin/node",
+            "CLI=/Applications/dock-switch.app/Contents/Resources/app/bin/dock-switch-cli.js",
+            "/usr/bin/open -a \"$APP_NAME\" >/dev/null 2>&1",
+            `[[ -x "$NODE" && -f "$CLI" ]] && "$NODE" "$CLI" place --app "$APP_NAME" --placement ${placement} >/dev/null 2>&1 &`
+        ].join("; ")
+    ]);
+}
+
+const SMARTSHADOW_DIRECT_COMMAND = shellCommand([
     "/bin/zsh",
     "-lc",
     [
@@ -14,7 +32,8 @@ const SMARTSHADOW_DIRECT_COMMAND = [
         "/usr/bin/open \"$APP\" >/dev/null 2>&1",
         "[[ -x \"$NODE\" && -f \"$CLI\" ]] && \"$NODE\" \"$CLI\" place --app SmartShadow --placement side_left_fill >/dev/null 2>&1 &"
     ].join("; ")
-].map(part => `'${part.replace(/'/g, "'\\''")}'`).join(" ");
+]);
+const CHATGPT_DIRECT_COMMAND = directAppCommand("ChatGPT", "side_right_fill");
 
 function f20Sequence(keyCode) {
     return [
@@ -58,7 +77,7 @@ function buildDockSwitchKarabinerRule() {
             {
                 type: "basic",
                 from: fromKeyCode("f6"),
-                to: f20Sequence("f6")
+                to: [{ shell_command: CHATGPT_DIRECT_COMMAND }]
             },
             {
                 type: "basic",
@@ -171,6 +190,7 @@ function writeKarabinerConfig(config, configPath = defaultKarabinerConfigPath())
 module.exports = {
     DOCK_SWITCH_RULE_DESCRIPTION,
     F20_HOLD_MILLISECONDS,
+    CHATGPT_DIRECT_COMMAND,
     SMARTSHADOW_DIRECT_COMMAND,
     applyDockSwitchKarabinerConfig,
     applyDockSwitchKarabinerProfile,

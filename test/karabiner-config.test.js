@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const {
     DOCK_SWITCH_RULE_DESCRIPTION,
     F20_HOLD_MILLISECONDS,
+    CHATGPT_DIRECT_COMMAND,
     SMARTSHADOW_DIRECT_COMMAND,
     applyDockSwitchKarabinerProfile
 } = require("../src/karabiner-config");
@@ -48,7 +49,7 @@ function directLegacyRule() {
     };
 }
 
-test("applyDockSwitchKarabinerProfile keeps F3 direct while routing other launchers through F20", () => {
+test("applyDockSwitchKarabinerProfile keeps F3 and F6 direct while routing modifier launchers through F20", () => {
     const profile = {
         simple_modifications: [
             { from: { key_code: "left_shift" }, to: [{ key_code: "left_shift" }] },
@@ -122,10 +123,7 @@ test("applyDockSwitchKarabinerProfile keeps F3 direct while routing other launch
     ]);
 
     const f6 = dockSwitchRule.manipulators.find(manipulator => manipulator.from.key_code === "f6");
-    assert.deepEqual(f6.to, [
-        { key_code: "f20", hold_down_milliseconds: F20_HOLD_MILLISECONDS },
-        { key_code: "f6" }
-    ]);
+    assert.deepEqual(f6.to, [{ shell_command: CHATGPT_DIRECT_COMMAND }]);
 
     const leftShift = dockSwitchRule.manipulators.find(manipulator => manipulator.from.key_code === "left_shift");
     assert.deepEqual(leftShift.to, [{ key_code: "left_shift" }]);

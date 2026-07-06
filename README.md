@@ -23,7 +23,7 @@ often expose menu bar state, Dock contents, account badges, and workspace detail
 ## How It Works
 - Press `F20` to open the floating launcher UI.
 - Press the shown key for an app to focus it.
-- Karabiner should not open apps directly except for the local `F3` SmartShadow shortcut. `F6` and Shift launchers should map to a dock-switch-owned `F20` + launcher key sequence.
+- Karabiner should open SmartShadow and ChatGPT directly for the local `F3` and `F6` shortcuts. Shift launchers should map to a dock-switch-owned `F20` + launcher key sequence.
 - Press an arrow key to fill the frontmost window on a physical display:
   - `←` left side display
   - `→` right side display
@@ -31,7 +31,7 @@ often expose menu bar state, Dock contents, account badges, and workspace detail
   - `↓` internal display
 - Press `【` to tile the frontmost window to the left half of its current display.
 - Press `】` to tile the frontmost window to the right half of its current display.
-- Press `F20` then `F6` to focus or open `ChatGPT` on the right side display, maximized to the display work area.
+- Press `F6` to open `ChatGPT` directly on the right side display, maximized to the display work area.
 - Press `F20` then left `Shift` to focus or open `Codex` on the external display, maximized to the display work area.
 - Press `F20` then right `Shift` to focus or open `Claude` on the right side display, maximized to the display work area.
 - Press `F3` to open `SmartShadow` directly on the left side display, maximized to the display work area.
@@ -87,7 +87,7 @@ Xiaohongshu Web App is available on `R` in the current default config.
 Google Chrome is available on `G` in the current default config.
 GitHub Web App is available on `H` in the current default config.
 ChatGPT, Codex, SmartShadow, Claude, and Command shortcuts render in the HUD with fixed Dock labels: `F6` for ChatGPT, `L⇧` for left Shift / Codex, `F3` for SmartShadow, `R⇧` for right Shift / Claude, and `⌘` for left/right `Command`. They remain excluded from ordinary fallback numbering.
-Left `Command` opens System Settings on the internal display with `internal_fill`. Inside dock-switch's launcher, left `Shift` opens Codex on the external display with `external_fill`, right `Shift` opens Claude on the right side display with `side_right_fill`, and `F6` opens ChatGPT on the right side display with `side_right_fill`. Karabiner single-key shortcuts should reach those paths by sending `F20` plus the launcher key. `F3` is the local exception: it directly opens SmartShadow and then uses dock-switch placement for `side_left_fill`. `\` opens Terminal on the right side display with `side_right_fill`. Right `Command` is intentionally reserved as a no-op. External targets that are offline fall back to the internal main display.
+Left `Command` opens System Settings on the internal display with `internal_fill`. Inside dock-switch's launcher, left `Shift` opens Codex on the external display with `external_fill`, right `Shift` opens Claude on the right side display with `side_right_fill`, and `F6` opens ChatGPT on the right side display with `side_right_fill`. Karabiner single-key Shift shortcuts should reach those paths by sending `F20` plus the launcher key. `F3` and `F6` are local direct exceptions: they open SmartShadow and ChatGPT, then use dock-switch placement for `side_left_fill` and `side_right_fill`. `\` opens Terminal on the right side display with `side_right_fill`. Right `Command` is intentionally reserved as a no-op. External targets that are offline fall back to the internal main display.
 If no external display is available, `external_right_half` falls back to the right half of the internal display work area.
 If no external display is available, `external_left_half` falls back to the left half of the internal display work area.
 
@@ -173,7 +173,7 @@ App key/display mapping is stored in `src/config.json` under `dock_items`.
 
 ## Permissions and First Run
 - Map a key to `F20` (for example with [Karabiner-Elements](https://github.com/pqrs-org/Karabiner-Elements)).
-- To install the local single-key launcher mappings for `F3`, `F6`, left `Shift`, and right `Shift`, run `yarn karabiner:f20`. The generated Karabiner rule opens SmartShadow directly on `F3`; `F6` and Shift launchers send `F20` plus the launcher key.
+- To install the local single-key launcher mappings for `F3`, `F6`, left `Shift`, and right `Shift`, run `yarn karabiner:f20`. The generated Karabiner rule opens SmartShadow directly on `F3` and ChatGPT directly on `F6`; Shift launchers send `F20` plus the launcher key.
 - SmartShadow's direct `F3` path opens `/Applications/SmartShadow.app` and uses dock-switch placement with `side_left_fill`.
 - Keep the installed app in macOS `Open at Login` so the global shortcut and control socket are available after login.
 - On first use, dock-switch prompts for required macOS permissions:
