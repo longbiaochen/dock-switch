@@ -314,6 +314,11 @@ $(function() {
             var normalizedKey = normalizeLauncherKey(e.key, e.code);
             // Hide first so launcher feels instant after key selection.
             hideLauncher();
+            var item = DOCK_ITEMS.find(item => item.key == normalizedKey);
+            if (item != undefined) {
+                activateLauncherItem(item);
+                return;
+            }
             var shortcutApp = resolveAppShortcut(normalizedKey);
             if (shortcutApp) {
                 var dockShortcut = DOCK_ITEMS.find(entry =>
@@ -334,13 +339,6 @@ $(function() {
                 return;
             }
             // App-key path: open/focus app, then restore configured placement/window state.
-            var item = DOCK_ITEMS.find(item => item.key == normalizedKey);
-            if (item == undefined) {
-                return;
-            }
-
-            // new Notification(item.name, { body: key });
-            activateLauncherItem(item);
         }
     });
 

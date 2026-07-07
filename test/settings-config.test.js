@@ -8,7 +8,7 @@ const {
     validateKeyUpdates
 } = require("../src/settings-config");
 
-test("buildSettingsRows merges visible Dock apps with configured, reserved, and fallback keys", () => {
+test("buildSettingsRows merges visible Dock apps with configured special defaults and fallback keys", () => {
     const dockItems = [
         { name: "Finder", pos: { x: 10, y: 0 } },
         { name: "ChatGPT", pos: { x: 20, y: 0 } },
@@ -34,10 +34,10 @@ test("buildSettingsRows merges visible Dock apps with configured, reserved, and 
         readonly: row.readonly
     })), [
         { name: "Finder", key: "D", screen: "0", placement: "internal_fill", status: "configured", readonly: false },
-        { name: "ChatGPT", key: "F6", screen: "", placement: "", status: "reserved", readonly: true },
-        { name: "Codex", key: "LEFT_SHIFT", screen: "", placement: "", status: "reserved", readonly: true },
-        { name: "SmartShadow", key: "F3", screen: "", placement: "", status: "reserved", readonly: true },
-        { name: "Claude", key: "RIGHT_SHIFT", screen: "", placement: "", status: "reserved", readonly: true },
+        { name: "ChatGPT", key: "F6", screen: "side_right", placement: "side_right_fill", status: "configured", readonly: false },
+        { name: "Codex", key: "L⇧", screen: "0", placement: "external_fill", status: "configured", readonly: false },
+        { name: "SmartShadow", key: "F3", screen: "side_left", placement: "side_left_fill", status: "configured", readonly: false },
+        { name: "Claude", key: "R⇧", screen: "0", placement: "external_fill", status: "configured", readonly: false },
         { name: "Temporary App", key: "1", screen: "", placement: "", status: "fallback", readonly: false }
     ]);
 });
@@ -78,21 +78,38 @@ test("validateKeyUpdates allows left command for System Settings only", () => {
     assert.equal(rejected.some(error => error.type === "reserved" && error.key === "COMMAND_LEFT"), true);
 });
 
-test("validateKeyUpdates rejects duplicate and reserved settings keys", () => {
+test("validateKeyUpdates allows launcher defaults while rejecting duplicates and command reservations", () => {
     const errors = validateKeyUpdates([
         { name: "Finder", key: "D" },
         { name: "Safari", key: "d" },
         { name: "Codex Override", key: "left_shift" },
         { name: "SmartShadow Override", key: "f3" },
         { name: "Claude Override", key: "right_shift" },
-        { name: "ChatGPT Override", key: "f6" }
+        { name: "ChatGPT Override", key: "f6" },
+        { name: "Command Trap", key: "COMMAND_RIGHT" }
     ]);
 
     assert.equal(errors.some(error => error.type === "duplicate" && error.key === "D"), true);
-    assert.equal(errors.some(error => error.type === "reserved" && error.key === "LEFT_SHIFT"), true);
-    assert.equal(errors.some(error => error.type === "reserved" && error.key === "RIGHT_SHIFT"), true);
-    assert.equal(errors.some(error => error.type === "reserved" && error.key === "F3"), true);
-    assert.equal(errors.some(error => error.type === "reserved" && error.key === "F6"), true);
+    assert.equal(errors.some(error => error.type === "reserved" && error.key === "COMMAND_RIGHT"), true);
+    assert.equal(errors.some(error => error.type === "reserved" && error.key === "LEFT_SHIFT"), false);
+    assert.equal(errors.some(error => error.type === "reserved" && error.key === "RIGHT_SHIFT"), false);
+    assert.equal(errors.some(error => error.type === "reserved" && error.key === "F3"), false);
+    assert.equal(errors.some(error => error.type === "reserved" && error.key === "F6"), false);
+});
+
+test("saveDockItemSettings writes configurable special app settings", () => {
+    const result = saveDockItemSettings({
+        dock_items: []
+    }, [
+        { name: "Claude", pos: { x: 10, y: 0 } }
+    ], [
+        { name: "Claude", key: "C", screen: "0", placement: "external_fill" }
+    ]);
+
+    assert.equal(result.ok, true);
+    assert.deepEqual(result.config.dock_items, [
+        { name: "Claude", key: "C", screen: "0", placement: "external_fill" }
+    ]);
 });
 
 test("saveDockItemSettings writes command icon input as COMMAND_LEFT", () => {

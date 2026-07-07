@@ -347,6 +347,10 @@ final class DockSwitchApp: NSObject, NSApplicationDelegate {
             characters: event.charactersIgnoringModifiers ?? event.characters ?? "",
             keyCode: event.keyCode
         )
+        return item(forNormalizedKey: text)
+    }
+
+    private func item(forNormalizedKey text: String) -> LauncherItem? {
         return currentTargets.first { target in
             target.item.key.uppercased() == text || target.item.displayKey.uppercased() == text
         }?.item
@@ -390,6 +394,10 @@ final class DockSwitchApp: NSObject, NSApplicationDelegate {
         }
         lastModifierShortcut = (normalizedKey, Date())
         hideLauncher()
+        if let item = item(forNormalizedKey: normalizedKey) {
+            launcherService.activate(item)
+            return
+        }
         guard let item = LauncherShortcutRules.launcherItem(for: normalizedKey) else {
             return
         }

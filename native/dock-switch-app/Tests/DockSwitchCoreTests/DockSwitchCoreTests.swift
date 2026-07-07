@@ -117,8 +117,8 @@ final class DockSwitchCoreTests: XCTestCase {
         XCTAssertEqual(items.map(\.displayKey), ["D", "F6", "L⇧", "⌘", "F3", "R⇧", "\\", "1"])
         XCTAssertEqual(items.first { $0.name == "ChatGPT" }?.placement, "side_right_fill")
         XCTAssertEqual(items.first { $0.name == "Codex" }?.placement, "external_fill")
-        XCTAssertEqual(items.first { $0.name == "SmartShadow" }?.placement, "side_left_fill")
-        XCTAssertEqual(items.first { $0.name == "Claude" }?.placement, "side_right_fill")
+        XCTAssertEqual(items.first { $0.name == "SmartShadow" }?.placement, "external_fill")
+        XCTAssertEqual(items.first { $0.name == "Claude" }?.placement, "external_fill")
         XCTAssertEqual(items.first { $0.name == "SmartShadow" }?.openPath, "/Applications/SmartShadow.app")
         XCTAssertEqual(items.first { $0.name == "Claude" }?.openPath, "/Applications/Claude.app")
     }
@@ -266,18 +266,18 @@ final class DockSwitchCoreTests: XCTestCase {
     }
 
     func testShortcutRulesMapReservedAppsAndWindowActions() {
-        XCTAssertEqual(LauncherShortcutRules.appName(for: "F6"), "ChatGPT")
-        XCTAssertEqual(LauncherShortcutRules.appName(for: "LEFT_SHIFT"), "Codex")
-        XCTAssertEqual(LauncherShortcutRules.appName(for: "RIGHT_SHIFT"), "Claude")
-        XCTAssertEqual(LauncherShortcutRules.appName(for: "F3"), "SmartShadow")
+        XCTAssertNil(LauncherShortcutRules.appName(for: "F6"))
+        XCTAssertNil(LauncherShortcutRules.appName(for: "LEFT_SHIFT"))
+        XCTAssertNil(LauncherShortcutRules.appName(for: "RIGHT_SHIFT"))
+        XCTAssertNil(LauncherShortcutRules.appName(for: "F3"))
         XCTAssertEqual(LauncherShortcutRules.appName(for: "COMMAND_LEFT"), "System Settings")
         XCTAssertNil(LauncherShortcutRules.appName(for: "TAB"))
         XCTAssertNil(LauncherShortcutRules.appName(for: "COMMAND_RIGHT"))
         XCTAssertTrue(LauncherShortcutRules.isReserved("COMMAND_RIGHT"))
-        XCTAssertTrue(LauncherShortcutRules.isReserved("LEFT_SHIFT"))
-        XCTAssertTrue(LauncherShortcutRules.isReserved("RIGHT_SHIFT"))
-        XCTAssertTrue(LauncherShortcutRules.isReserved("F3"))
-        XCTAssertTrue(LauncherShortcutRules.isReserved("F6"))
+        XCTAssertFalse(LauncherShortcutRules.isReserved("LEFT_SHIFT"))
+        XCTAssertFalse(LauncherShortcutRules.isReserved("RIGHT_SHIFT"))
+        XCTAssertFalse(LauncherShortcutRules.isReserved("F3"))
+        XCTAssertFalse(LauncherShortcutRules.isReserved("F6"))
         XCTAssertFalse(LauncherShortcutRules.isReserved("TAB"))
         XCTAssertEqual(LauncherShortcutRules.windowAction(key: "ArrowUp"), "up")
         XCTAssertEqual(LauncherShortcutRules.windowAction(key: "【"), "current_left")
@@ -288,17 +288,9 @@ final class DockSwitchCoreTests: XCTestCase {
     }
 
     func testShortcutRulesResolveReservedAppsToPlacedLauncherItems() {
-        let smartShadow = LauncherShortcutRules.launcherItem(for: "F3")
-        XCTAssertEqual(smartShadow?.name, "SmartShadow")
-        XCTAssertEqual(smartShadow?.key, "F3")
-        XCTAssertEqual(smartShadow?.placement, "side_left_fill")
-        XCTAssertEqual(smartShadow?.openPath, "/Applications/SmartShadow.app")
-
-        let codex = LauncherShortcutRules.launcherItem(for: "LEFT_SHIFT")
-        XCTAssertEqual(codex?.name, "Codex")
-        XCTAssertEqual(codex?.key, "LEFT_SHIFT")
-        XCTAssertEqual(codex?.placement, "external_fill")
-
+        XCTAssertNil(LauncherShortcutRules.launcherItem(for: "F3"))
+        XCTAssertNil(LauncherShortcutRules.launcherItem(for: "LEFT_SHIFT"))
+        XCTAssertNil(LauncherShortcutRules.launcherItem(for: "RIGHT_SHIFT"))
         XCTAssertNil(LauncherShortcutRules.launcherItem(for: "COMMAND_RIGHT"))
     }
 
@@ -321,13 +313,13 @@ final class DockSwitchCoreTests: XCTestCase {
         service.activate(LauncherItem(
             name: "Claude",
             key: "F6",
-            placement: "side_right_fill",
+            placement: "external_fill",
             dockItem: DockItemSnapshot(name: "Claude", pos: .zero, size: .zero)
         ))
 
         wait(for: [expectation], timeout: 1)
         XCTAssertEqual(placement.placedProcesses.map(\.name), ["Claude"])
-        XCTAssertEqual(placement.placedProcesses.map(\.placement), ["side_right_fill"])
+        XCTAssertEqual(placement.placedProcesses.map(\.placement), ["external_fill"])
         XCTAssertEqual(placement.movedApps, [])
         XCTAssertEqual(feedbackPoints, [CGPoint(x: 420, y: 240)])
     }

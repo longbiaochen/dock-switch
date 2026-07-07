@@ -106,21 +106,45 @@ func displayLauncherKey(_ value: String) -> String {
     return launcherKeyIcon(normalized) ?? normalized
 }
 
-func reservedItem(for name: String) -> SettingsRow? {
+func defaultSettingsItem(for name: String) -> SettingsRow? {
     let normalized = normalizeAppName(name)
-    if normalized == "chatgpt" {
-        return SettingsRow(id: name, name: "ChatGPT", key: "F6", displayKey: "F6", screen: "", position: "", placement: "", status: .reserved, readonly: true, configured: false, fallback: false)
+    let itemName: String
+    let displayKey: String
+    let placement: String
+    switch normalized {
+    case "chatgpt":
+        itemName = "ChatGPT"
+        displayKey = "F6"
+        placement = "side_right_fill"
+    case "codex":
+        itemName = "Codex"
+        displayKey = "L⇧"
+        placement = "external_fill"
+    case "smartshadow":
+        itemName = "SmartShadow"
+        displayKey = "F3"
+        placement = "side_left_fill"
+    case "claude":
+        itemName = "Claude"
+        displayKey = "R⇧"
+        placement = "external_fill"
+    default:
+        return nil
     }
-    if normalized == "codex" {
-        return SettingsRow(id: name, name: "Codex", key: "LEFT_SHIFT", displayKey: "L⇧", screen: "", position: "", placement: "", status: .reserved, readonly: true, configured: false, fallback: false)
-    }
-    if normalized == "smartshadow" {
-        return SettingsRow(id: name, name: "SmartShadow", key: "F3", displayKey: "F3", screen: "", position: "", placement: "", status: .reserved, readonly: true, configured: false, fallback: false)
-    }
-    if normalized == "claude" {
-        return SettingsRow(id: name, name: "Claude", key: "RIGHT_SHIFT", displayKey: "R⇧", screen: "", position: "", placement: "", status: .reserved, readonly: true, configured: false, fallback: false)
-    }
-    return nil
+    let parsedPlacement = parsePlacement(placement)
+    return SettingsRow(
+        id: name,
+        name: itemName,
+        key: displayKey,
+        displayKey: displayKey,
+        screen: parsedPlacement.screen,
+        position: parsedPlacement.position,
+        placement: placement,
+        status: .configured,
+        readonly: false,
+        configured: true,
+        fallback: false
+    )
 }
 
 func normalizeScreenValue(_ value: String) -> String {

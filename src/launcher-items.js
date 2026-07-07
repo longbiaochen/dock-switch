@@ -40,8 +40,8 @@ var SPECIAL_LAUNCHER_ITEMS = Object.freeze({
         name: "Claude",
         key: "RIGHT_SHIFT",
         icon: "R⇧",
-        screen: "side_right",
-        placement: "side_right_fill",
+        screen: "external",
+        placement: "external_fill",
         open_path: "/Applications/Claude.app"
     })
 });
@@ -54,6 +54,23 @@ function specialLauncherItemForName(name) {
     var item = SPECIAL_LAUNCHER_ITEMS[normalizeAppName(name)];
     if (!item) return null;
     return Object.assign({}, item);
+}
+
+function configuredItemForName(configDockItems, dockName) {
+    return (configDockItems || []).find(entry =>
+        normalizeAppName(entry && entry.name) === dockName
+    );
+}
+
+function specialItemWithConfig(specialItem, configItem) {
+    if (!configItem) return specialItem;
+    var hasKey = Object.prototype.hasOwnProperty.call(configItem, "key");
+    var key = hasKey ? String(configItem.key || "").trim() : specialItem.key;
+    return Object.assign({}, specialItem, configItem, {
+        name: configItem.name || specialItem.name,
+        key,
+        icon: launcherKeyIcon(key) || configItem.icon
+    });
 }
 
 function buildLauncherItems(dockItems, configDockItems) {
@@ -72,17 +89,14 @@ function buildLauncherItems(dockItems, configDockItems) {
     var fallbackKey = 1;
     for (var i = 0; i < visibleItems.length; i++) {
         var dockName = normalizeAppName(visibleItems[i].name);
+        var configItem = configuredItemForName(configDockItems, dockName);
         var item = specialLauncherItemForName(visibleItems[i].name);
-        if (item == undefined) {
-            var configItem = (configDockItems || []).find(entry =>
-                normalizeAppName(entry.name) === dockName &&
-                String(entry.key || "").trim()
-            );
-            if (configItem) {
-                item = Object.assign({}, configItem, {
-                    icon: launcherKeyIcon(configItem.key) || configItem.icon
-                });
-            }
+        if (item != undefined) {
+            item = specialItemWithConfig(item, configItem);
+        } else if (configItem && String(configItem.key || "").trim()) {
+            item = Object.assign({}, configItem, {
+                icon: launcherKeyIcon(configItem.key) || configItem.icon
+            });
         }
         if (item == undefined) {
             item = {
@@ -102,6 +116,7 @@ function buildLauncherItems(dockItems, configDockItems) {
 
 module.exports = {
     buildLauncherItems,
+    configuredItemForName,
     isExcludedLauncherApp,
     normalizeAppName,
     specialLauncherItemForName

@@ -475,7 +475,7 @@ function get_settings_state(refreshLive) {
         ok: true,
         configPath: DEFAULT_CONFIG_PATH,
         rows: buildSettingsRows(currentDockItems, CONFIG),
-        reservedKeys: ["LEFT_SHIFT", "RIGHT_SHIFT", "F3", "F6", "COMMAND_LEFT", "COMMAND_RIGHT"]
+        reservedKeys: ["COMMAND_LEFT", "COMMAND_RIGHT"]
     };
 }
 

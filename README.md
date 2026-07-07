@@ -33,7 +33,7 @@ often expose menu bar state, Dock contents, account badges, and workspace detail
 - Press `】` to tile the frontmost window to the right half of its current display.
 - Press `F6` to open `ChatGPT` directly on the right side display, maximized to the display work area.
 - Press `F20` then left `Shift` to focus or open `Codex` on the external display, maximized to the display work area.
-- Press `F20` then right `Shift` to focus or open `Claude` on the right side display, maximized to the display work area.
+- Press `F20` then right `Shift` to focus or open `Claude` on the external display, maximized to the display work area.
 - Press `F3` to open `SmartShadow` directly on the left side display, maximized to the display work area.
 - Press left `Command` to focus or open `System Settings` on the internal display, maximized to the display work area.
 - Press right `Command` for a reserved no-op.
@@ -86,8 +86,8 @@ The `X`, `小红书`, and `GitHub` web app bundles can target the signed-in Chro
 Xiaohongshu Web App is available on `R` in the current default config.
 Google Chrome is available on `G` in the current default config.
 GitHub Web App is available on `H` in the current default config.
-ChatGPT, Codex, SmartShadow, Claude, and Command shortcuts render in the HUD with fixed Dock labels: `F6` for ChatGPT, `L⇧` for left Shift / Codex, `F3` for SmartShadow, `R⇧` for right Shift / Claude, and `⌘` for left/right `Command`. They remain excluded from ordinary fallback numbering.
-Left `Command` opens System Settings on the internal display with `internal_fill`. Inside dock-switch's launcher, left `Shift` opens Codex on the external display with `external_fill`, right `Shift` opens Claude on the right side display with `side_right_fill`, and `F6` opens ChatGPT on the right side display with `side_right_fill`. Karabiner single-key shortcuts are limited to the direct `F3` and `F6` exceptions: they open SmartShadow and ChatGPT, then use dock-switch placement for `side_left_fill` and `side_right_fill`. Legacy Karabiner left/right `Shift` launcher mappings should be removed so Shift returns to the default system behavior. `\` opens Terminal on the right side display with `side_right_fill`. Right `Command` is intentionally reserved as a no-op. External targets that are offline fall back to the internal main display.
+ChatGPT, Codex, SmartShadow, Claude, and Command shortcuts render in the HUD with default Dock labels: `F6` for ChatGPT, `L⇧` for left Shift / Codex, `F3` for SmartShadow, `R⇧` for right Shift / Claude, and `⌘` for left/right `Command`. The app shortcuts are configurable in Dock Switch Settings while remaining excluded from ordinary fallback numbering.
+Left `Command` opens System Settings on the internal display with `internal_fill`. Inside dock-switch's launcher, left `Shift` opens Codex on the external display with `external_fill`, right `Shift` opens Claude on the external display with `external_fill`, and `F6` opens ChatGPT on the right side display with `side_right_fill`. Karabiner single-key shortcuts are limited to the direct `F3` and `F6` exceptions: they open SmartShadow and ChatGPT, then use dock-switch placement for `side_left_fill` and `side_right_fill`. Legacy Karabiner left/right `Shift` launcher mappings should be removed so Shift returns to the default system behavior. `\` opens Terminal on the right side display with `side_right_fill`. Right `Command` is intentionally reserved as a no-op. External targets that are offline fall back to the internal main display.
 If no external display is available, `external_right_half` falls back to the right half of the internal display work area.
 If no external display is available, `external_left_half` falls back to the left half of the internal display work area.
 

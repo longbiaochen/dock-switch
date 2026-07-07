@@ -185,14 +185,6 @@ public enum StatusItemIconPolicy {
 public enum LauncherShortcutRules {
     public static func appName(for normalizedKey: String) -> String? {
         switch normalizedKey {
-        case "F6":
-            return "ChatGPT"
-        case "LEFT_SHIFT":
-            return "Codex"
-        case "RIGHT_SHIFT":
-            return "Claude"
-        case "F3":
-            return "SmartShadow"
         case "COMMAND_LEFT":
             return "System Settings"
         default:
@@ -227,7 +219,7 @@ public enum LauncherShortcutRules {
     }
 
     public static func isReserved(_ normalizedKey: String) -> Bool {
-        ["LEFT_SHIFT", "RIGHT_SHIFT", "F3", "F6", "COMMAND_LEFT", "COMMAND_RIGHT"].contains(normalizedKey)
+        ["COMMAND_LEFT", "COMMAND_RIGHT"].contains(normalizedKey)
     }
 
     public static func windowAction(key: String, code: String = "") -> String? {
@@ -556,7 +548,7 @@ public enum LauncherRules {
         case "smartshadow":
             return ("SmartShadow", "F3", "F3", "side_left_fill", "/Applications/SmartShadow.app")
         case "claude":
-            return ("Claude", "RIGHT_SHIFT", "R⇧", "side_right_fill", "/Applications/Claude.app")
+            return ("Claude", "RIGHT_SHIFT", "R⇧", "external_fill", "/Applications/Claude.app")
         default:
             return nil
         }
@@ -571,7 +563,25 @@ public enum LauncherRules {
             .sorted { $0.pos.x < $1.pos.x }
         var fallbackKey = 1
         return visible.map { dockItem in
+            let normalizedDockName = normalizeAppName(dockItem.name)
+            let configured = config.dockItems.first(where: {
+                normalizeAppName($0.name) == normalizedDockName
+            })
+
             if let special = specialItem(for: dockItem.name) {
+                if let configured {
+                    let configuredKey = configured.key?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    return LauncherItem(
+                        name: configured.name,
+                        key: configuredKey,
+                        icon: keyIcon(for: configuredKey),
+                        kind: configured.kind,
+                        placement: configured.placement ?? special.placement,
+                        openPath: configured.openPath ?? special.openPath,
+                        appURL: configured.appURL,
+                        dockItem: dockItem
+                    )
+                }
                 return LauncherItem(
                     name: special.name,
                     key: special.key,
@@ -584,11 +594,7 @@ public enum LauncherRules {
                 )
             }
 
-            let normalizedDockName = normalizeAppName(dockItem.name)
-            if let configured = config.dockItems.first(where: {
-                normalizeAppName($0.name) == normalizedDockName &&
-                    !normalizeKey($0.key ?? "").isEmpty
-            }) {
+            if let configured, !normalizeKey(configured.key ?? "").isEmpty {
                 return LauncherItem(
                     name: configured.name,
                     key: normalizeKey(configured.key ?? ""),

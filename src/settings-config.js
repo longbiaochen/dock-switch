@@ -1,10 +1,8 @@
 const fs = require("fs");
 const path = require("path");
-const { displayLauncherKey, launcherKeyIcon, normalizeLauncherKey } = require("./launcher-key");
+const { displayLauncherKey, normalizeLauncherKey } = require("./launcher-key");
 const {
-    isReservedLauncherShortcut
-} = require("./launcher-shortcuts");
-const {
+    configuredItemForName,
     normalizeAppName,
     specialLauncherItemForName
 } = require("./launcher-items");
@@ -65,6 +63,13 @@ function normalizeEditablePlacement(placement) {
     return String(placement || "").trim();
 }
 
+function settingsScreenValue(screen) {
+    const value = String(screen || "").trim();
+    if (value === "internal") return "1";
+    if (value === "external") return "0";
+    return value;
+}
+
 function hasEditableSetting(update) {
     return !!(
         normalizeEditableKey(update && update.key) ||
@@ -77,7 +82,7 @@ function isReservedSettingsKey(key, name) {
     if (key === "COMMAND_LEFT" && normalizeAppName(name) === "system settings") {
         return false;
     }
-    return isReservedLauncherShortcut(key);
+    return key === "COMMAND_LEFT" || key === "COMMAND_RIGHT";
 }
 
 function buildSettingsRows(dockItems, config) {
@@ -87,22 +92,27 @@ function buildSettingsRows(dockItems, config) {
 
     for (const dockItem of visibleDockItems(dockItems)) {
         const specialItem = specialLauncherItemForName(dockItem.name);
+        const configItem = findConfigItem(configDockItems, dockItem.name);
         if (specialItem) {
+            const source = configItem
+                ? configuredItemForName(configDockItems, normalizeAppName(dockItem.name))
+                : specialItem;
+            const hasConfiguredKey = configItem && Object.prototype.hasOwnProperty.call(configItem, "key");
+            const key = hasConfiguredKey ? String(configItem.key || "").trim() : source.key;
             rows.push({
-                name: specialItem.name,
-                key: specialItem.key,
-                displayKey: specialItem.icon || specialItem.key,
-                screen: "",
-                placement: "",
-                status: "reserved",
-                readonly: true,
-                configured: false,
+                name: source.name || specialItem.name,
+                key: displayLauncherKey(key),
+                displayKey: displayLauncherKey(key),
+                screen: settingsScreenValue(source.screen),
+                placement: String(source.placement || ""),
+                status: "configured",
+                readonly: false,
+                configured: true,
                 fallback: false
             });
             continue;
         }
 
-        const configItem = findConfigItem(configDockItems, dockItem.name);
         if (configItem && String(configItem.key || "").trim()) {
             rows.push({
                 name: configItem.name || dockItem.name,
@@ -187,7 +197,6 @@ function saveDockItemSettings(config, dockItems, updates) {
         if (!name) continue;
         const normalizedName = normalizeAppName(name);
         if (!visibleNames.has(normalizedName)) continue;
-        if (specialLauncherItemForName(name)) continue;
         updatesByName.set(normalizedName, {
             name,
             key: normalizeEditableKey(update.key),

@@ -18,9 +18,9 @@ Core Flow
    use the placement path, while other apps restore remembered bounds.
    ``ArrowLeft``/``ArrowRight`` move to the left/right side-display work areas,
    ``ArrowUp`` moves to the external display, ``ArrowDown`` moves to the internal
-   display, ``【``/``】`` tile the current display left/right half, and launcher keys open reserved apps through dock-switch itself: ``left_shift`` opens ``Codex`` on the external display, ``right_shift`` opens ``Claude`` on the right side display, left ``Command`` opens ``System Settings`` on the internal display, ``\`` opens
-   ``Terminal`` on the right side display, and right ``Command`` is a reserved no-op. ``F3`` and ``F6`` are local Karabiner exceptions that directly open ``SmartShadow`` and ``ChatGPT``, then use dock-switch placement with ``side_left_fill`` and ``side_right_fill``. ``Command`` shortcuts render as ``⌘`` in the HUD. ``Codex``, ``ChatGPT``, ``SmartShadow``, and ``Claude`` are excluded from the ordinary HUD
-   item list, while numeric keys remain available for normal launcher selection.
+   display, ``【``/``】`` tile the current display left/right half, and launcher keys open configurable app defaults through dock-switch itself: ``left_shift`` opens ``Codex`` on the external display, ``right_shift`` opens ``Claude`` on the external display, left ``Command`` opens ``System Settings`` on the internal display, ``\`` opens
+   ``Terminal`` on the right side display, and right ``Command`` is a reserved no-op. ``F3`` and ``F6`` are local Karabiner exceptions that directly open ``SmartShadow`` and ``ChatGPT``, then use dock-switch placement with ``side_left_fill`` and ``side_right_fill``. ``Command`` shortcuts render as ``⌘`` in the HUD. ``Codex``, ``ChatGPT``, ``SmartShadow``, and ``Claude`` are configurable in Dock Switch Settings while remaining excluded from the ordinary HUD
+   fallback numbering.
 6. Display-moving arrows move the pointer to the center of the target display.
    App activation shortcuts move it to the center of the activated or placed window.
 7. The optional GoKit5 serial listener maps host-button events from

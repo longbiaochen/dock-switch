@@ -123,12 +123,11 @@ final class SettingsStore: ObservableObject {
 
         for dockItem in sortedDockItems {
             guard let name = dockItem["name"] as? String else { continue }
-            if let reserved = reservedItem(for: name) {
-                result.append(reserved)
-                continue
-            }
             let configItem = configItems.first { normalizeAppName($0["name"] as? String ?? "") == normalizeAppName(name) }
-            if let configItem, let configuredKey = configItem["key"] as? String, !configuredKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let defaultItem = defaultSettingsItem(for: name)
+            if let configItem,
+               defaultItem != nil || !(configItem["key"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                let configuredKey = configItem["key"] as? String ?? ""
                 let placement = configItem["placement"] as? String ?? ""
                 let parsedPlacement = parsePlacement(placement)
                 let screen = normalizeScreenValue((configItem["screen"] as? String) ?? parsedPlacement.screen)
@@ -145,6 +144,8 @@ final class SettingsStore: ObservableObject {
                     configured: true,
                     fallback: false
                 ))
+            } else if let defaultItem {
+                result.append(defaultItem)
             } else {
                 result.append(SettingsRow(
                     id: name,
@@ -215,7 +216,7 @@ final class SettingsStore: ObservableObject {
         if key == "COMMAND_LEFT", normalizeAppName(appName) == "system settings" {
             return false
         }
-        return ["LEFT_SHIFT", "RIGHT_SHIFT", "F3", "F6", "COMMAND_LEFT", "COMMAND_RIGHT"].contains(key)
+        return ["COMMAND_LEFT", "COMMAND_RIGHT"].contains(key)
     }
 
     private func visibleDockItems(_ dockItems: [[String: Any]]) -> [[String: Any]] {

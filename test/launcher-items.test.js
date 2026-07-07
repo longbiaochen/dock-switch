@@ -45,11 +45,33 @@ test("specialLauncherItemForName labels fixed Dock apps with synced key names", 
         name: "Claude",
         key: "RIGHT_SHIFT",
         icon: "R⇧",
-        screen: "side_right",
-        placement: "side_right_fill",
+        screen: "external",
+        placement: "external_fill",
         open_path: "/Applications/Claude.app"
     });
     assert.equal(specialLauncherItemForName("Finder"), null);
+});
+
+test("buildLauncherItems lets config override special app defaults", () => {
+    const dockItems = [
+        { name: "Claude", pos: { x: 10, y: 0 } }
+    ];
+    const configDockItems = [
+        { name: "Claude", key: "C", screen: "external", placement: "external_fill" }
+    ];
+
+    const launcherItems = buildLauncherItems(dockItems, configDockItems);
+
+    assert.deepEqual(launcherItems.map(entry => entry.item), [
+        {
+            name: "Claude",
+            key: "C",
+            icon: undefined,
+            screen: "external",
+            placement: "external_fill",
+            open_path: "/Applications/Claude.app"
+        }
+    ]);
 });
 
 test("buildLauncherItems renders special app labels and preserves fallback numeric keys for other apps", () => {
