@@ -32,11 +32,11 @@ test("normalizeLauncherKey maps digit codes to stable numeric keys", () => {
     assert.equal(normalizeLauncherKey("", "Digit3"), "3");
 });
 
-test("resolveAppShortcut only maps non-configurable command shortcuts", () => {
-    assert.equal(resolveAppShortcut("LEFT_SHIFT"), "");
-    assert.equal(resolveAppShortcut("RIGHT_SHIFT"), "");
-    assert.equal(resolveAppShortcut("F3"), "");
-    assert.equal(resolveAppShortcut("F6"), "");
+test("resolveAppShortcut provides default app fallback for launcher defaults", () => {
+    assert.equal(resolveAppShortcut("LEFT_SHIFT"), "Codex");
+    assert.equal(resolveAppShortcut("RIGHT_SHIFT"), "Claude");
+    assert.equal(resolveAppShortcut("F3"), "SmartShadow");
+    assert.equal(resolveAppShortcut("F6"), "ChatGPT");
     assert.equal(resolveAppShortcut("COMMAND_LEFT"), "System Settings");
     assert.equal(resolveAppShortcut("TAB"), "");
     assert.equal(resolveAppShortcut("COMMAND_RIGHT"), "");

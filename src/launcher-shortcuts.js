@@ -1,4 +1,8 @@
 var APP_SHORTCUTS = Object.freeze({
+    LEFT_SHIFT: "Codex",
+    RIGHT_SHIFT: "Claude",
+    F3: "SmartShadow",
+    F6: "ChatGPT",
     COMMAND_LEFT: "System Settings"
 });
 var RESERVED_LAUNCHER_SHORTCUTS = Object.freeze({

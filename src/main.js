@@ -17,7 +17,10 @@ const {
     isReservedLauncherShortcut,
     resolveAppShortcut
 } = require("./launcher-shortcuts");
-const { buildLauncherItems } = require("./launcher-items");
+const {
+    buildLauncherItems,
+    findLauncherItemForKey
+} = require("./launcher-items");
 const { buildReadableOverlayTarget } = require("./launcher-overlay-view");
 const { setupControlServer } = require("./control-server");
 const { createGokit5SerialListener } = require("./gokit5-serial");
@@ -1028,6 +1031,13 @@ function handle_launcher_before_input(event, input) {
     }
 
     var normalizedKey = normalizeLauncherKey(input.key, input.code);
+    var launcherItem = findLauncherItemForKey(get_visible_dock_items(dock_items), CONFIG.dock_items, normalizedKey);
+    if (launcherItem) {
+        event.preventDefault();
+        activate_launcher_item_from_main(launcherItem);
+        return;
+    }
+
     var shortcutApp = resolveAppShortcut(normalizedKey);
     if (shortcutApp) {
         event.preventDefault();

@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 
 const {
     buildLauncherItems,
+    findLauncherItemForKey,
     isExcludedLauncherApp,
     specialLauncherItemForName
 } = require("../src/launcher-items");
@@ -72,6 +73,28 @@ test("buildLauncherItems lets config override special app defaults", () => {
             open_path: "/Applications/Claude.app"
         }
     ]);
+});
+
+test("findLauncherItemForKey resolves configurable modifier app defaults for main-process shortcuts", () => {
+    const dockItems = [
+        { name: "Codex", pos: { x: 10, y: 0 } },
+        { name: "Claude", pos: { x: 20, y: 0 } }
+    ];
+
+    assert.equal(findLauncherItemForKey(dockItems, [], "LEFT_SHIFT").name, "Codex");
+    assert.deepEqual(findLauncherItemForKey(dockItems, [
+        { name: "Claude", key: "C", screen: "external", placement: "external_fill" }
+    ], "RIGHT_SHIFT"), null);
+    assert.deepEqual(findLauncherItemForKey(dockItems, [
+        { name: "Claude", key: "C", screen: "external", placement: "external_fill" }
+    ], "C"), {
+        name: "Claude",
+        key: "C",
+        icon: undefined,
+        screen: "external",
+        placement: "external_fill",
+        open_path: "/Applications/Claude.app"
+    });
 });
 
 test("buildLauncherItems renders special app labels and preserves fallback numeric keys for other apps", () => {

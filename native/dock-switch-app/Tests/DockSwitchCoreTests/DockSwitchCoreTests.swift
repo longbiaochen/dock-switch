@@ -266,10 +266,10 @@ final class DockSwitchCoreTests: XCTestCase {
     }
 
     func testShortcutRulesMapReservedAppsAndWindowActions() {
-        XCTAssertNil(LauncherShortcutRules.appName(for: "F6"))
-        XCTAssertNil(LauncherShortcutRules.appName(for: "LEFT_SHIFT"))
-        XCTAssertNil(LauncherShortcutRules.appName(for: "RIGHT_SHIFT"))
-        XCTAssertNil(LauncherShortcutRules.appName(for: "F3"))
+        XCTAssertEqual(LauncherShortcutRules.appName(for: "F6"), "ChatGPT")
+        XCTAssertEqual(LauncherShortcutRules.appName(for: "LEFT_SHIFT"), "Codex")
+        XCTAssertEqual(LauncherShortcutRules.appName(for: "RIGHT_SHIFT"), "Claude")
+        XCTAssertEqual(LauncherShortcutRules.appName(for: "F3"), "SmartShadow")
         XCTAssertEqual(LauncherShortcutRules.appName(for: "COMMAND_LEFT"), "System Settings")
         XCTAssertNil(LauncherShortcutRules.appName(for: "TAB"))
         XCTAssertNil(LauncherShortcutRules.appName(for: "COMMAND_RIGHT"))
@@ -288,9 +288,22 @@ final class DockSwitchCoreTests: XCTestCase {
     }
 
     func testShortcutRulesResolveReservedAppsToPlacedLauncherItems() {
-        XCTAssertNil(LauncherShortcutRules.launcherItem(for: "F3"))
-        XCTAssertNil(LauncherShortcutRules.launcherItem(for: "LEFT_SHIFT"))
-        XCTAssertNil(LauncherShortcutRules.launcherItem(for: "RIGHT_SHIFT"))
+        let smartShadow = LauncherShortcutRules.launcherItem(for: "F3")
+        XCTAssertEqual(smartShadow?.name, "SmartShadow")
+        XCTAssertEqual(smartShadow?.key, "F3")
+        XCTAssertEqual(smartShadow?.placement, "side_left_fill")
+        XCTAssertEqual(smartShadow?.openPath, "/Applications/SmartShadow.app")
+
+        let codex = LauncherShortcutRules.launcherItem(for: "LEFT_SHIFT")
+        XCTAssertEqual(codex?.name, "Codex")
+        XCTAssertEqual(codex?.key, "LEFT_SHIFT")
+        XCTAssertEqual(codex?.placement, "external_fill")
+
+        let claude = LauncherShortcutRules.launcherItem(for: "RIGHT_SHIFT")
+        XCTAssertEqual(claude?.name, "Claude")
+        XCTAssertEqual(claude?.key, "RIGHT_SHIFT")
+        XCTAssertEqual(claude?.placement, "external_fill")
+        XCTAssertEqual(claude?.openPath, "/Applications/Claude.app")
         XCTAssertNil(LauncherShortcutRules.launcherItem(for: "COMMAND_RIGHT"))
     }
 

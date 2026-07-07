@@ -114,9 +114,22 @@ function buildLauncherItems(dockItems, configDockItems) {
     return launcherItems;
 }
 
+function findLauncherItemForKey(dockItems, configDockItems, normalizedKey) {
+    var key = String(normalizedKey || "").trim().toUpperCase();
+    if (!key) return null;
+    var entry = buildLauncherItems(dockItems, configDockItems).find(candidate => {
+        var item = candidate && candidate.item;
+        if (!item) return false;
+        return String(item.key || "").toUpperCase() === key ||
+            String(item.icon || "").toUpperCase() === key;
+    });
+    return entry ? entry.item : null;
+}
+
 module.exports = {
     buildLauncherItems,
     configuredItemForName,
+    findLauncherItemForKey,
     isExcludedLauncherApp,
     normalizeAppName,
     specialLauncherItemForName

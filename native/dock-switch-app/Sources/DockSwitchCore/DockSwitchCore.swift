@@ -185,6 +185,14 @@ public enum StatusItemIconPolicy {
 public enum LauncherShortcutRules {
     public static func appName(for normalizedKey: String) -> String? {
         switch normalizedKey {
+        case "F6":
+            return "ChatGPT"
+        case "LEFT_SHIFT":
+            return "Codex"
+        case "RIGHT_SHIFT":
+            return "Claude"
+        case "F3":
+            return "SmartShadow"
         case "COMMAND_LEFT":
             return "System Settings"
         default:
