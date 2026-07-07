@@ -4,15 +4,13 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const {
-    placeFocusedWindowByPlacement,
-    placeFocusedWindowByAction,
-    placeProcessWindowByAction,
-    placePidWindowByPlacement,
-    placeProcessWindowByPlacement,
+    placeFocusedWindowByPlacementWithFeedback,
+    placeFocusedWindowByActionWithFeedback,
+    placeProcessWindowByActionWithFeedback,
+    placePidWindowByPlacementWithFeedback,
+    placeProcessWindowByPlacementWithFeedback,
     moveMouseToApplicationWindowCenter,
-    moveMouseToBoundsCenter,
-    moveMouseToBoundsDisplayCenter,
-    resolveBoundsForPlacement
+    moveMouseToDisplayTargetWithFeedback
 } = require("./window-control");
 const { normalizeLauncherKey } = require("./launcher-key");
 const {
@@ -22,7 +20,6 @@ const {
 const { buildLauncherItems } = require("./launcher-items");
 const { buildReadableOverlayTarget } = require("./launcher-overlay-view");
 const { setupControlServer } = require("./control-server");
-const { selectCodexDisplay } = require("./codex-display-control");
 const { createGokit5SerialListener } = require("./gokit5-serial");
 const {
     resolveOpenPath,
@@ -269,19 +266,23 @@ html, body {
     height: 54px;
     margin-left: -27px;
     margin-top: -27px;
-    border: 2px solid rgba(255, 255, 255, 0.92);
     border-radius: 50%;
-    box-shadow: 0 0 0 1px rgba(20, 20, 20, 0.28), 0 0 18px rgba(255, 255, 255, 0.36);
+    background:
+        radial-gradient(circle, transparent 58%, rgba(10, 132, 255, 0.88) 61%, rgba(10, 132, 255, 0.88) 66%, transparent 69%),
+        radial-gradient(circle, transparent 48%, rgba(255, 255, 255, 0.42) 51%, rgba(255, 255, 255, 0.42) 56%, transparent 59%);
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.28));
     opacity: 0;
     transform: scale(0.72);
+    will-change: opacity, transform;
 }
 #ring.pulse {
-    animation: pulse 320ms ease-out forwards;
+    animation: pulse 560ms ease-out forwards;
 }
 @keyframes pulse {
     0% { opacity: 0; transform: scale(0.72); }
-    18% { opacity: 0.92; transform: scale(0.92); }
-    100% { opacity: 0; transform: scale(1.38); }
+    14% { opacity: 0.95; transform: scale(0.94); }
+    46% { opacity: 0.78; transform: scale(1.22); }
+    100% { opacity: 0; transform: scale(1.54); }
 }
 </style>
 </head>
@@ -370,17 +371,6 @@ function show_mouse_feedback(point) {
         send_pulse();
     }
     return true;
-}
-
-function show_mouse_feedback_at_current_mouse() {
-    if (!dock_query || typeof dock_query.getMousePosition !== "function") {
-        return false;
-    }
-    try {
-        return show_mouse_feedback(dock_query.getMousePosition());
-    } catch (e) {
-        return false;
-    }
 }
 
 function reload_config() {
@@ -822,12 +812,15 @@ function run_arrow_window_control(action) {
         try {
             // Arrow commands should act on the real frontmost window, even when an app
             // has multiple windows (for example profile-bound Chrome windows).
-            var ok = placeFocusedWindowByAction(dock_query, electron.screen, action);
-            if (!ok) {
+            var result = placeFocusedWindowByActionWithFeedback(dock_query, electron.screen, action);
+            if (!result.ok) {
                 var processName = focused_process_name();
                 if (processName) {
-                    placeProcessWindowByAction(processName, dock_query, electron.screen, action);
+                    result = placeProcessWindowByActionWithFeedback(processName, dock_query, electron.screen, action);
                 }
+            }
+            if (result && result.feedbackPoint) {
+                show_mouse_feedback(result.feedbackPoint);
             }
         } catch (e) {
             // Ignore windows that cannot be moved/resized.
@@ -849,43 +842,40 @@ function launch_app_with_placement(item) {
         try {
             var directAppPid = findAppProcessPidByOpenPath(item.open_path);
             if (Number.isFinite(directAppPid) && directAppPid > 0) {
-                var directPidOk = placePidWindowByPlacement(
+                var directPidResult = placePidWindowByPlacementWithFeedback(
                     directAppPid,
                     dock_query,
                     electron.screen,
                     String(item.placement)
                 );
-                if (directPidOk) {
-                    move_mouse_to_placed_window_center(String(item.name), String(item.placement));
-                    show_mouse_feedback_at_current_mouse();
+                if (directPidResult.ok) {
+                    show_mouse_feedback(directPidResult.feedbackPoint);
                     return;
                 }
             }
 
             var chromeAppPid = findChromeAppProcessPid(item.app_url);
             if (Number.isFinite(chromeAppPid) && chromeAppPid > 0) {
-                var pidOk = placePidWindowByPlacement(
+                var pidResult = placePidWindowByPlacementWithFeedback(
                     chromeAppPid,
                     dock_query,
                     electron.screen,
                     String(item.placement)
                 );
-                if (pidOk) {
-                    move_mouse_to_placed_window_center(String(item.name), String(item.placement));
-                    show_mouse_feedback_at_current_mouse();
+                if (pidResult.ok) {
+                    show_mouse_feedback(pidResult.feedbackPoint);
                     return;
                 }
             }
 
-            var ok = placeProcessWindowByPlacement(
+            var result = placeProcessWindowByPlacementWithFeedback(
                 String(item.name),
                 dock_query,
                 electron.screen,
                 String(item.placement)
             );
-            if (ok) {
-                move_mouse_to_placed_window_center(String(item.name), String(item.placement));
-                show_mouse_feedback_at_current_mouse();
+            if (result.ok) {
+                show_mouse_feedback(result.feedbackPoint);
                 return;
             }
         } catch (e) {
@@ -922,43 +912,6 @@ function move_mouse_to_application_window_center(appName) {
     setTimeout(tryMove, app_launch_place_retry_delay_ms);
 }
 
-function move_mouse_to_placed_window_center(appName, placement) {
-    move_mouse_to_placement_center(placement);
-    move_mouse_to_application_window_center(appName);
-}
-
-function move_mouse_to_placement_center(placement) {
-    if (!placement || !dock_query) {
-        return;
-    }
-    try {
-        var displays = electron.screen.getAllDisplays();
-        var primary = electron.screen.getPrimaryDisplay();
-        var target = resolveBoundsForPlacement(placement, displays, primary);
-        if (target) {
-            moveMouseToBoundsCenter(dock_query, target);
-        }
-    } catch (e) {
-        // best effort
-    }
-}
-
-function move_mouse_to_placement_display(placement) {
-    if (!placement || !dock_query) {
-        return;
-    }
-    try {
-        var displays = electron.screen.getAllDisplays();
-        var primary = electron.screen.getPrimaryDisplay();
-        var target = resolveBoundsForPlacement(placement, displays, primary);
-        if (target) {
-            moveMouseToBoundsDisplayCenter(dock_query, electron.screen, target);
-        }
-    } catch (e) {
-        // best effort
-    }
-}
-
 function place_focused_window(placement) {
     if (!placement) {
         return;
@@ -968,7 +921,10 @@ function place_focused_window(placement) {
     electron.app.hide();
     setTimeout(() => {
         try {
-            placeFocusedWindowByPlacement(dock_query, electron.screen, placement);
+            var result = placeFocusedWindowByPlacementWithFeedback(dock_query, electron.screen, placement);
+            if (result && result.feedbackPoint) {
+                show_mouse_feedback(result.feedbackPoint);
+            }
         } catch (e) {
             // Ignore windows that cannot be moved/resized.
         }
@@ -1002,12 +958,16 @@ function setup_gokit5_serial_listener(controlDeps) {
             gokit5_action_inflight = gokit5_action_inflight
                 .catch(() => {})
                 .then(() => {
-                    if (action.codex_target) {
-                        return selectCodexDisplay({
-                            target: action.codex_target,
-                            appName: action.name || "Codex",
-                            source: `gokit5:${event && event.button || ""}`
-                        }, controlDeps);
+                    if (action.mouse_target) {
+                        var result = moveMouseToDisplayTargetWithFeedback(
+                            dock_query,
+                            electron.screen,
+                            action.mouse_target
+                        );
+                        if (result.feedbackPoint) {
+                            show_mouse_feedback(result.feedbackPoint);
+                        }
+                        return result;
                     }
                     return launch_app_with_placement(action);
                 })

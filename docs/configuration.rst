@@ -49,7 +49,7 @@ Notes
 - ``side_left_fill`` maximizes to the left side-display work area.
 - ``side_right_fill`` maximizes to the right side-display work area.
 - If a requested external or side display is not connected, ``external_fill``, ``side_left_fill``, and ``side_right_fill`` fall back to the internal main display work area.
-- GoKit5 host-button events select Codex on four displays: ``minus`` -> left side, ``plus`` -> internal, ``voice`` -> external, and ``green``/``switch`` -> right side. Existing Codex windows on the selected display are brought forward; if none exists there, dock-switch creates a new Codex window on that display without moving windows from other displays.
+- GoKit5 host-button events only move the pointer across displays: ``minus`` -> left side, ``plus`` -> internal, ``voice`` -> external, and ``green``/``switch`` -> right side. They do not launch, foreground, create, or move app windows.
 - If no external display is available, ``external_left_half`` falls back to the left half of the internal display work area.
 - If no external display is available, ``external_right_half`` falls back to the right half of the internal display work area.
 

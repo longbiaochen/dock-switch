@@ -9,24 +9,19 @@ const HOST_BUTTON_PREFIX = "GOKIT5_HOST_BUTTON:";
 
 const BUTTON_TO_APP_ACTION = Object.freeze({
     minus: Object.freeze({
-        name: "Codex",
-        codex_target: "side_left"
+        mouse_target: "side_left"
     }),
     voice: Object.freeze({
-        name: "Codex",
-        codex_target: "external"
+        mouse_target: "external"
     }),
     switch: Object.freeze({
-        name: "Codex",
-        codex_target: "side_right"
+        mouse_target: "side_right"
     }),
     green: Object.freeze({
-        name: "Codex",
-        codex_target: "side_right"
+        mouse_target: "side_right"
     }),
     plus: Object.freeze({
-        name: "Codex",
-        codex_target: "internal"
+        mouse_target: "internal"
     })
 });
 

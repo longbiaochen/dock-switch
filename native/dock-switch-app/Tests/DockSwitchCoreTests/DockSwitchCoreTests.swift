@@ -4,25 +4,25 @@ import XCTest
 
 final class DockSwitchCoreTests: XCTestCase {
     private final class FakeLauncherWindowPlacement: LauncherWindowPlacement {
-        var placeProcessResult = false
-        var moveMouseResult = false
+        var placeProcessResult = WindowActionResult(ok: false)
+        var moveMouseResult = WindowActionResult(ok: false)
         var placedProcesses: [(name: String, placement: String)] = []
         var movedApps: [String] = []
 
-        func placePID(_ pid: pid_t, placement: String) -> Bool {
-            false
+        func placePID(_ pid: pid_t, placement: String) -> WindowActionResult {
+            WindowActionResult(ok: false)
         }
 
-        func placeProcess(name: String, placement: String) -> Bool {
+        func placeProcess(name: String, placement: String) -> WindowActionResult {
             placedProcesses.append((name, placement))
             return placeProcessResult
         }
 
-        func moveMouseToPIDWindowCenter(_ pid: pid_t) -> Bool {
-            false
+        func moveMouseToPIDWindowCenter(_ pid: pid_t) -> WindowActionResult {
+            WindowActionResult(ok: false)
         }
 
-        func moveMouseToApplicationWindowCenter(name: String) -> Bool {
+        func moveMouseToApplicationWindowCenter(name: String) -> WindowActionResult {
             movedApps.append(name)
             return moveMouseResult
         }
@@ -284,13 +284,27 @@ final class DockSwitchCoreTests: XCTestCase {
         XCTAssertEqual(LauncherShortcutRules.windowAction(key: "]"), "current_right")
         XCTAssertNil(LauncherShortcutRules.windowAction(key: "\\"))
         XCTAssertTrue(LauncherShortcutRules.shouldCenterMouse(for: "right"))
-        XCTAssertFalse(LauncherShortcutRules.shouldCenterMouse(for: "current_right"))
+        XCTAssertTrue(LauncherShortcutRules.shouldCenterMouse(for: "current_right"))
+    }
+
+    func testShortcutRulesResolveReservedAppsToPlacedLauncherItems() {
+        let smartShadow = LauncherShortcutRules.launcherItem(for: "F3")
+        XCTAssertEqual(smartShadow?.name, "SmartShadow")
+        XCTAssertEqual(smartShadow?.key, "F3")
+        XCTAssertEqual(smartShadow?.placement, "side_left_fill")
+        XCTAssertEqual(smartShadow?.openPath, "/Applications/SmartShadow.app")
+
+        let codex = LauncherShortcutRules.launcherItem(for: "LEFT_SHIFT")
+        XCTAssertEqual(codex?.name, "Codex")
+        XCTAssertEqual(codex?.key, "LEFT_SHIFT")
+        XCTAssertEqual(codex?.placement, "external_fill")
+
+        XCTAssertNil(LauncherShortcutRules.launcherItem(for: "COMMAND_RIGHT"))
     }
 
     func testLauncherServiceShowsMouseFeedbackAfterPlacedAppMouseMove() {
         let placement = FakeLauncherWindowPlacement()
-        placement.placeProcessResult = true
-        placement.moveMouseResult = true
+        placement.placeProcessResult = WindowActionResult(ok: true, feedbackPoint: CGPoint(x: 420, y: 240))
         var feedbackPoints: [CGPoint] = []
         let expectation = expectation(description: "feedback shown")
         let service = LauncherService(
@@ -301,7 +315,6 @@ final class DockSwitchCoreTests: XCTestCase {
                 feedbackPoints.append(point)
                 expectation.fulfill()
             },
-            currentMouseLocation: { CGPoint(x: 420, y: 240) },
             openItem: { _ in }
         )
 
@@ -315,13 +328,13 @@ final class DockSwitchCoreTests: XCTestCase {
         wait(for: [expectation], timeout: 1)
         XCTAssertEqual(placement.placedProcesses.map(\.name), ["Claude"])
         XCTAssertEqual(placement.placedProcesses.map(\.placement), ["side_right_fill"])
-        XCTAssertEqual(placement.movedApps, ["Claude"])
+        XCTAssertEqual(placement.movedApps, [])
         XCTAssertEqual(feedbackPoints, [CGPoint(x: 420, y: 240)])
     }
 
     func testLauncherServiceShowsMouseFeedbackAfterUnplacedAppMouseMove() {
         let placement = FakeLauncherWindowPlacement()
-        placement.moveMouseResult = true
+        placement.moveMouseResult = WindowActionResult(ok: true, feedbackPoint: CGPoint(x: -100, y: 50))
         var feedbackPoints: [CGPoint] = []
         let expectation = expectation(description: "feedback shown")
         let service = LauncherService(
@@ -332,7 +345,6 @@ final class DockSwitchCoreTests: XCTestCase {
                 feedbackPoints.append(point)
                 expectation.fulfill()
             },
-            currentMouseLocation: { CGPoint(x: -100, y: 50) },
             openItem: { _ in }
         )
 
@@ -479,33 +491,33 @@ final class DockSwitchCoreTests: XCTestCase {
         XCTAssertEqual(Gokit5Serial.parseButtonLine("I (123) VolcRTCApp: Heap Info"), "")
 
         let minus = Gokit5Serial.action(for: "minus")
-        XCTAssertEqual(minus?.name, "Codex")
-        XCTAssertEqual(minus?.codexTarget, "side_left")
+        XCTAssertEqual(minus?.mouseTarget, "side_left")
+        XCTAssertNil(minus?.codexTarget)
         XCTAssertNil(minus?.placement)
         XCTAssertNil(minus?.openPath)
 
         let voice = Gokit5Serial.action(for: "voice")
-        XCTAssertEqual(voice?.name, "Codex")
-        XCTAssertEqual(voice?.codexTarget, "external")
+        XCTAssertEqual(voice?.mouseTarget, "external")
+        XCTAssertNil(voice?.codexTarget)
         XCTAssertNil(voice?.placement)
 
         let switchAction = Gokit5Serial.action(for: "switch")
-        XCTAssertEqual(switchAction?.name, "Codex")
-        XCTAssertEqual(switchAction?.codexTarget, "side_right")
+        XCTAssertEqual(switchAction?.mouseTarget, "side_right")
+        XCTAssertNil(switchAction?.codexTarget)
         XCTAssertNil(switchAction?.placement)
         XCTAssertNil(switchAction?.openPath)
 
         let green = Gokit5Serial.action(for: "green")
-        XCTAssertEqual(green?.name, "Codex")
-        XCTAssertEqual(green?.codexTarget, "side_right")
+        XCTAssertEqual(green?.mouseTarget, "side_right")
+        XCTAssertNil(green?.codexTarget)
         XCTAssertNil(green?.placement)
         XCTAssertNil(green?.kind)
         XCTAssertNil(green?.openPath)
         XCTAssertNil(green?.appURL)
 
         let plus = Gokit5Serial.action(for: "plus")
-        XCTAssertEqual(plus?.name, "Codex")
-        XCTAssertEqual(plus?.codexTarget, "internal")
+        XCTAssertEqual(plus?.mouseTarget, "internal")
+        XCTAssertNil(plus?.codexTarget)
         XCTAssertNil(plus?.placement)
         XCTAssertNil(plus?.kind)
         XCTAssertNil(plus?.openPath)

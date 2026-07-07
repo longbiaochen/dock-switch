@@ -124,6 +124,12 @@ final class DockSwitchApp: NSObject, NSApplicationDelegate {
                     return true
                 }
             },
+            showMouseFeedback: { [weak self] point in
+                guard let self else { return }
+                self.runOnMain {
+                    self.mouseFeedbackPresenter.show(at: point)
+                }
+            },
             getGokit5Status: { [weak self] in
                 guard let self, let listener = self.gokit5SerialListener else {
                     return ["enabled": false, "status": "disabled", "running": false, "portPath": ""]
@@ -150,7 +156,12 @@ final class DockSwitchApp: NSObject, NSApplicationDelegate {
         let listener = Gokit5SerialListener { [weak self] action, _, _ in
             guard let self else { return }
             DispatchQueue.main.async {
-                if let target = action.codexTarget {
+                if let target = action.mouseTarget {
+                    let result = self.windowPlacementService.moveMouseToDisplayTarget(target)
+                    if result.ok, let point = result.feedbackPoint {
+                        self.mouseFeedbackPresenter.show(at: point)
+                    }
+                } else if let target = action.codexTarget {
                     _ = self.codexDisplaySelectionService.select(
                         target: target,
                         appName: action.name,
@@ -411,8 +422,12 @@ final class DockSwitchApp: NSObject, NSApplicationDelegate {
         NSApp.hide(nil)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.09) { [weak self] in
             guard let self else { return }
-            if !self.windowPlacementService.placeWindowByAction(action, preferredPID: preferredPID) {
-                _ = self.windowPlacementService.placeWindowByAction(action)
+            var result = self.windowPlacementService.placeWindowByAction(action, preferredPID: preferredPID)
+            if !result.ok {
+                result = self.windowPlacementService.placeWindowByAction(action)
+            }
+            if result.ok, let point = result.feedbackPoint {
+                self.mouseFeedbackPresenter.show(at: point)
             }
         }
     }
@@ -542,74 +557,89 @@ private final class MouseFeedbackPresenter {
 }
 
 private final class MouseFeedbackView: NSView {
-    static let pulseDuration: TimeInterval = 0.82
-    private let duration: TimeInterval = MouseFeedbackView.pulseDuration
-    private var startedAt = Date.distantPast
-    private var timer: Timer?
+    static let pulseDuration: TimeInterval = 0.56
+    private let rings: [(layer: CAShapeLayer, diameter: CGFloat, lineWidth: CGFloat, alpha: Float)] = [
+        (CAShapeLayer(), 54, 3, 0.95),
+        (CAShapeLayer(), 62, 4, 0.52),
+        (CAShapeLayer(), 72, 8, 0.28)
+    ]
 
     override var isOpaque: Bool { false }
 
-    func startPulse() {
-        startedAt = Date()
-        timer?.invalidate()
-        needsDisplay = true
-        let timer = Timer(timeInterval: 1.0 / 60.0, repeats: true) { [weak self] timer in
-            guard let self else {
-                timer.invalidate()
-                return
-            }
-            if Date().timeIntervalSince(self.startedAt) >= self.duration {
-                self.needsDisplay = true
-                timer.invalidate()
-                self.timer = nil
-                return
-            }
-            self.needsDisplay = true
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        layer?.masksToBounds = false
+        for ring in rings {
+            ring.layer.fillColor = NSColor.clear.cgColor
+            ring.layer.strokeColor = NSColor.controlAccentColor.usingColorSpace(.deviceRGB)?.cgColor ?? NSColor.systemBlue.cgColor
+            ring.layer.lineCap = .round
+            ring.layer.lineJoin = .round
+            ring.layer.lineWidth = ring.lineWidth
+            ring.layer.opacity = 0
+            layer?.addSublayer(ring.layer)
         }
-        self.timer = timer
-        RunLoop.main.add(timer, forMode: .common)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func layout() {
+        super.layout()
+        updateRingPaths()
+    }
+
+    func startPulse() {
+        updateRingPaths()
+        let duration = MouseFeedbackView.pulseDuration
+        for (index, ring) in rings.enumerated() {
+            ring.layer.removeAllAnimations()
+            ring.layer.opacity = 0
+            ring.layer.transform = CATransform3DIdentity
+
+            let opacity = CAKeyframeAnimation(keyPath: "opacity")
+            opacity.values = [0, ring.alpha, ring.alpha * 0.82, 0]
+            opacity.keyTimes = [0, 0.14, 0.46, 1]
+
+            let scale = CAKeyframeAnimation(keyPath: "transform.scale")
+            scale.values = [0.72, 0.94, 1.22, 1.54]
+            scale.keyTimes = [0, 0.18, 0.58, 1]
+
+            let group = CAAnimationGroup()
+            group.animations = [opacity, scale]
+            group.duration = duration
+            group.beginTime = CACurrentMediaTime() + Double(index) * 0.018
+            group.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            group.isRemovedOnCompletion = true
+            ring.layer.add(group, forKey: "dock-switch-mouse-feedback")
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in
+            self?.stopPulse()
+        }
     }
 
     func stopPulse() {
-        timer?.invalidate()
-        timer = nil
+        for ring in rings {
+            ring.layer.removeAllAnimations()
+            ring.layer.opacity = 0
+            ring.layer.transform = CATransform3DIdentity
+        }
     }
 
-    override func draw(_ dirtyRect: NSRect) {
-        super.draw(dirtyRect)
-        let elapsed = Date().timeIntervalSince(startedAt)
-        guard elapsed >= 0, elapsed < duration else { return }
-
-        let t = min(max(elapsed / duration, 0), 1)
-        let eased = 1 - pow(1 - CGFloat(t), 3)
-        let scale = 0.72 + (1.58 - 0.72) * eased
-        let fadeStart = 0.42
-        let fadeProgress = t <= fadeStart ? 0 : CGFloat((t - fadeStart) / (1 - fadeStart))
-        let fade = 1 - min(max(fadeProgress, 0), 1)
-        let opacity = 0.96 * fade * fade
-        guard opacity > 0.005 else { return }
-
+    private func updateRingPaths() {
         let center = CGPoint(x: bounds.midX, y: bounds.midY)
-        let baseDiameter: CGFloat = 54
-        let diameter = baseDiameter * scale
-        let rect = CGRect(
-            x: center.x - diameter / 2,
-            y: center.y - diameter / 2,
-            width: diameter,
-            height: diameter
-        )
-
-        drawRing(in: rect.insetBy(dx: -4, dy: -4), color: .white, alpha: opacity * 0.72, lineWidth: 4)
-        drawRing(in: rect, color: .controlAccentColor, alpha: opacity, lineWidth: 3)
-        drawRing(in: rect.insetBy(dx: -8, dy: -8), color: .controlAccentColor, alpha: opacity * 0.34, lineWidth: 10)
-    }
-
-    private func drawRing(in rect: CGRect, color: NSColor, alpha: CGFloat, lineWidth: CGFloat) {
-        guard alpha > 0.005 else { return }
-        let path = NSBezierPath(ovalIn: rect)
-        path.lineWidth = lineWidth
-        color.withAlphaComponent(alpha).setStroke()
-        path.stroke()
+        for ring in rings {
+            let diameter = ring.diameter
+            let rect = CGRect(
+                x: center.x - diameter / 2,
+                y: center.y - diameter / 2,
+                width: diameter,
+                height: diameter
+            )
+            ring.layer.frame = bounds
+            ring.layer.path = CGPath(ellipseIn: rect, transform: nil)
+        }
     }
 }
 

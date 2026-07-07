@@ -142,14 +142,16 @@ public struct Gokit5Action: Equatable {
     public var kind: String?
     public var placement: String?
     public var codexTarget: String?
+    public var mouseTarget: String?
     public var openPath: String?
     public var appURL: String?
 
-    public init(name: String, kind: String? = nil, placement: String? = nil, codexTarget: String? = nil, openPath: String? = nil, appURL: String? = nil) {
+    public init(name: String = "Mouse", kind: String? = nil, placement: String? = nil, codexTarget: String? = nil, mouseTarget: String? = nil, openPath: String? = nil, appURL: String? = nil) {
         self.name = name
         self.kind = kind
         self.placement = placement
         self.codexTarget = codexTarget
+        self.mouseTarget = mouseTarget
         self.openPath = openPath
         self.appURL = appURL
     }
@@ -252,7 +254,7 @@ public enum LauncherShortcutRules {
     }
 
     public static func shouldCenterMouse(for action: String) -> Bool {
-        ["up", "down", "left", "right"].contains(action)
+        ["up", "down", "left", "right", "current_left", "current_right"].contains(action)
     }
 }
 
@@ -917,7 +919,6 @@ public final class LauncherService {
     private let placeRetryDeadline: TimeInterval
     private let placeRetryDelay: TimeInterval
     private let showMouseFeedback: (CGPoint) -> Void
-    private let currentMouseLocation: () -> CGPoint?
     private let openItem: (LauncherItem) -> Void
 
     public init(
@@ -925,14 +926,12 @@ public final class LauncherService {
         placeRetryDeadline: TimeInterval = 1.6,
         placeRetryDelay: TimeInterval = 0.08,
         showMouseFeedback: @escaping (CGPoint) -> Void = { _ in },
-        currentMouseLocation: @escaping () -> CGPoint? = { CGEvent(source: nil)?.location },
         openItem: ((LauncherItem) -> Void)? = nil
     ) {
         self.windowPlacement = windowPlacement
         self.placeRetryDeadline = placeRetryDeadline
         self.placeRetryDelay = placeRetryDelay
         self.showMouseFeedback = showMouseFeedback
-        self.currentMouseLocation = currentMouseLocation
         self.openItem = openItem ?? Self.open
     }
 
@@ -971,23 +970,14 @@ public final class LauncherService {
     private func retryPlace(item: LauncherItem, placement: String, until deadline: Date) {
         DispatchQueue.main.asyncAfter(deadline: .now() + placeRetryDelay) {
             if let pid = WebAppRuntime.findAppProcessPID(openPath: item.openPath),
-               self.windowPlacement.placePID(pid, placement: placement) {
-                if self.windowPlacement.moveMouseToPIDWindowCenter(pid) {
-                    self.showMouseFeedbackAtCurrentLocation()
-                }
+               self.showFeedbackIfSuccessful(self.windowPlacement.placePID(pid, placement: placement)) {
                 return
             }
             if let pid = WebAppRuntime.findChromeAppProcessPID(appURL: item.appURL),
-               self.windowPlacement.placePID(pid, placement: placement) {
-                if self.windowPlacement.moveMouseToPIDWindowCenter(pid) {
-                    self.showMouseFeedbackAtCurrentLocation()
-                }
+               self.showFeedbackIfSuccessful(self.windowPlacement.placePID(pid, placement: placement)) {
                 return
             }
-            if self.windowPlacement.placeProcess(name: item.name, placement: placement) {
-                if self.windowPlacement.moveMouseToApplicationWindowCenter(name: item.name) {
-                    self.showMouseFeedbackAtCurrentLocation()
-                }
+            if self.showFeedbackIfSuccessful(self.windowPlacement.placeProcess(name: item.name, placement: placement)) {
                 return
             }
             if Date() < deadline {
@@ -998,8 +988,7 @@ public final class LauncherService {
 
     private func retryMoveMouseToApplicationWindowCenter(appName: String, until deadline: Date) {
         DispatchQueue.main.asyncAfter(deadline: .now() + placeRetryDelay) {
-            if self.windowPlacement.moveMouseToApplicationWindowCenter(name: appName) {
-                self.showMouseFeedbackAtCurrentLocation()
+            if self.showFeedbackIfSuccessful(self.windowPlacement.moveMouseToApplicationWindowCenter(name: appName)) {
                 return
             }
             if Date() < deadline {
@@ -1008,21 +997,34 @@ public final class LauncherService {
         }
     }
 
-    private func showMouseFeedbackAtCurrentLocation() {
-        guard let point = currentMouseLocation(),
+    @discardableResult
+    private func showFeedbackIfSuccessful(_ result: WindowActionResult) -> Bool {
+        guard result.ok,
+              let point = result.feedbackPoint,
               point.x.isFinite,
               point.y.isFinite else {
-            return
+            return false
         }
         showMouseFeedback(point)
+        return true
+    }
+}
+
+public struct WindowActionResult: Equatable {
+    public var ok: Bool
+    public var feedbackPoint: CGPoint?
+
+    public init(ok: Bool, feedbackPoint: CGPoint? = nil) {
+        self.ok = ok
+        self.feedbackPoint = feedbackPoint
     }
 }
 
 public protocol LauncherWindowPlacement {
-    func placePID(_ pid: pid_t, placement: String) -> Bool
-    func placeProcess(name: String, placement: String) -> Bool
-    func moveMouseToPIDWindowCenter(_ pid: pid_t) -> Bool
-    func moveMouseToApplicationWindowCenter(name: String) -> Bool
+    func placePID(_ pid: pid_t, placement: String) -> WindowActionResult
+    func placeProcess(name: String, placement: String) -> WindowActionResult
+    func moveMouseToPIDWindowCenter(_ pid: pid_t) -> WindowActionResult
+    func moveMouseToApplicationWindowCenter(name: String) -> WindowActionResult
 }
 
 public final class WindowPlacementService {
@@ -1031,33 +1033,47 @@ public final class WindowPlacementService {
     public init() {}
 
     @discardableResult
-    public func placeProcess(name: String, placement: String) -> Bool {
-        guard let bounds = resolveBounds(placement: placement) else { return false }
+    public func placeProcess(name: String, placement: String) -> WindowActionResult {
+        guard let bounds = resolveBounds(placement: placement) else { return WindowActionResult(ok: false) }
         for candidate in runtimeNameCandidates(name) {
-            if moveFirstWindow(appName: candidate, bounds: bounds) { return true }
+            if moveFirstWindow(appName: candidate, bounds: bounds) { return follow(bounds: bounds) }
         }
-        return false
+        return WindowActionResult(ok: false)
     }
 
-    public func placePID(_ pid: pid_t, placement: String) -> Bool {
-        guard let bounds = resolveBounds(placement: placement) else { return false }
-        return moveFirstWindow(pid: pid, bounds: bounds)
+    public func placePID(_ pid: pid_t, placement: String) -> WindowActionResult {
+        guard let bounds = resolveBounds(placement: placement),
+              moveFirstWindow(pid: pid, bounds: bounds) else {
+            return WindowActionResult(ok: false)
+        }
+        return follow(bounds: bounds)
     }
 
-    public func moveProcess(name: String, bounds: DSRect) -> Bool {
+    public func moveProcess(name: String, bounds: DSRect) -> WindowActionResult {
         for candidate in runtimeNameCandidates(name) {
-            if moveFirstWindow(appName: candidate, bounds: bounds) { return true }
+            if moveFirstWindow(appName: candidate, bounds: bounds) { return follow(bounds: bounds) }
         }
-        return false
+        return WindowActionResult(ok: false)
     }
 
-    public func movePID(_ pid: pid_t, bounds: DSRect) -> Bool {
-        moveFirstWindow(pid: pid, bounds: bounds)
+    public func movePID(_ pid: pid_t, bounds: DSRect) -> WindowActionResult {
+        guard moveFirstWindow(pid: pid, bounds: bounds) else { return WindowActionResult(ok: false) }
+        return follow(bounds: bounds)
     }
 
-    public func placeWindowByAction(_ action: String, preferredPID: pid_t? = nil) -> Bool {
+    public func moveMouseToDisplayTarget(_ target: String) -> WindowActionResult {
         let displays = displayService.displays()
-        guard !displays.isEmpty else { return false }
+        guard !displays.isEmpty else { return WindowActionResult(ok: false) }
+        let primary = displays.first(where: \.internalDisplay) ?? displays[0]
+        guard let display = DisplayGeometry.display(for: target, displays: displays, primaryDisplay: primary) else {
+            return WindowActionResult(ok: false)
+        }
+        return follow(bounds: display.workArea)
+    }
+
+    public func placeWindowByAction(_ action: String, preferredPID: pid_t? = nil) -> WindowActionResult {
+        let displays = displayService.displays()
+        guard !displays.isEmpty else { return WindowActionResult(ok: false) }
         let primary = displays.first(where: \.internalDisplay) ?? displays[0]
         guard let selection = selectedWindow(preferredPID: preferredPID),
               let current = DisplayGeometry.display(containing: selection.bounds, displays: displays),
@@ -1067,38 +1083,32 @@ public final class WindowPlacementService {
                   primaryDisplay: primary,
                   currentDisplay: current
               ) else {
-            return false
+            return WindowActionResult(ok: false)
         }
-        guard moveWindow(selection.window, bounds: target) else { return false }
-        if LauncherShortcutRules.shouldCenterMouse(for: action),
-           let targetDisplay = DisplayGeometry.display(containing: target, displays: displays) {
-            moveMouse(to: DisplayGeometry.centerPoint(for: targetDisplay.workArea))
-        }
-        return true
+        guard moveWindow(selection.window, bounds: target) else { return WindowActionResult(ok: false) }
+        return follow(bounds: target)
     }
 
-    public func moveMouseToApplicationWindowCenter(name: String) -> Bool {
+    public func moveMouseToApplicationWindowCenter(name: String) -> WindowActionResult {
         for candidate in runtimeNameCandidates(name) {
             guard let app = copyApplication(named: candidate),
                   let window = firstWindow(in: app),
                   let bounds = windowBounds(window) else {
                 continue
             }
-            moveMouse(to: DisplayGeometry.centerPoint(for: bounds))
-            return true
+            return follow(bounds: bounds)
         }
-        return false
+        return WindowActionResult(ok: false)
     }
 
-    public func moveMouseToPIDWindowCenter(_ pid: pid_t) -> Bool {
-        guard pid > 0 else { return false }
+    public func moveMouseToPIDWindowCenter(_ pid: pid_t) -> WindowActionResult {
+        guard pid > 0 else { return WindowActionResult(ok: false) }
         let app = AXUIElementCreateApplication(pid)
         guard let window = firstWindow(in: app),
               let bounds = windowBounds(window) else {
-            return false
+            return WindowActionResult(ok: false)
         }
-        moveMouse(to: DisplayGeometry.centerPoint(for: bounds))
-        return true
+        return follow(bounds: bounds)
     }
 
     private func runtimeNameCandidates(_ name: String) -> [String] {
@@ -1110,6 +1120,12 @@ public final class WindowPlacementService {
         guard !displays.isEmpty else { return nil }
         let primary = displays.first(where: \.internalDisplay) ?? displays[0]
         return DisplayGeometry.resolveBoundsForPlacement(placement, displays: displays, primaryDisplay: primary)
+    }
+
+    private func follow(bounds: DSRect) -> WindowActionResult {
+        let point = DisplayGeometry.centerPoint(for: bounds)
+        moveMouse(to: point)
+        return WindowActionResult(ok: true, feedbackPoint: point)
     }
 
     private func selectedWindow(preferredPID: pid_t?) -> (window: AXUIElement, bounds: DSRect)? {
@@ -1146,28 +1162,23 @@ public enum Gokit5Serial {
         switch normalizeButton(button) {
         case "minus":
             return Gokit5Action(
-                name: "Codex",
-                codexTarget: "side_left"
+                mouseTarget: "side_left"
             )
         case "voice":
             return Gokit5Action(
-                name: "Codex",
-                codexTarget: "external"
+                mouseTarget: "external"
             )
         case "switch":
             return Gokit5Action(
-                name: "Codex",
-                codexTarget: "side_right"
+                mouseTarget: "side_right"
             )
         case "green":
             return Gokit5Action(
-                name: "Codex",
-                codexTarget: "side_right"
+                mouseTarget: "side_right"
             )
         case "plus":
             return Gokit5Action(
-                name: "Codex",
-                codexTarget: "internal"
+                mouseTarget: "internal"
             )
         default:
             return nil
@@ -1977,6 +1988,7 @@ public final class ControlServer {
     private let windowPlacement: WindowPlacementService
     private let showLauncher: () -> Bool
     private let hideLauncher: () -> Bool
+    private let showMouseFeedback: (CGPoint) -> Void
     private let getGokit5Status: () -> [String: Any]
     private let selectCodexDisplay: ([String: Any]) -> [String: Any]
 
@@ -1985,6 +1997,7 @@ public final class ControlServer {
         windowPlacement: WindowPlacementService,
         showLauncher: @escaping () -> Bool,
         hideLauncher: @escaping () -> Bool,
+        showMouseFeedback: @escaping (CGPoint) -> Void = { _ in },
         getGokit5Status: @escaping () -> [String: Any] = { ["enabled": false, "status": "unavailable", "running": false] },
         selectCodexDisplay: @escaping ([String: Any]) -> [String: Any] = { _ in ["ok": false, "error": "select-codex-display is unavailable"] }
     ) {
@@ -1992,6 +2005,7 @@ public final class ControlServer {
         self.windowPlacement = windowPlacement
         self.showLauncher = showLauncher
         self.hideLauncher = hideLauncher
+        self.showMouseFeedback = showMouseFeedback
         self.getGokit5Status = getGokit5Status
         self.selectCodexDisplay = selectCodexDisplay
     }
@@ -2090,9 +2104,7 @@ public final class ControlServer {
             }
             NSWorkspace.shared.launchApplication(appName)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-                if self.windowPlacement.placeProcess(name: appName, placement: placement) {
-                    _ = self.windowPlacement.moveMouseToApplicationWindowCenter(name: appName)
-                }
+                _ = self.showFeedbackIfSuccessful(self.windowPlacement.placeProcess(name: appName, placement: placement))
             }
             return ["ok": true]
         case "place-pid":
@@ -2100,26 +2112,38 @@ public final class ControlServer {
                   let placement = command["placement"] as? String else {
                 return ["ok": false, "error": "pid and placement are required"]
             }
-            let placed = windowPlacement.placePID(pid_t(pid), placement: placement)
-            if placed {
-                _ = windowPlacement.moveMouseToPIDWindowCenter(pid_t(pid))
-            }
-            return ["ok": placed]
+            return json(for: showFeedbackIfSuccessful(windowPlacement.placePID(pid_t(pid), placement: placement)))
         case "move-app":
             guard let appName = command["appName"] as? String,
                   let rect = rectFrom(command) else {
                 return ["ok": false, "error": "appName and x/y/w/h are required"]
             }
-            return ["ok": windowPlacement.moveProcess(name: appName, bounds: rect)]
+            return json(for: showFeedbackIfSuccessful(windowPlacement.moveProcess(name: appName, bounds: rect)))
         case "move-pid":
             guard let pid = number(command["pid"]),
                   let rect = rectFrom(command) else {
                 return ["ok": false, "error": "pid and x/y/w/h are required"]
             }
-            return ["ok": windowPlacement.movePID(pid_t(pid), bounds: rect)]
+            return json(for: showFeedbackIfSuccessful(windowPlacement.movePID(pid_t(pid), bounds: rect)))
         default:
             return ["ok": false, "error": "Unsupported command"]
         }
+    }
+
+    @discardableResult
+    private func showFeedbackIfSuccessful(_ result: WindowActionResult) -> WindowActionResult {
+        if result.ok, let point = result.feedbackPoint {
+            showMouseFeedback(point)
+        }
+        return result
+    }
+
+    private func json(for result: WindowActionResult) -> [String: Any] {
+        var response: [String: Any] = ["ok": result.ok]
+        if let point = result.feedbackPoint {
+            response["feedbackPoint"] = ["x": round(point.x), "y": round(point.y)]
+        }
+        return response
     }
 }
 

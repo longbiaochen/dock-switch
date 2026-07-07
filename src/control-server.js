@@ -4,8 +4,10 @@ const net = require("net");
 const os = require("os");
 const path = require("path");
 const {
-    placePidWindowByPlacement,
-    placeProcessWindowByPlacement
+    moveApplicationWindowWithFeedback,
+    movePidWindowWithFeedback,
+    placePidWindowByPlacementWithFeedback,
+    placeProcessWindowByPlacementWithFeedback
 } = require("./window-control");
 const { selectCodexDisplay } = require("./codex-display-control");
 const { placeComputerUseBrowser } = require("./computer-use-browser-placement");
@@ -53,6 +55,12 @@ function removeStaleSocket() {
     }
 }
 
+function showFeedback(deps, result) {
+    if (result && result.feedbackPoint && typeof deps.showMouseFeedback === "function") {
+        deps.showMouseFeedback(result.feedbackPoint);
+    }
+}
+
 async function placeApplicationWindow(command, deps) {
     const appName = String(command.appName || "").trim();
     const placement = String(command.placement || "").trim();
@@ -74,14 +82,15 @@ async function placeApplicationWindow(command, deps) {
         const deadline = Date.now() + 1600;
         do {
             try {
-                const ok = placeProcessWindowByPlacement(
+                const result = placeProcessWindowByPlacementWithFeedback(
                     appName,
                     deps.dockQuery,
                     deps.electronScreen,
                     placement
                 );
-                if (ok) {
-                    return { ok: true };
+                if (result.ok) {
+                    showFeedback(deps, result);
+                    return result;
                 }
             } catch (e) {
                 // retry until deadline
@@ -110,14 +119,15 @@ async function placePidWindow(command, deps) {
         const deadline = Date.now() + 1600;
         do {
             try {
-                const ok = placePidWindowByPlacement(
+                const result = placePidWindowByPlacementWithFeedback(
                     Math.round(pid),
                     deps.dockQuery,
                     deps.electronScreen,
                     placement
                 );
-                if (ok) {
-                    return { ok: true };
+                if (result.ok) {
+                    showFeedback(deps, result);
+                    return result;
                 }
             } catch (e) {
                 // retry until deadline
@@ -154,15 +164,15 @@ async function moveApplicationWindow(command, deps) {
         const deadline = Date.now() + 1600;
         do {
             try {
-                const ok = deps.dockQuery.moveApplicationWindow({
-                    name: appName,
-                    x: Math.round(x),
-                    y: Math.round(y),
-                    w: Math.round(w),
-                    h: Math.round(h)
+                const result = moveApplicationWindowWithFeedback(appName, deps.dockQuery, {
+                    x,
+                    y,
+                    w,
+                    h
                 });
-                if (ok) {
-                    return { ok: true };
+                if (result.ok) {
+                    showFeedback(deps, result);
+                    return result;
                 }
             } catch (e) {
                 // retry until deadline
@@ -195,15 +205,15 @@ async function movePidWindow(command, deps) {
         const deadline = Date.now() + 1600;
         do {
             try {
-                const ok = deps.dockQuery.moveApplicationWindowByPid({
-                    pid: Math.round(pid),
-                    x: Math.round(x),
-                    y: Math.round(y),
-                    w: Math.round(w),
-                    h: Math.round(h)
+                const result = movePidWindowWithFeedback(Math.round(pid), deps.dockQuery, {
+                    x,
+                    y,
+                    w,
+                    h
                 });
-                if (ok) {
-                    return { ok: true };
+                if (result.ok) {
+                    showFeedback(deps, result);
+                    return result;
                 }
             } catch (e) {
                 // retry until deadline

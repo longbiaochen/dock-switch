@@ -6,13 +6,6 @@ const {
     resolveDisplayCenterPoint
 } = require("./display-targets");
 
-var MOUSE_CENTER_ACTIONS = Object.freeze({
-    up: true,
-    down: true,
-    left: true,
-    right: true
-});
-
 var APPLICATION_RUNTIME_NAME_ALIASES = Object.freeze({
     "微信": ["WeChat"]
 });
@@ -82,38 +75,65 @@ function boundsForDisplay(display) {
     return { x: area.x, y: area.y, w: area.width, h: area.height };
 }
 
-function moveMouseToDisplayCenter(dockQuery, display) {
-    if (!dockQuery || typeof dockQuery.moveMouse !== "function") {
-        return false;
+function normalizeBounds(bounds) {
+    if (!bounds || ![bounds.x, bounds.y, bounds.w, bounds.h].every(Number.isFinite) ||
+        bounds.w <= 0 || bounds.h <= 0) {
+        return null;
     }
-    var point = resolveDisplayCenterPoint(display);
-    if (!point) return false;
+    return {
+        x: Math.round(bounds.x),
+        y: Math.round(bounds.y),
+        w: Math.round(bounds.w),
+        h: Math.round(bounds.h)
+    };
+}
+
+function pointForBoundsCenter(bounds) {
+    var rect = normalizeBounds(bounds);
+    if (!rect) return null;
+    return {
+        x: Math.round(rect.x + rect.w / 2),
+        y: Math.round(rect.y + rect.h / 2)
+    };
+}
+
+function moveMouseToPoint(dockQuery, point) {
+    if (!dockQuery || typeof dockQuery.moveMouse !== "function") {
+        return null;
+    }
+    if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return null;
     try {
-        return !!dockQuery.moveMouse({
+        var ok = !!dockQuery.moveMouse({
             x: point.x,
             y: point.y
         });
+        return ok ? { x: point.x, y: point.y } : null;
     } catch (e) {
-        return false;
+        return null;
     }
 }
 
+function actionResult(ok, feedbackPoint) {
+    return {
+        ok: !!ok,
+        feedbackPoint: feedbackPoint || null
+    };
+}
+
+function moveMouseToDisplayCenterPoint(dockQuery, display) {
+    return moveMouseToPoint(dockQuery, resolveDisplayCenterPoint(display));
+}
+
+function moveMouseToDisplayCenter(dockQuery, display) {
+    return !!moveMouseToDisplayCenterPoint(dockQuery, display);
+}
+
+function moveMouseToBoundsCenterPoint(dockQuery, bounds) {
+    return moveMouseToPoint(dockQuery, pointForBoundsCenter(bounds));
+}
+
 function moveMouseToBoundsCenter(dockQuery, bounds) {
-    if (!dockQuery || typeof dockQuery.moveMouse !== "function") {
-        return false;
-    }
-    if (!bounds || ![bounds.x, bounds.y, bounds.w, bounds.h].every(Number.isFinite) ||
-        bounds.w <= 0 || bounds.h <= 0) {
-        return false;
-    }
-    try {
-        return !!dockQuery.moveMouse({
-            x: Math.round(bounds.x + bounds.w / 2),
-            y: Math.round(bounds.y + bounds.h / 2)
-        });
-    } catch (e) {
-        return false;
-    }
+    return !!moveMouseToBoundsCenterPoint(dockQuery, bounds);
 }
 
 function moveMouseToBoundsDisplayCenter(dockQuery, electronScreen, bounds) {
@@ -154,10 +174,6 @@ function moveMouseToApplicationDisplay(processName, dockQuery, electronScreen) {
     } catch (e) {
         return false;
     }
-}
-
-function shouldCenterMouseForAction(action) {
-    return !!MOUSE_CENTER_ACTIONS[String(action || "")];
 }
 
 function resolveBoundsForAction(action, displays, primaryDisplay, currentDisplay) {
@@ -284,51 +300,35 @@ function resolveBoundsForPlacement(placement, displays, primaryDisplay) {
 }
 
 function placeFocusedWindowByPlacement(dockQuery, electronScreen, placement) {
-    if (!dockQuery || !placement) return false;
-    if (typeof dockQuery.moveFocusedWindow !== "function") {
-        return false;
-    }
-
-    var displays = getAvailableDisplays(dockQuery, electronScreen);
-    if (!Array.isArray(displays) || displays.length === 0) return false;
-    var primary = getPrimaryDisplay(dockQuery, electronScreen, displays);
-    var target = resolveBoundsForPlacement(placement, displays, primary);
-    if (!target || target.w <= 0 || target.h <= 0) return false;
-
-    var payload = {
-        x: Math.round(target.x),
-        y: Math.round(target.y),
-        w: Math.round(target.w),
-        h: Math.round(target.h)
-    };
-    return !!dockQuery.moveFocusedWindow(payload);
+    return placeFocusedWindowByPlacementWithFeedback(dockQuery, electronScreen, placement).ok;
 }
 
-function placeFocusedWindowByAction(dockQuery, electronScreen, action) {
-    if (!dockQuery) return false;
-    if (action === "fill") {
-        return typeof dockQuery.fullscreenFocusedWindow === "function"
-            ? !!dockQuery.fullscreenFocusedWindow()
-            : false;
-    }
-    if (typeof dockQuery.getFocusedWindowBounds !== "function" ||
-        typeof dockQuery.moveFocusedWindow !== "function") {
-        return false;
-    }
+function moveMouseToDisplayTargetWithFeedback(dockQuery, electronScreen, targetName) {
+    if (!dockQuery || !targetName) return actionResult(false);
+    var displays = getAvailableDisplays(dockQuery, electronScreen);
+    if (!Array.isArray(displays) || displays.length === 0) return actionResult(false);
+    var primary = getPrimaryDisplay(dockQuery, electronScreen, displays);
+    var display = getDisplayForTarget(String(targetName), displays, primary);
+    if (!display) return actionResult(false);
+    var point = moveMouseToDisplayCenterPoint(dockQuery, display);
+    return actionResult(!!point, point);
+}
 
-    var rect = dockQuery.getFocusedWindowBounds();
-    if (!rect || ![rect.x, rect.y, rect.w, rect.h].every(Number.isFinite) || rect.w <= 0 || rect.h <= 0) {
-        return false;
+function moveMouseToDisplayTarget(dockQuery, electronScreen, targetName) {
+    return moveMouseToDisplayTargetWithFeedback(dockQuery, electronScreen, targetName).ok;
+}
+
+function placeFocusedWindowByPlacementWithFeedback(dockQuery, electronScreen, placement) {
+    if (!dockQuery || !placement) return actionResult(false);
+    if (typeof dockQuery.moveFocusedWindow !== "function") {
+        return actionResult(false);
     }
 
     var displays = getAvailableDisplays(dockQuery, electronScreen);
-    if (!Array.isArray(displays) || displays.length === 0) return false;
+    if (!Array.isArray(displays) || displays.length === 0) return actionResult(false);
     var primary = getPrimaryDisplay(dockQuery, electronScreen, displays);
-    var current = getDisplayForRect(displays, rect);
-    if (!current) return false;
-
-    var target = resolveBoundsForAction(action, displays, primary, current);
-    if (!target || target.w <= 0 || target.h <= 0) return false;
+    var target = resolveBoundsForPlacement(placement, displays, primary);
+    if (!target || target.w <= 0 || target.h <= 0) return actionResult(false);
 
     var payload = {
         x: Math.round(target.x),
@@ -337,37 +337,80 @@ function placeFocusedWindowByAction(dockQuery, electronScreen, action) {
         h: Math.round(target.h)
     };
     var moved = !!dockQuery.moveFocusedWindow(payload);
-    if (moved && shouldCenterMouseForAction(action)) {
-        moveMouseToBoundsDisplayCenter(dockQuery, electronScreen, target);
+    return actionResult(moved, moved ? moveMouseToBoundsCenterPoint(dockQuery, target) : null);
+}
+
+function placeFocusedWindowByAction(dockQuery, electronScreen, action) {
+    return placeFocusedWindowByActionWithFeedback(dockQuery, electronScreen, action).ok;
+}
+
+function placeFocusedWindowByActionWithFeedback(dockQuery, electronScreen, action) {
+    if (!dockQuery) return actionResult(false);
+    if (action === "fill") {
+        var fullscreened = typeof dockQuery.fullscreenFocusedWindow === "function"
+            ? !!dockQuery.fullscreenFocusedWindow()
+            : false;
+        return actionResult(fullscreened);
     }
-    return moved;
+    if (typeof dockQuery.getFocusedWindowBounds !== "function" ||
+        typeof dockQuery.moveFocusedWindow !== "function") {
+        return actionResult(false);
+    }
+
+    var rect = dockQuery.getFocusedWindowBounds();
+    if (!rect || ![rect.x, rect.y, rect.w, rect.h].every(Number.isFinite) || rect.w <= 0 || rect.h <= 0) {
+        return actionResult(false);
+    }
+
+    var displays = getAvailableDisplays(dockQuery, electronScreen);
+    if (!Array.isArray(displays) || displays.length === 0) return actionResult(false);
+    var primary = getPrimaryDisplay(dockQuery, electronScreen, displays);
+    var current = getDisplayForRect(displays, rect);
+    if (!current) return actionResult(false);
+
+    var target = resolveBoundsForAction(action, displays, primary, current);
+    if (!target || target.w <= 0 || target.h <= 0) return actionResult(false);
+
+    var payload = {
+        x: Math.round(target.x),
+        y: Math.round(target.y),
+        w: Math.round(target.w),
+        h: Math.round(target.h)
+    };
+    var moved = !!dockQuery.moveFocusedWindow(payload);
+    return actionResult(moved, moved ? moveMouseToBoundsCenterPoint(dockQuery, target) : null);
 }
 
 function placeProcessWindowByAction(processName, dockQuery, electronScreen, action) {
-    if (!processName || !dockQuery) return false;
+    return placeProcessWindowByActionWithFeedback(processName, dockQuery, electronScreen, action).ok;
+}
+
+function placeProcessWindowByActionWithFeedback(processName, dockQuery, electronScreen, action) {
+    if (!processName || !dockQuery) return actionResult(false);
     if (action === "fill") {
-        return typeof dockQuery.fullscreenApplicationWindow === "function"
+        var fullscreened = typeof dockQuery.fullscreenApplicationWindow === "function"
             ? !!dockQuery.fullscreenApplicationWindow({ name: processName })
             : false;
+        return actionResult(fullscreened);
     }
     if (typeof dockQuery.getApplicationWindowBounds !== "function" ||
         typeof dockQuery.moveApplicationWindow !== "function") {
-        return false;
+        return actionResult(false);
     }
 
     var rect = dockQuery.getApplicationWindowBounds({ name: processName });
     if (!rect || ![rect.x, rect.y, rect.w, rect.h].every(Number.isFinite) || rect.w <= 0 || rect.h <= 0) {
-        return false;
+        return actionResult(false);
     }
 
     var displays = getAvailableDisplays(dockQuery, electronScreen);
-    if (!Array.isArray(displays) || displays.length === 0) return false;
+    if (!Array.isArray(displays) || displays.length === 0) return actionResult(false);
     var primary = getPrimaryDisplay(dockQuery, electronScreen, displays);
     var current = getDisplayForRect(displays, rect);
-    if (!current) return false;
+    if (!current) return actionResult(false);
 
     var target = resolveBoundsForAction(action, displays, primary, current);
-    if (!target || target.w <= 0 || target.h <= 0) return false;
+    if (!target || target.w <= 0 || target.h <= 0) return actionResult(false);
 
     var payload = {
         name: processName,
@@ -377,23 +420,24 @@ function placeProcessWindowByAction(processName, dockQuery, electronScreen, acti
         h: Math.round(target.h)
     };
     var moved = !!dockQuery.moveApplicationWindow(payload);
-    if (moved && shouldCenterMouseForAction(action)) {
-        moveMouseToBoundsDisplayCenter(dockQuery, electronScreen, target);
-    }
-    return moved;
+    return actionResult(moved, moved ? moveMouseToBoundsCenterPoint(dockQuery, target) : null);
 }
 
 function placeProcessWindowByPlacement(processName, dockQuery, electronScreen, placement) {
-    if (!processName || !dockQuery || !placement) return false;
+    return placeProcessWindowByPlacementWithFeedback(processName, dockQuery, electronScreen, placement).ok;
+}
+
+function placeProcessWindowByPlacementWithFeedback(processName, dockQuery, electronScreen, placement) {
+    if (!processName || !dockQuery || !placement) return actionResult(false);
     if (typeof dockQuery.moveApplicationWindow !== "function") {
-        return false;
+        return actionResult(false);
     }
 
     var displays = getAvailableDisplays(dockQuery, electronScreen);
-    if (!Array.isArray(displays) || displays.length === 0) return false;
+    if (!Array.isArray(displays) || displays.length === 0) return actionResult(false);
     var primary = getPrimaryDisplay(dockQuery, electronScreen, displays);
     var target = resolveBoundsForPlacement(placement, displays, primary);
-    if (!target || target.w <= 0 || target.h <= 0) return false;
+    if (!target || target.w <= 0 || target.h <= 0) return actionResult(false);
 
     var payload = {
         x: Math.round(target.x),
@@ -405,26 +449,30 @@ function placeProcessWindowByPlacement(processName, dockQuery, electronScreen, p
     for (var i = 0; i < candidates.length; i++) {
         try {
             if (dockQuery.moveApplicationWindow(Object.assign({ name: candidates[i] }, payload))) {
-                return true;
+                return actionResult(true, moveMouseToBoundsCenterPoint(dockQuery, target));
             }
         } catch (e) {
             // try the next runtime name candidate
         }
     }
-    return false;
+    return actionResult(false);
 }
 
 function placePidWindowByPlacement(processPid, dockQuery, electronScreen, placement) {
-    if (!Number.isFinite(processPid) || processPid <= 0 || !dockQuery || !placement) return false;
+    return placePidWindowByPlacementWithFeedback(processPid, dockQuery, electronScreen, placement).ok;
+}
+
+function placePidWindowByPlacementWithFeedback(processPid, dockQuery, electronScreen, placement) {
+    if (!Number.isFinite(processPid) || processPid <= 0 || !dockQuery || !placement) return actionResult(false);
     if (typeof dockQuery.moveApplicationWindowByPid !== "function") {
-        return false;
+        return actionResult(false);
     }
 
     var displays = getAvailableDisplays(dockQuery, electronScreen);
-    if (!Array.isArray(displays) || displays.length === 0) return false;
+    if (!Array.isArray(displays) || displays.length === 0) return actionResult(false);
     var primary = getPrimaryDisplay(dockQuery, electronScreen, displays);
     var target = resolveBoundsForPlacement(placement, displays, primary);
-    if (!target || target.w <= 0 || target.h <= 0) return false;
+    if (!target || target.w <= 0 || target.h <= 0) return actionResult(false);
 
     var payload = {
         pid: Math.round(processPid),
@@ -433,21 +481,64 @@ function placePidWindowByPlacement(processPid, dockQuery, electronScreen, placem
         w: Math.round(target.w),
         h: Math.round(target.h)
     };
-    return !!dockQuery.moveApplicationWindowByPid(payload);
+    var moved = !!dockQuery.moveApplicationWindowByPid(payload);
+    return actionResult(moved, moved ? moveMouseToBoundsCenterPoint(dockQuery, target) : null);
+}
+
+function moveApplicationWindowWithFeedback(processName, dockQuery, bounds) {
+    var target = normalizeBounds(bounds);
+    if (!processName || !dockQuery || !target || typeof dockQuery.moveApplicationWindow !== "function") {
+        return actionResult(false);
+    }
+    var moved = !!dockQuery.moveApplicationWindow({
+        name: String(processName),
+        x: target.x,
+        y: target.y,
+        w: target.w,
+        h: target.h
+    });
+    return actionResult(moved, moved ? moveMouseToBoundsCenterPoint(dockQuery, target) : null);
+}
+
+function movePidWindowWithFeedback(processPid, dockQuery, bounds) {
+    var target = normalizeBounds(bounds);
+    if (!Number.isFinite(processPid) || processPid <= 0 || !dockQuery || !target ||
+        typeof dockQuery.moveApplicationWindowByPid !== "function") {
+        return actionResult(false);
+    }
+    var moved = !!dockQuery.moveApplicationWindowByPid({
+        pid: Math.round(processPid),
+        x: target.x,
+        y: target.y,
+        w: target.w,
+        h: target.h
+    });
+    return actionResult(moved, moved ? moveMouseToBoundsCenterPoint(dockQuery, target) : null);
 }
 
 module.exports = {
     getDisplayForRect,
+    moveApplicationWindowWithFeedback,
     moveMouseToApplicationDisplay,
     moveMouseToApplicationWindowCenter,
     moveMouseToBoundsCenter,
+    moveMouseToBoundsCenterPoint,
     moveMouseToBoundsDisplayCenter,
     moveMouseToDisplayCenter,
+    moveMouseToDisplayCenterPoint,
+    moveMouseToDisplayTarget,
+    moveMouseToDisplayTargetWithFeedback,
+    movePidWindowWithFeedback,
     resolveBoundsForAction,
     resolveBoundsForPlacement,
     placeFocusedWindowByPlacement,
+    placeFocusedWindowByPlacementWithFeedback,
     placeFocusedWindowByAction,
+    placeFocusedWindowByActionWithFeedback,
     placeProcessWindowByAction,
+    placeProcessWindowByActionWithFeedback,
     placeProcessWindowByPlacement,
-    placePidWindowByPlacement
+    placeProcessWindowByPlacementWithFeedback,
+    placePidWindowByPlacement,
+    placePidWindowByPlacementWithFeedback
 };
