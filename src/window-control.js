@@ -120,6 +120,21 @@ function actionResult(ok, feedbackPoint) {
     };
 }
 
+function clickMouseAtPoint(dockQuery, point) {
+    if (!dockQuery || typeof dockQuery.clickMouse !== "function") {
+        return false;
+    }
+    if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return false;
+    try {
+        return !!dockQuery.clickMouse({
+            x: point.x,
+            y: point.y
+        });
+    } catch (e) {
+        return false;
+    }
+}
+
 function moveMouseToDisplayCenterPoint(dockQuery, display) {
     return moveMouseToPoint(dockQuery, resolveDisplayCenterPoint(display));
 }
@@ -311,6 +326,9 @@ function moveMouseToDisplayTargetWithFeedback(dockQuery, electronScreen, targetN
     var display = getDisplayForTarget(String(targetName), displays, primary);
     if (!display) return actionResult(false);
     var point = moveMouseToDisplayCenterPoint(dockQuery, display);
+    if (point) {
+        clickMouseAtPoint(dockQuery, point);
+    }
     return actionResult(!!point, point);
 }
 

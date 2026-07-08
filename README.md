@@ -8,11 +8,11 @@ Quickly switch among applications in the macOS Dock with one global hotkey.
 <a id="release-record-gokit5-serial-button-control"></a>
 
 ## 发版更新：GoKit5 串口按键控制
-dock-switch 现在可以通过串口监听连接的 GoKit5 / 机智云控制器，把硬件按键信息转换成鼠标屏幕切换动作。刷入匹配固件后，控制器可以向 dock-switch 发送主机按键消息，把鼠标移动到指定屏幕中心并显示水波纹反馈。
+dock-switch 现在可以通过串口监听连接的 GoKit5 / 机智云控制器，把硬件按键信息转换成鼠标屏幕切换动作。刷入匹配固件后，控制器可以向 dock-switch 发送主机按键消息，把鼠标移动到指定屏幕中心、点击激活该点窗口，并显示水波纹反馈。
 
 - dock-switch 启动后会自动开始串口监听。
 - GoKit5 USB 串口会自动识别，也可以用 `GOKIT5_SERIAL_PORT=/dev/cu.usbmodem...` 固定端口。
-- 物理按键只移动鼠标：minus = 左侧边屏，plus = 内置屏，voice = 外接屏，green/switch = 右侧边屏；目标外屏未连接时退回内置主屏。
+- 物理按键移动鼠标并点击激活目标点窗口：minus = 左侧边屏，plus = 内置屏，voice = 外接屏，green/switch = 右侧边屏；目标外屏未连接时退回内置主屏。
 - `dock-switch-cli gokit5-status` 可以查看监听是否启用、是否运行，以及当前使用的串口。
 - 设置 `DOCK_SWITCH_GOKIT5=0` 可以关闭串口监听。
 
@@ -39,7 +39,7 @@ often expose menu bar state, Dock contents, account badges, and workspace detail
 - Press right `Command` for a reserved no-op.
 - Press `\` to focus or open `Terminal` on the right side display, maximized to the display work area.
 - App activation moves the pointer to the center of the activated or placed window; arrow display moves keep moving the pointer to the center of the target display.
-- A connected GoKit5 controller flashed with [open-embodied](https://github.com/longbiaochen/open-embodied) moves the pointer across displays without launching or foregrounding apps: minus = left side, plus = internal, voice = external, green/switch = right side. Missing external targets fall back to the internal main display.
+- A connected GoKit5 controller flashed with [open-embodied](https://github.com/longbiaochen/open-embodied) moves the pointer across displays and clicks the target point to activate the window there, without launching, creating, or moving app windows: minus = left side, plus = internal, voice = external, green/switch = right side. Missing external targets fall back to the internal main display.
 - The UI closes automatically after a selection.
 
 ## Browser Fixed Placement

@@ -1082,7 +1082,10 @@ public final class WindowPlacementService {
         guard let display = DisplayGeometry.display(for: target, displays: displays, primaryDisplay: primary) else {
             return WindowActionResult(ok: false)
         }
-        return follow(bounds: display.workArea)
+        let point = DisplayGeometry.centerPoint(for: display.workArea)
+        moveMouse(to: point)
+        clickMouse(at: point)
+        return WindowActionResult(ok: true, feedbackPoint: point)
     }
 
     public func placeWindowByAction(_ action: String, preferredPID: pid_t? = nil) -> WindowActionResult {
@@ -2381,6 +2384,15 @@ private extension DSRect {
 private func moveMouse(to point: CGPoint) {
     CGWarpMouseCursorPosition(point)
     CGAssociateMouseAndMouseCursorPosition(boolean_t(1))
+}
+
+private func clickMouse(at point: CGPoint) {
+    guard let down = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: point, mouseButton: .left),
+          let up = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: point, mouseButton: .left) else {
+        return
+    }
+    down.post(tap: .cghidEventTap)
+    up.post(tap: .cghidEventTap)
 }
 
 private func clamp(_ value: Double, _ minValue: Double, _ maxValue: Double) -> Double {

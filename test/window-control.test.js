@@ -607,9 +607,14 @@ test("moveMouseToDisplayTargetWithFeedback moves to the target display center", 
         })
     ];
     const mouseMoves = [];
+    const mouseClicks = [];
     const dockQuery = {
         moveMouse: payload => {
             mouseMoves.push(payload);
+            return true;
+        },
+        clickMouse: payload => {
+            mouseClicks.push(payload);
             return true;
         }
     };
@@ -624,6 +629,7 @@ test("moveMouseToDisplayTargetWithFeedback moves to the target display center", 
     assert.deepEqual(right, { ok: true, feedbackPoint: { x: 2996, y: -525 } });
     assert.deepEqual(external, { ok: true, feedbackPoint: { x: 756, y: -705 } });
     assert.deepEqual(mouseMoves, [{ x: 2996, y: -525 }, { x: 756, y: -705 }]);
+    assert.deepEqual(mouseClicks, [{ x: 2996, y: -525 }, { x: 756, y: -705 }]);
 });
 
 test("placeFocusedWindowByAction follows bracket tiling to the moved window center", () => {
