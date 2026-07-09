@@ -5,7 +5,8 @@ const {
     DOCK_SWITCH_RULE_DESCRIPTION,
     CHATGPT_DIRECT_COMMAND,
     SMARTSHADOW_DIRECT_COMMAND,
-    applyDockSwitchKarabinerProfile
+    applyDockSwitchKarabinerProfile,
+    buildDockSwitchKarabinerRule
 } = require("../src/karabiner-config");
 
 function directLegacyRule() {
@@ -73,6 +74,11 @@ test("applyDockSwitchKarabinerProfile keeps F3 and F6 direct while removing Shif
                             type: "basic",
                             from: { key_code: "f6", modifiers: { optional: ["any"] } },
                             to: [{ key_code: "vk_none" }]
+                        },
+                        {
+                            type: "basic",
+                            from: { generic_desktop: "do_not_disturb", modifiers: { optional: ["any"] } },
+                            to: [{ key_code: "vk_none" }]
                         }
                     ]
                 }
@@ -106,7 +112,7 @@ test("applyDockSwitchKarabinerProfile keeps F3 and F6 direct while removing Shif
 
     const dockSwitchRule = profile.complex_modifications.rules[0];
     assert.equal(dockSwitchRule.description, DOCK_SWITCH_RULE_DESCRIPTION);
-    assert.equal(dockSwitchRule.manipulators.length, 4);
+    assert.equal(dockSwitchRule.manipulators.length, 5);
 
     const f3 = dockSwitchRule.manipulators.find(manipulator => manipulator.from.key_code === "f3");
     assert.deepEqual(f3.to, [{ shell_command: SMARTSHADOW_DIRECT_COMMAND }]);
@@ -124,9 +130,34 @@ test("applyDockSwitchKarabinerProfile keeps F3 and F6 direct while removing Shif
     const f6 = dockSwitchRule.manipulators.find(manipulator => manipulator.from.key_code === "f6");
     assert.deepEqual(f6.to, [{ shell_command: CHATGPT_DIRECT_COMMAND }]);
 
+    const doNotDisturb = dockSwitchRule.manipulators.find(manipulator => manipulator.from.generic_desktop === "do_not_disturb");
+    assert.deepEqual(doNotDisturb.to, [{ shell_command: CHATGPT_DIRECT_COMMAND }]);
+
     const leftShift = dockSwitchRule.manipulators.find(manipulator => manipulator.from.key_code === "left_shift");
     assert.equal(leftShift, undefined);
 
     const rightShift = dockSwitchRule.manipulators.find(manipulator => manipulator.from.key_code === "right_shift");
     assert.equal(rightShift, undefined);
+});
+
+test("applyDockSwitchKarabinerProfile treats Karabiner-reordered manipulators as current", () => {
+    const rule = buildDockSwitchKarabinerRule();
+    const profile = {
+        complex_modifications: {
+            rules: [
+                {
+                    description: rule.description,
+                    manipulators: rule.manipulators.map(manipulator => ({
+                        from: manipulator.from,
+                        to: manipulator.to,
+                        type: manipulator.type
+                    }))
+                }
+            ]
+        }
+    };
+
+    const result = applyDockSwitchKarabinerProfile(profile);
+
+    assert.equal(result.changed, false);
 });

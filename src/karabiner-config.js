@@ -70,6 +70,14 @@ function buildDockSwitchKarabinerRule() {
                 type: "basic",
                 from: fromKeyCode("f6"),
                 to: [{ shell_command: CHATGPT_DIRECT_COMMAND }]
+            },
+            {
+                type: "basic",
+                from: {
+                    generic_desktop: "do_not_disturb",
+                    modifiers: { optional: ["any"] }
+                },
+                to: [{ shell_command: CHATGPT_DIRECT_COMMAND }]
             }
         ]
     };
@@ -81,6 +89,7 @@ function manipulatorMatchesManagedDirectKey(manipulator) {
     if (["f3", "f6", "left_shift", "right_shift"].includes(from.key_code)) return true;
     if (from.consumer_key_code === "mission_control") return true;
     if (from.apple_vendor_keyboard_key_code === "mission_control") return true;
+    if (from.generic_desktop === "do_not_disturb") return true;
     return false;
 }
 
@@ -92,6 +101,23 @@ function normalizeRules(profile) {
         profile.complex_modifications.rules = [];
     }
     return profile.complex_modifications.rules;
+}
+
+function stableJsonValue(value) {
+    if (Array.isArray(value)) {
+        return value.map(stableJsonValue);
+    }
+    if (value && typeof value === "object") {
+        return Object.keys(value).sort().reduce((stable, key) => {
+            stable[key] = stableJsonValue(value[key]);
+            return stable;
+        }, {});
+    }
+    return value;
+}
+
+function stableJsonString(value) {
+    return JSON.stringify(stableJsonValue(value));
 }
 
 function removeManagedSimpleEntries(profile) {
@@ -112,7 +138,7 @@ function applyDockSwitchKarabinerProfile(profile) {
         throw new TypeError("profile must be an object");
     }
 
-    const before = JSON.stringify(profile);
+    const before = stableJsonString(profile);
     removeManagedSimpleEntries(profile);
     const rules = normalizeRules(profile);
     const cleanedRules = [];
@@ -134,7 +160,7 @@ function applyDockSwitchKarabinerProfile(profile) {
     ];
 
     return {
-        changed: JSON.stringify(profile) !== before,
+        changed: stableJsonString(profile) !== before,
         profile
     };
 }
