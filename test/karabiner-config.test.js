@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const {
     DOCK_SWITCH_RULE_DESCRIPTION,
     CHATGPT_DIRECT_COMMAND,
+    LOGITECH_TOP_ROW_CONSUMER_DEVICE,
     SMARTSHADOW_DIRECT_COMMAND,
     applyDockSwitchKarabinerProfile,
     buildDockSwitchKarabinerRule
@@ -59,6 +60,16 @@ test("applyDockSwitchKarabinerProfile keeps F3 and F6 direct while removing Shif
             { from: { key_code: "f5" }, to: [{ key_code: "f5" }] },
             { from: { key_code: "f6" }, to: [{ key_code: "f6" }] }
         ],
+        devices: [
+            {
+                identifiers: {
+                    is_consumer: true,
+                    product_id: 50479,
+                    vendor_id: 1133
+                },
+                ignore: true
+            }
+        ],
         complex_modifications: {
             rules: [
                 directLegacyRule(),
@@ -78,6 +89,16 @@ test("applyDockSwitchKarabinerProfile keeps F3 and F6 direct while removing Shif
                         {
                             type: "basic",
                             from: { generic_desktop: "do_not_disturb", modifiers: { optional: ["any"] } },
+                            to: [{ key_code: "vk_none" }]
+                        },
+                        {
+                            type: "basic",
+                            from: { key_code: "f5", modifiers: { optional: ["any"] } },
+                            to: [{ shell_command: "date" }]
+                        },
+                        {
+                            type: "basic",
+                            from: { key_code: "f5", modifiers: { mandatory: ["fn"], optional: ["any"] } },
                             to: [{ key_code: "vk_none" }]
                         }
                     ]
@@ -101,7 +122,7 @@ test("applyDockSwitchKarabinerProfile keeps F3 and F6 direct while removing Shif
     );
     assert.deepEqual(
         profile.complex_modifications.rules.find(rule => rule.description === "Longbiao's Tweaks").manipulators.map(manipulator => manipulator.from.key_code),
-        ["d"]
+        ["d", "f5"]
     );
     assert.deepEqual(profile.simple_modifications, [
         { from: { key_code: "caps_lock" }, to: [{ key_code: "f20" }] }
@@ -111,10 +132,11 @@ test("applyDockSwitchKarabinerProfile keeps F3 and F6 direct while removing Shif
         { from: { key_code: "f5" }, to: [{ key_code: "f5" }] },
         { from: { key_code: "f6" }, to: [{ key_code: "f6" }] }
     ]);
+    assert.deepEqual(profile.devices, [LOGITECH_TOP_ROW_CONSUMER_DEVICE]);
 
     const dockSwitchRule = profile.complex_modifications.rules[0];
     assert.equal(dockSwitchRule.description, DOCK_SWITCH_RULE_DESCRIPTION);
-    assert.equal(dockSwitchRule.manipulators.length, 4);
+    assert.equal(dockSwitchRule.manipulators.length, 5);
 
     const f3 = dockSwitchRule.manipulators.find(manipulator => manipulator.from.key_code === "f3");
     assert.deepEqual(f3.to, [{ shell_command: SMARTSHADOW_DIRECT_COMMAND }]);
@@ -135,6 +157,11 @@ test("applyDockSwitchKarabinerProfile keeps F3 and F6 direct while removing Shif
     const f6 = dockSwitchRule.manipulators.find(manipulator => manipulator.from.key_code === "f6");
     assert.deepEqual(f6.to, [{ shell_command: CHATGPT_DIRECT_COMMAND }]);
 
+    const fnF5 = dockSwitchRule.manipulators.find(manipulator =>
+        manipulator.from.key_code === "f5" && manipulator.from.modifiers?.mandatory?.includes("fn")
+    );
+    assert.deepEqual(fnF5.to, [{ shell_command: CHATGPT_DIRECT_COMMAND }]);
+
     const doNotDisturb = dockSwitchRule.manipulators.find(manipulator => manipulator.from.generic_desktop === "do_not_disturb");
     assert.deepEqual(doNotDisturb.to, [{ shell_command: CHATGPT_DIRECT_COMMAND }]);
 
@@ -148,6 +175,7 @@ test("applyDockSwitchKarabinerProfile keeps F3 and F6 direct while removing Shif
 test("applyDockSwitchKarabinerProfile treats Karabiner-reordered manipulators as current", () => {
     const rule = buildDockSwitchKarabinerRule();
     const profile = {
+        devices: [LOGITECH_TOP_ROW_CONSUMER_DEVICE],
         fn_function_keys: [
             { from: { key_code: "f3" }, to: [{ key_code: "f3" }] },
             { from: { key_code: "f6" }, to: [{ key_code: "f6" }] }
@@ -190,5 +218,38 @@ test("applyDockSwitchKarabinerProfile installs top-row F3 and F6 as standard fun
         { from: { key_code: "f3" }, to: [{ key_code: "f3" }] },
         { from: { key_code: "f6" }, to: [{ key_code: "f6" }] },
         { from: { key_code: "f7" }, to: [{ key_code: "vk_consumer_previous" }] }
+    ]);
+});
+
+test("applyDockSwitchKarabinerProfile enables the Logitech consumer interface used by top-row keys", () => {
+    const profile = {
+        devices: [
+            {
+                identifiers: {
+                    is_keyboard: true,
+                    product_id: 50484,
+                    vendor_id: 1133
+                },
+                manipulate_caps_lock_led: false
+            }
+        ],
+        complex_modifications: {
+            rules: []
+        }
+    };
+
+    const result = applyDockSwitchKarabinerProfile(profile);
+
+    assert.equal(result.changed, true);
+    assert.deepEqual(profile.devices, [
+        {
+            identifiers: {
+                is_keyboard: true,
+                product_id: 50484,
+                vendor_id: 1133
+            },
+            manipulate_caps_lock_led: false
+        },
+        LOGITECH_TOP_ROW_CONSUMER_DEVICE
     ]);
 });

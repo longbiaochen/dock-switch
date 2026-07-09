@@ -4,6 +4,14 @@ const path = require("path");
 
 const DOCK_SWITCH_RULE_DESCRIPTION = "dock-switch launcher shortcuts with direct F3/F6 apps";
 const MANAGED_FN_FUNCTION_KEYS = ["f3", "f6"];
+const LOGITECH_TOP_ROW_CONSUMER_DEVICE = {
+    identifiers: {
+        is_consumer: true,
+        product_id: 50479,
+        vendor_id: 1133
+    },
+    ignore: false
+};
 
 function shellCommand(parts) {
     return parts.map(part => `'${part.replace(/'/g, "'\\''")}'`).join(" ");
@@ -43,6 +51,16 @@ function fromKeyCode(keyCode) {
     };
 }
 
+function fromMandatoryFnKeyCode(keyCode) {
+    return {
+        key_code: keyCode,
+        modifiers: {
+            mandatory: ["fn"],
+            optional: ["any"]
+        }
+    };
+}
+
 function buildDockSwitchKarabinerRule() {
     return {
         description: DOCK_SWITCH_RULE_DESCRIPTION,
@@ -67,6 +85,11 @@ function buildDockSwitchKarabinerRule() {
             },
             {
                 type: "basic",
+                from: fromMandatoryFnKeyCode("f5"),
+                to: [{ shell_command: CHATGPT_DIRECT_COMMAND }]
+            },
+            {
+                type: "basic",
                 from: {
                     generic_desktop: "do_not_disturb",
                     modifiers: { optional: ["any"] }
@@ -81,6 +104,7 @@ function manipulatorMatchesManagedDirectKey(manipulator) {
     const from = manipulator && manipulator.from;
     if (!from || typeof from !== "object") return false;
     if (["f3", "f6", "left_shift", "right_shift"].includes(from.key_code)) return true;
+    if (from.key_code === "f5" && Array.isArray(from.modifiers && from.modifiers.mandatory) && from.modifiers.mandatory.includes("fn")) return true;
     if (from.consumer_key_code === "mission_control") return true;
     if (from.apple_vendor_keyboard_key_code === "mission_control") return true;
     if (from.generic_desktop === "do_not_disturb") return true;
@@ -152,6 +176,35 @@ function ensureManagedFunctionKeys(profile) {
         .map(item => item.entry);
 }
 
+function deviceIdentifiersMatch(left, right) {
+    if (!left || !right) return false;
+    return left.vendor_id === right.vendor_id &&
+        left.product_id === right.product_id &&
+        Boolean(left.is_consumer) === Boolean(right.is_consumer) &&
+        Boolean(left.is_keyboard) === Boolean(right.is_keyboard) &&
+        Boolean(left.is_pointing_device) === Boolean(right.is_pointing_device);
+}
+
+function ensureLogitechTopRowConsumerDevice(profile) {
+    if (!Array.isArray(profile.devices)) {
+        profile.devices = [];
+    }
+
+    const existing = profile.devices.find(device =>
+        deviceIdentifiersMatch(device && device.identifiers, LOGITECH_TOP_ROW_CONSUMER_DEVICE.identifiers)
+    );
+
+    if (existing) {
+        existing.ignore = false;
+        return;
+    }
+
+    profile.devices.push({
+        identifiers: Object.assign({}, LOGITECH_TOP_ROW_CONSUMER_DEVICE.identifiers),
+        ignore: LOGITECH_TOP_ROW_CONSUMER_DEVICE.ignore
+    });
+}
+
 function applyDockSwitchKarabinerProfile(profile) {
     if (!profile || typeof profile !== "object") {
         throw new TypeError("profile must be an object");
@@ -160,6 +213,7 @@ function applyDockSwitchKarabinerProfile(profile) {
     const before = stableJsonString(profile);
     removeManagedSimpleEntries(profile);
     ensureManagedFunctionKeys(profile);
+    ensureLogitechTopRowConsumerDevice(profile);
     const rules = normalizeRules(profile);
     const cleanedRules = [];
 
@@ -216,6 +270,7 @@ function writeKarabinerConfig(config, configPath = defaultKarabinerConfigPath())
 module.exports = {
     DOCK_SWITCH_RULE_DESCRIPTION,
     CHATGPT_DIRECT_COMMAND,
+    LOGITECH_TOP_ROW_CONSUMER_DEVICE,
     SMARTSHADOW_DIRECT_COMMAND,
     applyDockSwitchKarabinerConfig,
     applyDockSwitchKarabinerProfile,
