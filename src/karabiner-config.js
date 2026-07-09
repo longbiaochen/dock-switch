@@ -147,6 +147,18 @@ function removeManagedSimpleEntries(profile) {
 }
 
 function managedFunctionKeyEntry(keyCode) {
+    if (keyCode === "f3") {
+        return {
+            from: { key_code: keyCode },
+            to: [{ shell_command: SMARTSHADOW_DIRECT_COMMAND }]
+        };
+    }
+    if (keyCode === "f6") {
+        return {
+            from: { key_code: keyCode },
+            to: [{ shell_command: CHATGPT_DIRECT_COMMAND }]
+        };
+    }
     return {
         from: { key_code: keyCode },
         to: [{ key_code: keyCode }]
