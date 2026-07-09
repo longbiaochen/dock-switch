@@ -55,14 +55,6 @@ function buildDockSwitchKarabinerRule() {
             {
                 type: "basic",
                 from: {
-                    consumer_key_code: "mission_control",
-                    modifiers: { optional: ["any"] }
-                },
-                to: [{ shell_command: SMARTSHADOW_DIRECT_COMMAND }]
-            },
-            {
-                type: "basic",
-                from: {
                     apple_vendor_keyboard_key_code: "mission_control",
                     modifiers: { optional: ["any"] }
                 },

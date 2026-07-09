@@ -114,18 +114,21 @@ test("applyDockSwitchKarabinerProfile keeps F3 and F6 direct while removing Shif
 
     const dockSwitchRule = profile.complex_modifications.rules[0];
     assert.equal(dockSwitchRule.description, DOCK_SWITCH_RULE_DESCRIPTION);
-    assert.equal(dockSwitchRule.manipulators.length, 5);
+    assert.equal(dockSwitchRule.manipulators.length, 4);
 
     const f3 = dockSwitchRule.manipulators.find(manipulator => manipulator.from.key_code === "f3");
     assert.deepEqual(f3.to, [{ shell_command: SMARTSHADOW_DIRECT_COMMAND }]);
 
+    const unsupportedMissionControl = dockSwitchRule.manipulators.find(manipulator =>
+        manipulator.from.consumer_key_code === "mission_control"
+    );
+    assert.equal(unsupportedMissionControl, undefined);
+
     const missionControl = dockSwitchRule.manipulators.filter(manipulator =>
-        manipulator.from.consumer_key_code === "mission_control" ||
         manipulator.from.apple_vendor_keyboard_key_code === "mission_control"
     );
-    assert.equal(missionControl.length, 2);
+    assert.equal(missionControl.length, 1);
     assert.deepEqual(missionControl.map(manipulator => manipulator.to), [
-        [{ shell_command: SMARTSHADOW_DIRECT_COMMAND }],
         [{ shell_command: SMARTSHADOW_DIRECT_COMMAND }]
     ]);
 
