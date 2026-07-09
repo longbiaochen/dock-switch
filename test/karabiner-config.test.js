@@ -107,7 +107,9 @@ test("applyDockSwitchKarabinerProfile keeps F3 and F6 direct while removing Shif
         { from: { key_code: "caps_lock" }, to: [{ key_code: "f20" }] }
     ]);
     assert.deepEqual(profile.fn_function_keys, [
-        { from: { key_code: "f5" }, to: [{ key_code: "f5" }] }
+        { from: { key_code: "f3" }, to: [{ key_code: "f3" }] },
+        { from: { key_code: "f5" }, to: [{ key_code: "f5" }] },
+        { from: { key_code: "f6" }, to: [{ key_code: "f6" }] }
     ]);
 
     const dockSwitchRule = profile.complex_modifications.rules[0];
@@ -143,6 +145,10 @@ test("applyDockSwitchKarabinerProfile keeps F3 and F6 direct while removing Shif
 test("applyDockSwitchKarabinerProfile treats Karabiner-reordered manipulators as current", () => {
     const rule = buildDockSwitchKarabinerRule();
     const profile = {
+        fn_function_keys: [
+            { from: { key_code: "f3" }, to: [{ key_code: "f3" }] },
+            { from: { key_code: "f6" }, to: [{ key_code: "f6" }] }
+        ],
         complex_modifications: {
             rules: [
                 {
@@ -160,4 +166,26 @@ test("applyDockSwitchKarabinerProfile treats Karabiner-reordered manipulators as
     const result = applyDockSwitchKarabinerProfile(profile);
 
     assert.equal(result.changed, false);
+});
+
+test("applyDockSwitchKarabinerProfile installs top-row F3 and F6 as standard function keys", () => {
+    const profile = {
+        fn_function_keys: [
+            { from: { key_code: "f1" }, to: [{ apple_vendor_keyboard_key_code: "brightness_down" }] },
+            { from: { key_code: "f7" }, to: [{ key_code: "vk_consumer_previous" }] }
+        ],
+        complex_modifications: {
+            rules: []
+        }
+    };
+
+    const result = applyDockSwitchKarabinerProfile(profile);
+
+    assert.equal(result.changed, true);
+    assert.deepEqual(profile.fn_function_keys, [
+        { from: { key_code: "f1" }, to: [{ apple_vendor_keyboard_key_code: "brightness_down" }] },
+        { from: { key_code: "f3" }, to: [{ key_code: "f3" }] },
+        { from: { key_code: "f6" }, to: [{ key_code: "f6" }] },
+        { from: { key_code: "f7" }, to: [{ key_code: "vk_consumer_previous" }] }
+    ]);
 });

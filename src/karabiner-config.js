@@ -3,6 +3,8 @@ const os = require("os");
 const path = require("path");
 
 const DOCK_SWITCH_RULE_DESCRIPTION = "dock-switch launcher shortcuts with direct F3/F6 apps";
+const MANAGED_FN_FUNCTION_KEYS = ["f3", "f6"];
+
 function shellCommand(parts) {
     return parts.map(part => `'${part.replace(/'/g, "'\\''")}'`).join(" ");
 }
@@ -126,11 +128,36 @@ function removeManagedSimpleEntries(profile) {
             !manipulatorMatchesManagedDirectKey(entry)
         );
     }
-    if (Array.isArray(profile.fn_function_keys)) {
-        profile.fn_function_keys = profile.fn_function_keys.filter(entry =>
-            !manipulatorMatchesManagedDirectKey(entry)
-        );
-    }
+}
+
+function managedFunctionKeyEntry(keyCode) {
+    return {
+        from: { key_code: keyCode },
+        to: [{ key_code: keyCode }]
+    };
+}
+
+function functionKeyRank(entry, index) {
+    const keyCode = entry && entry.from && entry.from.key_code;
+    const match = typeof keyCode === "string" ? keyCode.match(/^f(\d+)$/) : null;
+    if (!match) return 1000 + index;
+    return Number(match[1]);
+}
+
+function ensureManagedFunctionKeys(profile) {
+    const existing = Array.isArray(profile.fn_function_keys)
+        ? profile.fn_function_keys.filter(entry => !MANAGED_FN_FUNCTION_KEYS.includes(entry.from && entry.from.key_code))
+        : [];
+    profile.fn_function_keys = [
+        ...existing,
+        ...MANAGED_FN_FUNCTION_KEYS.map(managedFunctionKeyEntry)
+    ]
+        .map((entry, index) => ({ entry, index }))
+        .sort((left, right) => {
+            const rankDiff = functionKeyRank(left.entry, left.index) - functionKeyRank(right.entry, right.index);
+            return rankDiff || left.index - right.index;
+        })
+        .map(item => item.entry);
 }
 
 function applyDockSwitchKarabinerProfile(profile) {
@@ -140,6 +167,7 @@ function applyDockSwitchKarabinerProfile(profile) {
 
     const before = stableJsonString(profile);
     removeManagedSimpleEntries(profile);
+    ensureManagedFunctionKeys(profile);
     const rules = normalizeRules(profile);
     const cleanedRules = [];
 
