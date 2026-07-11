@@ -127,7 +127,7 @@ func defaultSettingsItem(for name: String) -> SettingsRow? {
     case "claude":
         itemName = "Claude"
         displayKey = "R⇧"
-        placement = "external_fill"
+        placement = "side_right_fill"
     default:
         return nil
     }

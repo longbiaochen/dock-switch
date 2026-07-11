@@ -37,7 +37,7 @@ test("buildSettingsRows merges visible Dock apps with configured special default
         { name: "ChatGPT", key: "F6", screen: "side_right", placement: "side_right_fill", status: "configured", readonly: false },
         { name: "Codex", key: "L⇧", screen: "0", placement: "external_fill", status: "configured", readonly: false },
         { name: "SmartShadow", key: "F3", screen: "side_left", placement: "side_left_fill", status: "configured", readonly: false },
-        { name: "Claude", key: "R⇧", screen: "0", placement: "external_fill", status: "configured", readonly: false },
+        { name: "Claude", key: "R⇧", screen: "side_right", placement: "side_right_fill", status: "configured", readonly: false },
         { name: "Temporary App", key: "1", screen: "", placement: "", status: "fallback", readonly: false }
     ]);
 });

@@ -200,28 +200,35 @@ public enum LauncherShortcutRules {
         }
     }
 
-    public static func launcherItem(for normalizedKey: String) -> LauncherItem? {
+    public static func launcherItem(
+        for normalizedKey: String,
+        config: LauncherConfig = .empty
+    ) -> LauncherItem? {
         guard let appName = appName(for: normalizedKey) else { return nil }
+        let configured = config.dockItems.first(where: {
+            LauncherRules.normalizeAppName($0.name) == LauncherRules.normalizeAppName(appName) &&
+                LauncherRules.normalizeKey($0.key ?? "") == normalizedKey
+        })
         guard let special = LauncherRules.specialItem(for: appName) else {
             return LauncherItem(
-                name: appName,
+                name: configured?.name ?? appName,
                 key: normalizedKey,
                 icon: nil,
-                kind: nil,
-                placement: nil,
-                openPath: nil,
-                appURL: nil,
+                kind: configured?.kind,
+                placement: configured?.placement,
+                openPath: configured?.openPath,
+                appURL: configured?.appURL,
                 dockItem: DockItemSnapshot(name: appName, pos: .zero, size: .zero)
             )
         }
         return LauncherItem(
-            name: special.name,
-            key: special.key,
-            icon: special.icon,
-            kind: nil,
-            placement: special.placement,
-            openPath: special.openPath,
-            appURL: nil,
+            name: configured?.name ?? special.name,
+            key: normalizedKey,
+            icon: LauncherRules.keyIcon(for: normalizedKey) ?? special.icon,
+            kind: configured?.kind,
+            placement: configured?.placement ?? special.placement,
+            openPath: configured?.openPath ?? special.openPath,
+            appURL: configured?.appURL,
             dockItem: DockItemSnapshot(name: special.name, pos: .zero, size: .zero)
         )
     }
@@ -556,7 +563,7 @@ public enum LauncherRules {
         case "smartshadow":
             return ("SmartShadow", "F3", "F3", "side_left_fill", "/Applications/SmartShadow.app")
         case "claude":
-            return ("Claude", "RIGHT_SHIFT", "R⇧", "external_fill", "/Applications/Claude.app")
+            return ("Claude", "RIGHT_SHIFT", "R⇧", "side_right_fill", "/Applications/Claude.app")
         default:
             return nil
         }

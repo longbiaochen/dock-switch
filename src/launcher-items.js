@@ -40,8 +40,8 @@ var SPECIAL_LAUNCHER_ITEMS = Object.freeze({
         name: "Claude",
         key: "RIGHT_SHIFT",
         icon: "R⇧",
-        screen: "external",
-        placement: "external_fill",
+        screen: "side_right",
+        placement: "side_right_fill",
         open_path: "/Applications/Claude.app"
     })
 });

@@ -398,7 +398,10 @@ final class DockSwitchApp: NSObject, NSApplicationDelegate {
             launcherService.activate(item)
             return
         }
-        guard let item = LauncherShortcutRules.launcherItem(for: normalizedKey) else {
+        guard let item = LauncherShortcutRules.launcherItem(
+            for: normalizedKey,
+            config: configStore.load()
+        ) else {
             return
         }
         launcherService.activate(item)

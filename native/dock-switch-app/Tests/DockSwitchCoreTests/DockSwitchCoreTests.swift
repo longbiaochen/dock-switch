@@ -118,7 +118,7 @@ final class DockSwitchCoreTests: XCTestCase {
         XCTAssertEqual(items.first { $0.name == "ChatGPT" }?.placement, "side_right_fill")
         XCTAssertEqual(items.first { $0.name == "Codex" }?.placement, "external_fill")
         XCTAssertEqual(items.first { $0.name == "SmartShadow" }?.placement, "external_fill")
-        XCTAssertEqual(items.first { $0.name == "Claude" }?.placement, "external_fill")
+        XCTAssertEqual(items.first { $0.name == "Claude" }?.placement, "side_right_fill")
         XCTAssertEqual(items.first { $0.name == "SmartShadow" }?.openPath, "/Applications/SmartShadow.app")
         XCTAssertEqual(items.first { $0.name == "Claude" }?.openPath, "/Applications/Claude.app")
     }
@@ -302,9 +302,30 @@ final class DockSwitchCoreTests: XCTestCase {
         let claude = LauncherShortcutRules.launcherItem(for: "RIGHT_SHIFT")
         XCTAssertEqual(claude?.name, "Claude")
         XCTAssertEqual(claude?.key, "RIGHT_SHIFT")
-        XCTAssertEqual(claude?.placement, "external_fill")
+        XCTAssertEqual(claude?.placement, "side_right_fill")
         XCTAssertEqual(claude?.openPath, "/Applications/Claude.app")
         XCTAssertNil(LauncherShortcutRules.launcherItem(for: "COMMAND_RIGHT"))
+    }
+
+    func testDirectModifierShortcutUsesConfiguredPlacementWithoutOpeningLauncher() {
+        let config = LauncherConfig(dockItems: [
+            LauncherConfigItem(
+                name: "Claude",
+                key: "RIGHT_SHIFT",
+                screen: "side_right",
+                kind: nil,
+                placement: "side_right_fill",
+                openPath: nil,
+                appURL: nil
+            )
+        ])
+
+        let claude = LauncherShortcutRules.launcherItem(for: "RIGHT_SHIFT", config: config)
+
+        XCTAssertEqual(claude?.name, "Claude")
+        XCTAssertEqual(claude?.key, "RIGHT_SHIFT")
+        XCTAssertEqual(claude?.placement, "side_right_fill")
+        XCTAssertEqual(claude?.openPath, "/Applications/Claude.app")
     }
 
     func testLauncherServiceShowsMouseFeedbackAfterPlacedAppMouseMove() {
