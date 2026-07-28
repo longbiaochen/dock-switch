@@ -123,6 +123,21 @@ final class DockSwitchCoreTests: XCTestCase {
         XCTAssertEqual(items.first { $0.name == "Claude" }?.openPath, "/Applications/Claude.app")
     }
 
+    func testUserAssignedNumericKeysTakePriorityOverAutomaticFallbackKeys() {
+        let dockItems = [
+            DockItemSnapshot(name: "Automatic App", pos: CGPoint(x: 10, y: 900), size: CGSize(width: 50, height: 66)),
+            DockItemSnapshot(name: "User App", pos: CGPoint(x: 60, y: 900), size: CGSize(width: 50, height: 66))
+        ]
+        let config = LauncherConfig(dockItems: [
+            LauncherConfigItem(name: "User App", key: "1", screen: nil, kind: nil, placement: nil, openPath: nil, appURL: nil)
+        ])
+
+        let items = LauncherRules.buildLauncherItems(dockItems: dockItems, config: config)
+
+        XCTAssertEqual(items.map(\.key), ["2", "1"])
+        XCTAssertEqual(items.first { $0.key == "1" }?.name, "User App")
+    }
+
     func testBottomDockOverlaySitsAboveDock() {
         let display = DisplaySnapshot(
             id: 1,

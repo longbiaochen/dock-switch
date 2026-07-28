@@ -205,6 +205,7 @@ struct SettingsRowView: View {
     private var statusColor: Color {
         switch row.status {
         case .configured: return .blue
+        case .userAssigned: return .orange
         case .fallback: return .green
         case .reserved: return .purple
         }

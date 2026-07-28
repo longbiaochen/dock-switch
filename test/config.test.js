@@ -21,7 +21,7 @@ test("default config maps requested apps and web apps to internal fill", () => {
     const expectedInternalFill = [
         "Safari",
         "Google Chrome",
-        "微信",
+        "WeChat",
         "Feishu",
         "Mail",
         "Calendar",

@@ -2,12 +2,14 @@ import Foundation
 
 enum RowStatus: String {
     case configured
+    case userAssigned
     case fallback
     case reserved
 
     var label: String {
         switch self {
         case .configured: return "已配置"
+        case .userAssigned: return "用户分配"
         case .fallback: return "自动分配"
         case .reserved: return "系统保留"
         }

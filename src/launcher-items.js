@@ -86,7 +86,16 @@ function buildLauncherItems(dockItems, configDockItems) {
         .sort((a, b) => a.pos.x - b.pos.x);
 
     var launcherItems = [];
+    var userAssignedKeys = new Set((configDockItems || [])
+        .map(item => String(item && item.key || "").trim().toUpperCase())
+        .filter(Boolean));
     var fallbackKey = 1;
+    function nextFallbackKey() {
+        while (userAssignedKeys.has(String(fallbackKey))) {
+            fallbackKey += 1;
+        }
+        return fallbackKey++;
+    }
     for (var i = 0; i < visibleItems.length; i++) {
         var dockName = normalizeAppName(visibleItems[i].name);
         var configItem = configuredItemForName(configDockItems, dockName);
@@ -101,7 +110,7 @@ function buildLauncherItems(dockItems, configDockItems) {
         if (item == undefined) {
             item = {
                 name: visibleItems[i].name,
-                key: fallbackKey++,
+                key: nextFallbackKey(),
                 screen: ""
             };
         }

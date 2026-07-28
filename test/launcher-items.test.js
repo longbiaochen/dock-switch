@@ -152,3 +152,24 @@ test("buildLauncherItems ignores config entries without keys so fallback keys st
         ]
     );
 });
+
+test("user-assigned numeric keys take priority over automatic fallback keys", () => {
+    const dockItems = [
+        { name: "Automatic App", pos: { x: 10, y: 0 } },
+        { name: "User App", pos: { x: 20, y: 0 } }
+    ];
+    const configDockItems = [
+        { name: "User App", key: "1" }
+    ];
+
+    const launcherItems = buildLauncherItems(dockItems, configDockItems);
+
+    assert.deepEqual(
+        launcherItems.map(entry => ({ name: entry.item.name, key: entry.item.key })),
+        [
+            { name: "Automatic App", key: 2 },
+            { name: "User App", key: "1" }
+        ]
+    );
+    assert.equal(findLauncherItemForKey(dockItems, configDockItems, "1").name, "User App");
+});

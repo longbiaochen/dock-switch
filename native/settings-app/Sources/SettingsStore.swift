@@ -47,7 +47,6 @@ final class SettingsStore: ObservableObject {
         guard let index = rows.firstIndex(where: { $0.id == rowID }), !rows[index].readonly else { return }
         if let key {
             rows[index].key = displayLauncherKey(key)
-            rows[index].displayKey = rows[index].key
         }
         if let screen {
             rows[index].screen = screen
@@ -64,6 +63,14 @@ final class SettingsStore: ObservableObject {
             if !position.isEmpty && rows[index].screen.isEmpty {
                 rows[index].screen = "1"
             }
+        }
+        if rows[index].fallback {
+            let key = normalizeLauncherKey(rows[index].key)
+            let automaticKey = normalizeLauncherKey(rows[index].displayKey)
+            let hasUserAssignment = (!key.isEmpty && key != automaticKey)
+                || !rows[index].screen.isEmpty
+                || !rows[index].position.isEmpty
+            rows[index].status = hasUserAssignment ? .userAssigned : .fallback
         }
         isDirty = true
         refreshValidationText()

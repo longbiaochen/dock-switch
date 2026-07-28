@@ -221,3 +221,20 @@ test("saveDockItemSettings creates a visible fallback app when screen or placeme
         { name: "Preview", screen: "side_right", placement: "side_right_fill" }
     ]);
 });
+
+test("saveDockItemSettings persists a user key that replaces an automatic fallback key", () => {
+    const dockItems = [
+        { name: "WeChat", pos: { x: 10, y: 0 } }
+    ];
+    const config = { dock_items: [] };
+
+    const result = saveDockItemSettings(config, dockItems, [
+        { name: "WeChat", key: "W", screen: "", placement: "" }
+    ]);
+
+    assert.equal(result.ok, true);
+    assert.deepEqual(result.config.dock_items, [
+        { name: "WeChat", key: "W" }
+    ]);
+    assert.equal(buildSettingsRows(dockItems, result.config)[0].status, "configured");
+});

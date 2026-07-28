@@ -576,6 +576,10 @@ public enum LauncherRules {
         let visible = dockItems
             .filter { !$0.name.isEmpty && $0.name != "Trash" && $0.name != "Downloads" }
             .sorted { $0.pos.x < $1.pos.x }
+        let userAssignedKeys = Set(config.dockItems.compactMap { item -> String? in
+            let key = normalizeKey(item.key ?? "")
+            return key.isEmpty ? nil : key
+        })
         var fallbackKey = 1
         return visible.map { dockItem in
             let normalizedDockName = normalizeAppName(dockItem.name)
@@ -622,6 +626,9 @@ public enum LauncherRules {
                 )
             }
 
+            while userAssignedKeys.contains("\(fallbackKey)") {
+                fallbackKey += 1
+            }
             defer { fallbackKey += 1 }
             return LauncherItem(
                 name: dockItem.name,
