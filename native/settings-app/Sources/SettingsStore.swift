@@ -227,7 +227,8 @@ final class SettingsStore: ObservableObject {
     }
 
     private func visibleDockItems(_ dockItems: [[String: Any]]) -> [[String: Any]] {
-        dockItems
+        var seenNames = Set<String>()
+        return dockItems
             .filter {
                 guard let name = $0["name"] as? String,
                       name != "Trash",
@@ -242,6 +243,10 @@ final class SettingsStore: ObservableObject {
                 let lhs = (($0["pos"] as? [String: Any])?["x"] as? NSNumber)?.doubleValue ?? 0
                 let rhs = (($1["pos"] as? [String: Any])?["x"] as? NSNumber)?.doubleValue ?? 0
                 return lhs < rhs
+            }
+            .filter {
+                guard let name = $0["name"] as? String else { return false }
+                return seenNames.insert(normalizeAppName(name)).inserted
             }
     }
 

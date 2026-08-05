@@ -42,6 +42,24 @@ test("buildSettingsRows merges visible Dock apps with configured special default
     ]);
 });
 
+test("buildSettingsRows ignores duplicate Dock entries for the same app", () => {
+    const rows = buildSettingsRows([
+        { name: "Reminders", pos: { x: 10, y: 0 } },
+        { name: "Preview", pos: { x: 20, y: 0 } },
+        { name: "Reminders", pos: { x: 30, y: 0 } }
+    ], {
+        dock_items: [
+            { name: "Reminders", key: "R", screen: "1", placement: "internal_fill" }
+        ]
+    });
+
+    assert.deepEqual(rows.map(row => ({ name: row.name, key: row.key })), [
+        { name: "Reminders", key: "R" },
+        { name: "Preview", key: "1" }
+    ]);
+    assert.equal(validateKeyUpdates(rows).length, 0);
+});
+
 test("normalizeEditableKey uses launcher key normalization for settings input", () => {
     assert.equal(normalizeEditableKey(" f3 "), "F3");
     assert.equal(normalizeEditableKey("space"), "SPACE");

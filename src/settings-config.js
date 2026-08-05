@@ -32,6 +32,7 @@ function writeConfig(config, configPath = DEFAULT_CONFIG_PATH) {
 }
 
 function visibleDockItems(dockItems) {
+    const seenNames = new Set();
     return (dockItems || [])
         .filter(item =>
             item &&
@@ -41,7 +42,13 @@ function visibleDockItems(dockItems) {
             item.pos &&
             Number.isFinite(item.pos.x)
         )
-        .sort((a, b) => a.pos.x - b.pos.x);
+        .sort((a, b) => a.pos.x - b.pos.x)
+        .filter(item => {
+            const name = normalizeAppName(item.name);
+            if (seenNames.has(name)) return false;
+            seenNames.add(name);
+            return true;
+        });
 }
 
 function findConfigItem(configDockItems, appName) {
