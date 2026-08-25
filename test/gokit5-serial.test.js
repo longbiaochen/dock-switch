@@ -189,6 +189,85 @@ test("createGokit5SerialListener dispatches plus to the internal mouse display a
     listener.stop();
 });
 
+test("createGokit5SerialListener survives exceptions thrown by button callbacks", () => {
+    const stream = new EventEmitter();
+    stream.destroy = () => {};
+    const seen = [];
+
+    const listener = createGokit5SerialListener({
+        debounceMs: 0,
+        findPort: () => "/dev/cu.usbmodem13101",
+        createReadStream: () => stream,
+        onButton: () => {
+            throw new Error("onButton exploded");
+        },
+        onAction: action => {
+            seen.push(action);
+            throw new Error("onAction exploded");
+        }
+    });
+
+    listener.start();
+    stream.emit("data", "GOKIT5_HOST_BUTTON:plus\n");
+    // A throwing onButton must not stop onAction from running...
+    assert.equal(seen.length, 1);
+    // ...and a second event must still be dispatched.
+    stream.emit("data", "GOKIT5_HOST_BUTTON:minus\n");
+    assert.equal(seen.length, 2);
+    assert.equal(listener.isRunning(), true);
+
+    listener.stop();
+});
+
+test("createGokit5SerialListener survives exceptions thrown by status callbacks", () => {
+    const stream = new EventEmitter();
+    stream.destroy = () => {};
+    const statuses = [];
+
+    const listener = createGokit5SerialListener({
+        debounceMs: 0,
+        reconnectMs: 60_000,
+        findPort: () => "/dev/cu.usbmodem13101",
+        createReadStream: () => stream,
+        onStatus: status => {
+            statuses.push(status.status);
+            throw new Error("onStatus exploded");
+        }
+    });
+
+    listener.start();
+    assert.deepEqual(statuses, ["connected"]);
+
+    stream.emit("error", new Error("serial went away"));
+    assert.deepEqual(statuses, ["connected", "error"]);
+    assert.equal(listener.isRunning(), true);
+
+    listener.stop();
+});
+
+test("createGokit5SerialListener reports and retries when findPort throws", () => {
+    const statuses = [];
+    const listener = createGokit5SerialListener({
+        reconnectMs: 60_000,
+        findPort: () => {
+            throw new Error("ioreg unavailable");
+        },
+        createReadStream: () => {
+            throw new Error("must not be reached");
+        },
+        onStatus: status => statuses.push(status)
+    });
+
+    listener.start();
+
+    assert.equal(statuses.length, 1);
+    assert.equal(statuses[0].status, "find_port_failed");
+    assert.match(statuses[0].error, /ioreg unavailable/);
+    assert.equal(listener.isRunning(), true);
+
+    listener.stop();
+});
+
 test("createConfiguredSerialReadStream closes the held fd when stty fails", () => {
     const events = [];
     const fsModule = {
